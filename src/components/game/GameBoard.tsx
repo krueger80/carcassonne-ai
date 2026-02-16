@@ -15,7 +15,7 @@ interface GameBoardProps {
 
 export function GameBoard({ onTilePlaced, onMeeplePlaced }: GameBoardProps) {
   const { gameState, validPlacements, placeableSegments, placeTile, placeMeeple } = useGameStore()
-  const { boardScale, boardOffset, hoveredCoord, setHoveredCoord, setBoardScale } = useUIStore()
+  const { boardScale, boardOffset, hoveredCoord, setHoveredCoord, setBoardScale, selectedMeepleType } = useUIStore()
 
   const containerRef = useRef<HTMLDivElement>(null)
   const [isPanning, setIsPanning] = useState(false)
@@ -132,7 +132,7 @@ export function GameBoard({ onTilePlaced, onMeeplePlaced }: GameBoardProps) {
                       players={gameState.players}
                       placeableSegments={isInMeeplePlacement && isHovered && key === lastPlacedKey ? placeableSegments : []}
                       onSegmentClick={(segId) => {
-                        placeMeeple(segId)
+                        placeMeeple(segId, selectedMeepleType)
                         onMeeplePlaced?.(segId)
                       }}
                     />

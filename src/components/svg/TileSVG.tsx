@@ -87,6 +87,33 @@ export function TileSVG({
         )
       })}
 
+      {/* Inn indicators — blue lake ellipse on road segments with an inn */}
+      {sortedSegments.filter(s => s.hasInn).map(seg => {
+        const { x: cx, y: cy } = seg.meepleCentroid
+        return (
+          <g key={`inn-${seg.id}`}>
+            <ellipse cx={cx} cy={cy - 10} rx={7} ry={4.5}
+              fill="#4488cc" stroke="#2266aa" strokeWidth="0.8" />
+            <ellipse cx={cx} cy={cy - 10} rx={4} ry={2}
+              fill="#66aaee" opacity="0.5" />
+          </g>
+        )
+      })}
+
+      {/* Cathedral indicators — purple pointed arch on city segments with a cathedral */}
+      {sortedSegments.filter(s => s.hasCathedral).map(seg => {
+        const { x: cx, y: cy } = seg.meepleCentroid
+        return (
+          <g key={`cathedral-${seg.id}`}>
+            <polygon
+              points={`${cx},${cy - 14} ${cx - 5},${cy - 4} ${cx - 3},${cy - 4} ${cx - 3},${cy + 2} ${cx + 3},${cy + 2} ${cx + 3},${cy - 4} ${cx + 5},${cy - 4}`}
+              fill="#9955cc" stroke="#6622aa" strokeWidth="0.8"
+            />
+            <circle cx={cx} cy={cy - 8} r={1.5} fill="#ddc0ff" />
+          </g>
+        )
+      })}
+
       {/* Tile border */}
       <rect
         x="0.5" y="0.5" width="99" height="99"

@@ -25,6 +25,8 @@ export interface Segment {
   id: string           // local to this tile, e.g. 'city0', 'road0', 'field0'
   type: FeatureType
   hasPennant?: boolean        // cities only
+  hasInn?: boolean            // roads only – inn on lake
+  hasCathedral?: boolean      // cities only – cathedral
   // SVG path for visual rendering (100x100 viewBox)
   svgPath: string
   // Where to place a meeple visually (in 0-100 viewBox coords)

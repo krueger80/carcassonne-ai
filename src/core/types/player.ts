@@ -30,7 +30,7 @@ export interface Player {
   meeples: PlayerMeeples
 }
 
-export function createPlayer(id: string, name: string, color: string): Player {
+export function createPlayer(id: string, name: string, color: string, bigMeeple = false): Player {
   return {
     id,
     name,
@@ -39,7 +39,7 @@ export function createPlayer(id: string, name: string, color: string): Player {
     meeples: {
       available: {
         NORMAL: 7,
-        BIG: 0,
+        BIG: bigMeeple ? 1 : 0,
         FARMER: 0,
         BUILDER: 0,
         PIG: 0,

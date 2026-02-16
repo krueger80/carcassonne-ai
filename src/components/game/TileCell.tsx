@@ -38,11 +38,11 @@ export function TileCell({
   if (!def) return null
 
   // Build meeple color map for this tile
-  const meepleColors: Record<string, { color: string }> = {}
+  const meepleColors: Record<string, { color: string; isBig?: boolean }> = {}
   for (const [segId, meeple] of Object.entries(tile.meeples)) {
     const player = players.find(p => p.id === meeple.playerId)
     if (player) {
-      meepleColors[segId] = { color: player.color }
+      meepleColors[segId] = { color: player.color, isBig: meeple.meepleType === 'BIG' }
     }
   }
 

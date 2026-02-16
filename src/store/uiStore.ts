@@ -1,4 +1,5 @@
 import { create } from 'zustand'
+import type { MeepleType } from '../core/types/player.ts'
 
 interface ScorePopup {
   id: string
@@ -14,6 +15,7 @@ interface UIStore {
   hoveredCoord: { x: number; y: number } | null
   activeScorePopups: ScorePopup[]
   showDevGallery: boolean
+  selectedMeepleType: MeepleType
 
   setBoardScale: (scale: number) => void
   panBoard: (dx: number, dy: number) => void
@@ -22,6 +24,7 @@ interface UIStore {
   dismissScorePopup: (id: string) => void
   toggleDevGallery: () => void
   resetView: () => void
+  setSelectedMeepleType: (type: MeepleType) => void
 }
 
 export const useUIStore = create<UIStore>((set) => ({
@@ -30,6 +33,7 @@ export const useUIStore = create<UIStore>((set) => ({
   hoveredCoord: null,
   activeScorePopups: [],
   showDevGallery: false,
+  selectedMeepleType: 'NORMAL' as MeepleType,
 
   setBoardScale: (scale) => set({ boardScale: Math.max(0.3, Math.min(3, scale)) }),
 
@@ -50,4 +54,6 @@ export const useUIStore = create<UIStore>((set) => ({
   toggleDevGallery: () => set((s) => ({ showDevGallery: !s.showDevGallery })),
 
   resetView: () => set({ boardScale: 1, boardOffset: { x: 0, y: 0 } }),
+
+  setSelectedMeepleType: (type) => set({ selectedMeepleType: type }),
 }))

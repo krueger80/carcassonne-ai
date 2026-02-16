@@ -12,7 +12,8 @@ import type { Player, MeepleType } from '../types/player.ts'
 import { coordKey, emptyBoard } from '../types/board.ts'
 import { emptyUnionFindState } from '../types/feature.ts'
 import { createPlayer, PLAYER_COLORS } from '../types/player.ts'
-import { BASE_TILES, TILE_MAP } from '../data/baseTiles.ts'
+import { BASE_TILES, TILE_MAP, registerTiles } from '../data/baseTiles.ts'
+import { getExpansionConfig } from '../expansions/registry.ts'
 import { createTileBag, drawTile as drawFromBag } from './TileBag.ts'
 import {
   isValidPlacement,
@@ -37,20 +38,41 @@ export interface GameConfig {
   playerNames: string[]
   extraTileDefinitions?: TileDefinition[]
   scoringRules?: ScoringRule[]
+  expansions?: string[]
 }
 
 export function initGame(config: GameConfig): GameState {
-  const { playerNames, extraTileDefinitions = [], scoringRules: _rules = BASE_SCORING_RULES } = config
+  const {
+    playerNames,
+    extraTileDefinitions = [],
+    scoringRules = BASE_SCORING_RULES,
+    expansions = [],
+  } = config
 
   if (playerNames.length < 2 || playerNames.length > 6) {
     throw new Error('Carcassonne supports 2–6 players')
   }
 
+  // Resolve expansion configs
+  const enableBigMeeple = expansions.includes('inns-cathedrals')
+  let allExtraTiles = [...extraTileDefinitions]
+  let activeRules = scoringRules
+
+  if (expansions.includes('inns-cathedrals')) {
+    // Lazy import avoided — use the expansion registry
+    const ic = getExpansionConfig('inns-cathedrals')
+    if (ic) {
+      allExtraTiles = [...allExtraTiles, ...ic.tiles]
+      activeRules = ic.scoringRules
+      registerTiles(ic.tiles)
+    }
+  }
+
   const players: Player[] = playerNames.map((name, i) =>
-    createPlayer(`player_${i}`, name, PLAYER_COLORS[i])
+    createPlayer(`player_${i}`, name, PLAYER_COLORS[i], enableBigMeeple)
   )
 
-  const allDefs = [...BASE_TILES, ...extraTileDefinitions]
+  const allDefs = [...BASE_TILES, ...allExtraTiles]
   const { bag, startingTile } = createTileBag(allDefs)
 
   // Place the starting tile at (0,0)
@@ -79,7 +101,10 @@ export function initGame(config: GameConfig): GameState {
     featureUnionFind: initialUfState,
     lastScoreEvents: [],
     boardMeeples: {},
-    expansionData: {},
+    expansionData: {
+      scoringRules: activeRules,
+      expansions,
+    },
   }
 }
 
@@ -243,10 +268,12 @@ export function endTurn(state: GameState): GameState {
   // Score completed features NOW (after meeple placement), then return meeples.
   // Scoring here instead of in placeTile means any meeple placed on a just-completed
   // feature is correctly included in the scoring.
+  const rules = (state.expansionData.scoringRules as ScoringRule[] | undefined) ?? BASE_SCORING_RULES
   const scoreEvents = scoreCompletedFeatures(
     state.completedFeatureIds,
     state.featureUnionFind,
     state.players,
+    rules,
   )
 
   let updatedPlayers = [...state.players]
@@ -337,10 +364,12 @@ export function endGame(state: GameState): GameState {
     )
   )
 
+  const rules = (state.expansionData.scoringRules as ScoringRule[] | undefined) ?? BASE_SCORING_RULES
   const endGameEvents = scoreAllRemainingFeatures(
     state.featureUnionFind,
     completedFeatureIds,
     state.players,
+    rules,
   )
 
   const finalPlayers = applyScoreEvents(state.players, endGameEvents)

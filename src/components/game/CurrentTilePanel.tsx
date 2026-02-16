@@ -1,14 +1,23 @@
 import { TileSVG } from '../svg/TileSVG.tsx'
 import { TILE_MAP } from '../../core/data/baseTiles.ts'
-import { useGameStore } from '../../store/gameStore.ts'
+import { useGameStore, selectCurrentPlayer } from '../../store/gameStore.ts'
+import { useUIStore } from '../../store/uiStore.ts'
 
 export function CurrentTilePanel() {
   const { gameState, rotateTile, drawTile, skipMeeple, endTurn, placeableSegments } = useGameStore()
+  const currentPlayer = useGameStore(selectCurrentPlayer)
+  const { selectedMeepleType, setSelectedMeepleType } = useUIStore()
 
   if (!gameState) return null
 
   const { currentTile, turnPhase, tileBag } = gameState
   const def = currentTile ? TILE_MAP[currentTile.definitionId] : null
+
+  const hasBigMeeple = (currentPlayer?.meeples.available.BIG ?? 0) > 0
+  const hasNormalMeeple = (currentPlayer?.meeples.available.NORMAL ?? 0) > 0
+
+  // Reset to NORMAL if the selected type isn't available
+  const effectiveType = selectedMeepleType === 'BIG' && !hasBigMeeple ? 'NORMAL' : selectedMeepleType
 
   return (
     <div style={{
@@ -81,6 +90,35 @@ export function CurrentTilePanel() {
                 Click a segment to place meeple
               </div>
             )}
+
+            {/* Meeple type selector (only shown when big meeple is available) */}
+            {hasBigMeeple && placeableSegments.length > 0 && (
+              <div style={{ display: 'flex', gap: 4 }}>
+                <button
+                  onClick={() => setSelectedMeepleType('NORMAL')}
+                  style={{
+                    ...meepleToggleStyle,
+                    background: effectiveType === 'NORMAL' ? '#4a6a4a' : '#333',
+                    border: `1px solid ${effectiveType === 'NORMAL' ? '#6a9a6a' : '#555'}`,
+                    opacity: hasNormalMeeple ? 1 : 0.4,
+                  }}
+                  disabled={!hasNormalMeeple}
+                >
+                  Normal
+                </button>
+                <button
+                  onClick={() => setSelectedMeepleType('BIG')}
+                  style={{
+                    ...meepleToggleStyle,
+                    background: effectiveType === 'BIG' ? '#6a4a6a' : '#333',
+                    border: `1px solid ${effectiveType === 'BIG' ? '#9a6a9a' : '#555'}`,
+                  }}
+                >
+                  Big (x2)
+                </button>
+              </div>
+            )}
+
             <button onClick={skipMeeple} style={actionBtnStyle('#5a3a2a')}>
               Skip Meeple
             </button>
@@ -109,3 +147,13 @@ const actionBtnStyle = (bg: string): React.CSSProperties => ({
   width: '100%',
   transition: 'opacity 0.1s',
 })
+
+const meepleToggleStyle: React.CSSProperties = {
+  flex: 1,
+  padding: '6px 0',
+  color: '#f0f0f0',
+  borderRadius: 4,
+  cursor: 'pointer',
+  fontSize: 11,
+  fontWeight: 'bold',
+}

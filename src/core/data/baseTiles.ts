@@ -612,7 +612,7 @@ export const BASE_TILES: TileDefinition[] = [
     edgePositionToSegment: {
       NORTH_LEFT: 'city0', NORTH_CENTER: 'city0', NORTH_RIGHT: 'city0',
       EAST_LEFT: 'city0', EAST_CENTER: 'city0', EAST_RIGHT: 'city0',
-      SOUTH_LEFT: 'field1', SOUTH_CENTER: 'road0', SOUTH_RIGHT: 'field2',
+      SOUTH_LEFT: 'field1', SOUTH_CENTER: 'road0', SOUTH_RIGHT: 'field0',
       WEST_LEFT: 'city0', WEST_CENTER: 'city0', WEST_RIGHT: 'city0',
     },
   },
@@ -806,6 +806,16 @@ export const TILE_MAP: Record<string, TileDefinition> = Object.fromEntries(
 
   // Mark the starting tile
   ; (TILE_MAP['base_D'] as TileDefinition & { startingTile?: boolean }).startingTile = true
+
+/**
+ * Register additional tile definitions (from expansions) into the global TILE_MAP.
+ * Called once during game initialization so all consumers can resolve expansion tiles.
+ */
+export function registerTiles(defs: TileDefinition[]): void {
+  for (const def of defs) {
+    TILE_MAP[def.id] = def
+  }
+}
 
 // Total tile count for verification
 export const BASE_TILE_COUNT = BASE_TILES.reduce((sum, t) => sum + t.count, 0)

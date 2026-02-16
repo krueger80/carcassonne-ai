@@ -6,7 +6,13 @@ interface PlayerPanelProps {
 }
 
 export function PlayerPanel({ player, isActive }: PlayerPanelProps) {
-  const availableMeeples = player.meeples.available.NORMAL - player.meeples.onBoard.length
+  const normalAvail = player.meeples.available.NORMAL
+  const bigAvail = player.meeples.available.BIG
+  const onBoard = player.meeples.onBoard.length
+
+  // Detect if this player has a big meeple (expansion active):
+  // base game total = 7, with I&C total = 8
+  const hasBigMeepleExpansion = normalAvail + bigAvail + onBoard > 7
 
   return (
     <div style={{
@@ -26,27 +32,45 @@ export function PlayerPanel({ player, isActive }: PlayerPanelProps) {
         </span>
       </div>
 
-      {/* Meeple dots */}
-      <div style={{ display: 'flex', gap: 3, flexWrap: 'wrap' }}>
+      {/* Meeple indicators */}
+      <div style={{ display: 'flex', gap: 3, flexWrap: 'wrap', alignItems: 'center' }}>
+        {/* Normal meeples (7 dots) */}
         {Array.from({ length: 7 }, (_, i) => (
           <div
-            key={i}
+            key={`n-${i}`}
             style={{
               width: 10,
               height: 10,
               borderRadius: '50%',
-              background: i < availableMeeples ? player.color : 'rgba(255,255,255,0.1)',
+              background: i < normalAvail ? player.color : 'rgba(255,255,255,0.1)',
               border: `1px solid ${player.color}`,
-              opacity: i < availableMeeples ? 1 : 0.3,
+              opacity: i < normalAvail ? 1 : 0.3,
             }}
           />
         ))}
-        {player.meeples.onBoard.length > 0 && (
-          <span style={{ fontSize: 10, color: '#888', marginLeft: 2 }}>
-            {player.meeples.onBoard.length} on board
-          </span>
+
+        {/* Big meeple (larger dot) */}
+        {hasBigMeepleExpansion && (
+          <div
+            style={{
+              width: 14,
+              height: 14,
+              borderRadius: '50%',
+              background: bigAvail > 0 ? player.color : 'rgba(255,255,255,0.1)',
+              border: `2px solid ${player.color}`,
+              opacity: bigAvail > 0 ? 1 : 0.3,
+              marginLeft: 2,
+            }}
+            title="Big meeple (counts as 2)"
+          />
         )}
       </div>
+
+      {onBoard > 0 && (
+        <div style={{ fontSize: 10, color: '#888', marginTop: 3 }}>
+          {onBoard} on board
+        </div>
+      )}
     </div>
   )
 }

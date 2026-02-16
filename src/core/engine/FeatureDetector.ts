@@ -199,7 +199,10 @@ export function addTileToUnionFind(
       pennantCount: seg.hasPennant ? 1 : 0,
       openEdgeCount: openEdges,
       adjacentCompletedCities: 0,
-      metadata: {},
+      metadata: {
+        ...(seg.hasInn ? { hasInn: true } : {}),
+        ...(seg.hasCathedral ? { hasCathedral: true } : {}),
+      },
     }
 
     ufMakeSet(working, key, feature)
