@@ -180,6 +180,12 @@ export function placeMeeple(
   const lastCoord = state.lastPlacedCoord ?? findLastPlacedCoord(state)
   if (!lastCoord) return state
 
+  // Validate segmentId against the tile definition
+  const def = TILE_MAP[state.currentTile.definitionId]
+  if (!def || !def.segments.find(s => s.id === segmentId)) {
+    return state
+  }
+
   const player = state.players[state.currentPlayerIndex]
 
   if (!canPlaceMeeple(state.featureUnionFind, player, lastCoord, segmentId, meepleType)) {
