@@ -121,7 +121,6 @@ export function scoreCompletedFeatures(
 export function scoreAllRemainingFeatures(
   state: UnionFindState,
   completedFeatureIds: Set<string>,
-  players: Player[],
   rules: ScoringRule[] = BASE_SCORING_RULES,
 ): ScoreEvent[] {
   const events: ScoreEvent[] = []
@@ -162,9 +161,6 @@ export function scoreAllRemainingFeatures(
       }
     }
   }
-
-  // Apply scores to players
-  void players  // players array used by caller to update scores from events
 
   return events
 }

@@ -340,7 +340,6 @@ export function endGame(state: GameState): GameState {
   const endGameEvents = scoreAllRemainingFeatures(
     state.featureUnionFind,
     completedFeatureIds,
-    state.players,
   )
 
   const finalPlayers = applyScoreEvents(state.players, endGameEvents)
