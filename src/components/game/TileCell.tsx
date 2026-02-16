@@ -1,3 +1,4 @@
+import { memo } from 'react'
 import { TileSVG } from '../svg/TileSVG.tsx'
 import { TILE_MAP } from '../../core/data/baseTiles.ts'
 import type { PlacedTile } from '../../core/types/board.ts'
@@ -27,7 +28,7 @@ interface TileCellProps {
   onSegmentClick?: (segmentId: string) => void
 }
 
-export function TileCell({
+export const TileCell = memo(function TileCell({
   tile,
   size,
   players,
@@ -91,4 +92,4 @@ export function TileCell({
       })}
     </div>
   )
-}
+})
