@@ -1,0 +1,52 @@
+import type { Segment } from '../../core/types/tile.ts'
+
+export const TERRAIN_COLORS: Record<string, string> = {
+  CITY:     '#c8a46e',
+  ROAD:     '#e8d8a0',
+  FIELD:    '#5a9e4b',
+  CLOISTER: '#e8c8a0',
+}
+
+const TERRAIN_STROKE: Record<string, string> = {
+  CITY:     '#8b6914',
+  ROAD:     '#b0a060',
+  FIELD:    '#3a7e2b',
+  CLOISTER: '#c0906a',
+}
+
+interface SegmentPathProps {
+  segment: Segment
+  highlighted?: boolean
+  dimmed?: boolean
+}
+
+export function SegmentPath({ segment, highlighted = false, dimmed = false }: SegmentPathProps) {
+  const fill = highlighted
+    ? '#ffffaa'
+    : TERRAIN_COLORS[segment.type] ?? '#cccccc'
+
+  const stroke = TERRAIN_STROKE[segment.type] ?? '#999'
+  const opacity = dimmed ? 0.5 : 1
+
+  if (segment.type === 'CLOISTER') {
+    return (
+      <g opacity={opacity}>
+        {/* Cloister: draw field background (no path needed — field covers it) */}
+        <rect x="28" y="28" width="44" height="44" fill={fill} stroke={stroke} strokeWidth="1.5" rx="3" />
+        {/* Cross decoration on cloister */}
+        <rect x="48" y="32" width="4" height="36" fill={TERRAIN_STROKE['CLOISTER']} opacity={0.5} />
+        <rect x="32" y="48" width="36" height="4" fill={TERRAIN_STROKE['CLOISTER']} opacity={0.5} />
+      </g>
+    )
+  }
+
+  return (
+    <path
+      d={segment.svgPath}
+      fill={fill}
+      stroke={stroke}
+      strokeWidth="0.5"
+      opacity={opacity}
+    />
+  )
+}
