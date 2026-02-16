@@ -10,16 +10,16 @@ export { coordKey }
 
 export const OPPOSITE_DIRECTION: Record<Direction, Direction> = {
   NORTH: 'SOUTH',
-  EAST:  'WEST',
+  EAST: 'WEST',
   SOUTH: 'NORTH',
-  WEST:  'EAST',
+  WEST: 'EAST',
 }
 
 export const DIRECTION_DELTA: Record<Direction, { dx: number; dy: number }> = {
   NORTH: { dx: 0, dy: -1 },
-  EAST:  { dx: 1, dy:  0 },
-  SOUTH: { dx: 0, dy:  1 },
-  WEST:  { dx: -1, dy:  0 },
+  EAST: { dx: 1, dy: 0 },
+  SOUTH: { dx: 0, dy: 1 },
+  WEST: { dx: -1, dy: 0 },
 }
 
 const DIRECTIONS: Direction[] = ['NORTH', 'EAST', 'SOUTH', 'WEST']
@@ -246,6 +246,58 @@ export function hasAnyValidPlacement(
     if (positions.length > 0) return true
   }
   return false
+}
+
+/**
+ * Returns all board positions where `instance` can be placed with ANY valid rotation.
+ * Returns a list of coordinates.
+ */
+export function getAllPotentialPlacements(
+  board: Board,
+  tileMap: Record<string, TileDefinition>,
+  instance: TileInstance,
+): Coordinate[] {
+  const candidates = new Set<string>()
+
+  // 1. Identify all candidate cells (empty cells adjacent to existing tiles)
+  for (const key of Object.keys(board.tiles)) {
+    const [x, y] = key.split(',').map(Number)
+    for (const dir of DIRECTIONS) {
+      const { dx, dy } = DIRECTION_DELTA[dir]
+      const candidateKey = coordKey({ x: x + dx, y: y + dy })
+      if (!board.tiles[candidateKey]) {
+        candidates.add(candidateKey)
+      }
+    }
+  }
+
+  // Special case: empty board
+  if (Object.keys(board.tiles).length === 0) {
+    candidates.add('0,0')
+  }
+
+  const valid: Coordinate[] = []
+
+  // 2. Check each candidate
+  for (const key of candidates) {
+    const [x, y] = key.split(',').map(Number)
+    const coord = { x, y }
+
+    // Check if ANY rotation works here
+    let canFit = false
+    for (const rotation of [0, 90, 180, 270] as Rotation[]) {
+      if (isValidPlacement(board, tileMap, { ...instance, rotation }, coord)) {
+        canFit = true
+        break
+      }
+    }
+
+    if (canFit) {
+      valid.push(coord)
+    }
+  }
+
+  return valid
 }
 
 // Export TILE_MAP for convenience (engines can pass it through)

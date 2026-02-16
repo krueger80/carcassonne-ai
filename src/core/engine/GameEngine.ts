@@ -13,13 +13,22 @@ import { coordKey, emptyBoard } from '../types/board.ts'
 import { emptyUnionFindState } from '../types/feature.ts'
 import { createPlayer, PLAYER_COLORS } from '../types/player.ts'
 import { BASE_TILES, TILE_MAP } from '../data/baseTiles.ts'
+export { TILE_MAP } // Re-export for GameStore
 import { createTileBag, drawTile as drawFromBag } from './TileBag.ts'
 import {
   isValidPlacement,
   getValidPositions,
   getValidRotations,
+  getAllPotentialPlacements,
   hasAnyValidPlacement,
 } from './TilePlacement.ts'
+
+// Re-export specifically for GameStore usage
+export {
+  isValidPlacement,
+  getAllPotentialPlacements,
+}
+
 import { addTileToUnionFind, updateFeatureMeeples } from './FeatureDetector.ts'
 import { canPlaceMeeple, getPlaceableSegments, createMeeplePlacement } from './MeeplePlacement.ts'
 import {
@@ -206,16 +215,16 @@ export function placeMeeple(
   const updatedPlayers = state.players.map(p =>
     p.id === player.id
       ? {
-          ...p,
-          meeples: {
-            ...p.meeples,
-            available: {
-              ...p.meeples.available,
-              [meepleType]: p.meeples.available[meepleType] - 1,
-            },
-            onBoard: [...p.meeples.onBoard, nKey],
+        ...p,
+        meeples: {
+          ...p.meeples,
+          available: {
+            ...p.meeples.available,
+            [meepleType]: p.meeples.available[meepleType] - 1,
           },
-        }
+          onBoard: [...p.meeples.onBoard, nKey],
+        },
+      }
       : p
   )
 
@@ -292,16 +301,16 @@ export function endTurn(state: GameState): GameState {
       updatedPlayers = updatedPlayers.map(p =>
         p.id === meeple.playerId
           ? {
-              ...p,
-              meeples: {
-                ...p.meeples,
-                available: {
-                  ...p.meeples.available,
-                  [meeple.meepleType]: p.meeples.available[meeple.meepleType as MeepleType] + 1,
-                },
-                onBoard: p.meeples.onBoard.filter(k => k !== nKey),
+            ...p,
+            meeples: {
+              ...p.meeples,
+              available: {
+                ...p.meeples.available,
+                [meeple.meepleType]: p.meeples.available[meeple.meepleType as MeepleType] + 1,
               },
-            }
+              onBoard: p.meeples.onBoard.filter(k => k !== nKey),
+            },
+          }
           : p
       )
     }

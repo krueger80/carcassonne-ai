@@ -10,7 +10,7 @@ interface MeepleSVGProps {
  * Renders a simple meeple shape: a circle (head) + body wedge.
  * Coords are in the 0-100 SVG viewBox.
  */
-export function MeepleSVG({ color, x, y, size = 6, isBig = false }: MeepleSVGProps) {
+export function MeepleSVG({ color, x, y, size = 15, isBig = false }: MeepleSVGProps) {
   const scale = isBig ? 1.4 : 1
   const s = size * scale
   const headR = s * 0.45
