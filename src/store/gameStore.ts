@@ -7,12 +7,12 @@ import type { MeepleType } from '../core/types/player.ts'
 import type { Rotation } from '../core/types/tile.ts'
 import {
   initGame,
-  drawTile,
-  rotateTile,
-  placeTile,
-  placeMeeple,
-  skipMeeple,
-  endTurn,
+  drawTile as engineDrawTile,
+  rotateTile as engineRotateTile,
+  placeTile as enginePlaceTile,
+  placeMeeple as enginePlaceMeeple,
+  skipMeeple as engineSkipMeeple,
+  endTurn as engineEndTurn,
   getValidPlacements,
   getAvailableSegmentsForMeeple,
 } from '../core/engine/GameEngine.ts'
@@ -54,7 +54,7 @@ export const useGameStore = create<GameStore>()(
 
       drawTile: () => set((store) => {
         if (!store.gameState) return
-        store.gameState = drawTile(store.gameState)
+        store.gameState = engineDrawTile(store.gameState)
         store.validPlacements = store.gameState.currentTile
           ? getValidPlacements(store.gameState)
           : []
@@ -63,7 +63,7 @@ export const useGameStore = create<GameStore>()(
 
       rotateTile: () => set((store) => {
         if (!store.gameState) return
-        store.gameState = rotateTile(store.gameState)
+        store.gameState = engineRotateTile(store.gameState)
         store.validPlacements = store.gameState.currentTile
           ? getValidPlacements(store.gameState)
           : []
@@ -71,26 +71,26 @@ export const useGameStore = create<GameStore>()(
 
       placeTile: (coord) => set((store) => {
         if (!store.gameState) return
-        store.gameState = placeTile(store.gameState, coord)
+        store.gameState = enginePlaceTile(store.gameState, coord)
         store.validPlacements = []
         store.placeableSegments = getAvailableSegmentsForMeeple(store.gameState)
       }),
 
       placeMeeple: (segmentId, meepleType = 'NORMAL') => set((store) => {
         if (!store.gameState) return
-        store.gameState = placeMeeple(store.gameState, segmentId, meepleType)
+        store.gameState = enginePlaceMeeple(store.gameState, segmentId, meepleType)
         store.placeableSegments = []
       }),
 
       skipMeeple: () => set((store) => {
         if (!store.gameState) return
-        store.gameState = skipMeeple(store.gameState)
+        store.gameState = engineSkipMeeple(store.gameState)
         store.placeableSegments = []
       }),
 
       endTurn: () => set((store) => {
         if (!store.gameState) return
-        store.gameState = endTurn(store.gameState)
+        store.gameState = engineEndTurn(store.gameState)
       }),
 
       resetGame: () => set((store) => {
