@@ -163,9 +163,8 @@ describe('scoreCompletedFeatures', () => {
       meeples: [{ playerId: 'p1', meepleType: 'NORMAL', segmentId: 'city0' }],
     })
     const uf = makeUf([feature])
-    const players = [createPlayer('p1', 'Alice', 'red')]
 
-    const events = scoreCompletedFeatures(['feat1'], uf, players)
+    const events = scoreCompletedFeatures(['feat1'], uf)
     expect(events).toHaveLength(1)
     expect(events[0].scores['p1']).toBe(8)  // (3+1)*2 = 8
     expect(events[0].featureType).toBe('CITY')
@@ -179,9 +178,8 @@ describe('scoreCompletedFeatures', () => {
       meeples: [],
     })
     const uf = makeUf([feature])
-    const players = [createPlayer('p1', 'Alice', 'red')]
 
-    const events = scoreCompletedFeatures(['feat1'], uf, players)
+    const events = scoreCompletedFeatures(['feat1'], uf)
     expect(events).toHaveLength(0)
   })
 
@@ -192,9 +190,8 @@ describe('scoreCompletedFeatures', () => {
       meeples: [{ playerId: 'p1', meepleType: 'NORMAL', segmentId: 'x' }],
     })
     const uf = makeUf([feature])
-    const players = [createPlayer('p1', 'Alice', 'red')]
 
-    const events = scoreCompletedFeatures([], uf, players)  // empty completed list
+    const events = scoreCompletedFeatures([], uf)  // empty completed list
     expect(events).toHaveLength(0)
   })
 })
