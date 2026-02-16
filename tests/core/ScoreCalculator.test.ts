@@ -211,9 +211,8 @@ describe('scoreAllRemainingFeatures', () => {
       meeples: [{ playerId: 'p1', meepleType: 'NORMAL', segmentId: 'road0' }],
     })
     const uf = makeUf([road])
-    const players = [createPlayer('p1', 'Alice', 'red')]
 
-    const events = scoreAllRemainingFeatures(uf, new Set(), players)
+    const events = scoreAllRemainingFeatures(uf, new Set())
     expect(events).toHaveLength(1)
     expect(events[0].scores['p1']).toBe(4)
     expect(events[0].isEndGame).toBe(true)
@@ -228,9 +227,8 @@ describe('scoreAllRemainingFeatures', () => {
       meeples: [{ playerId: 'p1', meepleType: 'NORMAL', segmentId: 'city0' }],
     })
     const uf = makeUf([city])
-    const players = [createPlayer('p1', 'Alice', 'red')]
 
-    const events = scoreAllRemainingFeatures(uf, new Set(['city1']), players)
+    const events = scoreAllRemainingFeatures(uf, new Set(['city1']))
     expect(events).toHaveLength(0)
   })
 
@@ -243,9 +241,8 @@ describe('scoreAllRemainingFeatures', () => {
       meeples: [{ playerId: 'p1', meepleType: 'NORMAL', segmentId: 'field0' }],
     })
     const uf = makeUf([farm])
-    const players = [createPlayer('p1', 'Alice', 'red')]
 
-    const events = scoreAllRemainingFeatures(uf, new Set(), players)
+    const events = scoreAllRemainingFeatures(uf, new Set())
     const farmEvent = events.find(e => e.featureType === 'FIELD')
     expect(farmEvent).toBeDefined()
     expect(farmEvent!.scores['p1']).toBe(6)  // 2 cities * 3pts = 6
