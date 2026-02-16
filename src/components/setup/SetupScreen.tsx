@@ -48,6 +48,8 @@ export function SetupScreen() {
               <button
                 key={n}
                 onClick={() => setPlayerCount(n)}
+                aria-label={`${n} players`}
+                aria-pressed={playerCount === n}
                 style={{
                   flex: 1,
                   padding: '8px 0',
@@ -84,6 +86,7 @@ export function SetupScreen() {
                   next[i] = e.target.value
                   return next
                 })}
+                aria-label={`Player ${i + 1} Name`}
                 style={{
                   flex: 1,
                   background: '#1a1a2e',
