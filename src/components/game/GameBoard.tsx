@@ -1,4 +1,4 @@
-import { useRef, useState, useCallback, useEffect } from 'react'
+import { useRef, useState, useCallback, useEffect, useMemo } from 'react'
 import { TileCell } from './TileCell.tsx'
 import { PlaceholderCell } from './PlaceholderCell.tsx'
 import { useGameStore } from '../../store/gameStore.ts'
@@ -7,6 +7,7 @@ import type { Coordinate } from '../../core/types/board.ts'
 
 const CELL_SIZE = 88   // px per tile
 const BOARD_PADDING = 3  // extra cells around the board edge for expansion room
+const EMPTY_ARRAY: string[] = []
 
 interface GameBoardProps {
   onTilePlaced?: (coord: Coordinate) => void
@@ -59,7 +60,31 @@ export function GameBoard({ onTilePlaced, onMeeplePlaced }: GameBoardProps) {
     setIsPanning(false)
   }, [])
 
+  // ── Handlers ────────────────────────────────────────────────────────────────
+
+  const handleHover = useCallback((x: number, y: number) => {
+    setHoveredCoord({ x, y })
+  }, [setHoveredCoord])
+
+  const handleLeave = useCallback((x: number, y: number) => {
+    setHoveredCoord(null) // x,y ignored
+  }, [setHoveredCoord])
+
+  const handleClick = useCallback((x: number, y: number) => {
+    placeTile({ x, y })
+    onTilePlaced?.({ x, y })
+  }, [placeTile, onTilePlaced])
+
+  const handleSegmentClick = useCallback((segId: string) => {
+    placeMeeple(segId)
+    onMeeplePlaced?.(segId)
+  }, [placeMeeple, onMeeplePlaced])
+
   // ── Board bounds ────────────────────────────────────────────────────────────
+
+  const validSet = useMemo(() => {
+    return new Set(validPlacements.map(c => `${c.x},${c.y}`))
+  }, [validPlacements])
 
   if (!gameState) return null
 
@@ -69,7 +94,6 @@ export function GameBoard({ onTilePlaced, onMeeplePlaced }: GameBoardProps) {
   const minY = board.minY - BOARD_PADDING
   const maxY = board.maxY + BOARD_PADDING
 
-  const validSet = new Set(validPlacements.map(c => `${c.x},${c.y}`))
   const isInMeeplePlacement = gameState.turnPhase === 'PLACE_MEEPLE'
   const lastPlacedKey = gameState.lastPlacedCoord
     ? `${gameState.lastPlacedCoord.x},${gameState.lastPlacedCoord.y}`
@@ -130,11 +154,8 @@ export function GameBoard({ onTilePlaced, onMeeplePlaced }: GameBoardProps) {
                       tile={placedTile}
                       size={CELL_SIZE}
                       players={gameState.players}
-                      placeableSegments={isInMeeplePlacement && isHovered && key === lastPlacedKey ? placeableSegments : []}
-                      onSegmentClick={(segId) => {
-                        placeMeeple(segId)
-                        onMeeplePlaced?.(segId)
-                      }}
+                      placeableSegments={isInMeeplePlacement && isHovered && key === lastPlacedKey ? placeableSegments : EMPTY_ARRAY}
+                      onSegmentClick={handleSegmentClick}
                     />
                   )
                 }
@@ -142,18 +163,15 @@ export function GameBoard({ onTilePlaced, onMeeplePlaced }: GameBoardProps) {
                 return (
                   <PlaceholderCell
                     key={key}
-                    coord={{ x, y }}
+                    x={x}
+                    y={y}
                     size={CELL_SIZE}
                     isValid={isValid}
                     isHovered={isHovered}
                     previewTile={gameState.currentTile}
-                    onHover={() => setHoveredCoord({ x, y })}
-                    onLeave={() => setHoveredCoord(null)}
-                    onClick={() => {
-                      if (!isValid) return
-                      placeTile({ x, y })
-                      onTilePlaced?.({ x, y })
-                    }}
+                    onHover={handleHover}
+                    onLeave={handleLeave}
+                    onClick={handleClick}
                   />
                 )
               })}

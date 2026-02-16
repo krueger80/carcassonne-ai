@@ -1,20 +1,23 @@
-import type { Coordinate } from '../../core/types/board.ts'
+import { memo } from 'react'
 import { TileSVG } from '../svg/TileSVG.tsx'
 import { TILE_MAP } from '../../core/data/baseTiles.ts'
 import type { TileInstance } from '../../core/types/tile.ts'
 
 interface PlaceholderCellProps {
-  coord: Coordinate
+  x: number
+  y: number
   size: number
   isValid: boolean
   isHovered: boolean
   previewTile?: TileInstance | null   // ghost preview of the current tile
-  onHover: () => void
-  onLeave: () => void
-  onClick: () => void
+  onHover: (x: number, y: number) => void
+  onLeave: (x: number, y: number) => void
+  onClick: (x: number, y: number) => void
 }
 
-export function PlaceholderCell({
+export const PlaceholderCell = memo(function PlaceholderCell({
+  x,
+  y,
   size,
   isValid,
   isHovered,
@@ -30,9 +33,9 @@ export function PlaceholderCell({
 
   return (
     <div
-      onMouseEnter={onHover}
-      onMouseLeave={onLeave}
-      onClick={isValid ? onClick : undefined}
+      onMouseEnter={() => onHover(x, y)}
+      onMouseLeave={() => onLeave(x, y)}
+      onClick={isValid ? () => onClick(x, y) : undefined}
       style={{
         width: size,
         height: size,
@@ -64,4 +67,4 @@ export function PlaceholderCell({
       )}
     </div>
   )
-}
+})
