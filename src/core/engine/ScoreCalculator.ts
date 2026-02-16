@@ -90,7 +90,6 @@ function buildScoreEvent(
 export function scoreCompletedFeatures(
   completedFeatureIds: string[],
   state: UnionFindState,
-  _players: Player[],
   rules: ScoringRule[] = BASE_SCORING_RULES,
 ): ScoreEvent[] {
   const events: ScoreEvent[] = []

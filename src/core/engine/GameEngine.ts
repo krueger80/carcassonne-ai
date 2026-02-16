@@ -246,7 +246,6 @@ export function endTurn(state: GameState): GameState {
   const scoreEvents = scoreCompletedFeatures(
     state.completedFeatureIds,
     state.featureUnionFind,
-    state.players,
   )
 
   let updatedPlayers = [...state.players]
