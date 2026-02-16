@@ -11,7 +11,7 @@ interface PlaceholderCellProps {
   previewTile?: TileInstance | null   // ghost preview of the current tile
   onHover: () => void
   onLeave: () => void
-  onClick: () => void
+  onClick: (e: React.MouseEvent) => void
 }
 
 export function PlaceholderCell({
@@ -33,6 +33,9 @@ export function PlaceholderCell({
       onMouseEnter={onHover}
       onMouseLeave={onLeave}
       onClick={isValid ? onClick : undefined}
+      onPointerDown={(e) => {
+        if (isValid) e.stopPropagation()
+      }}
       style={{
         width: size,
         height: size,

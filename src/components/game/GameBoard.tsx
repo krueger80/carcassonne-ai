@@ -3,18 +3,30 @@ import { TileCell } from './TileCell.tsx'
 import { PlaceholderCell } from './PlaceholderCell.tsx'
 import { useGameStore } from '../../store/gameStore.ts'
 import { useUIStore } from '../../store/uiStore.ts'
-import type { Coordinate } from '../../core/types/board.ts'
+// import type { Coordinate } from '../../core/types/board.ts'
+import { GameOverlay } from './GameOverlay.tsx'
 
 const CELL_SIZE = 88   // px per tile
 const BOARD_PADDING = 3  // extra cells around the board edge for expansion room
 
 interface GameBoardProps {
-  onTilePlaced?: (coord: Coordinate) => void
-  onMeeplePlaced?: (segmentId: string) => void
+  // onTilePlaced?: (coord: Coordinate) => void  <-- Deprecated in favor of store actions
+  // onMeeplePlaced?: (segmentId: string) => void <-- Deprecated
 }
 
-export function GameBoard({ onTilePlaced, onMeeplePlaced }: GameBoardProps) {
-  const { gameState, validPlacements, placeableSegments, placeTile, placeMeeple } = useGameStore()
+export function GameBoard({ }: GameBoardProps) {
+  const {
+    gameState,
+    validPlacements,
+    placeableSegments,
+    tentativeTileCoord,
+    tentativeMeepleSegment,
+    interactionState,
+    selectTilePlacement,
+    selectMeeplePlacement,
+    rotateTentativeTile
+  } = useGameStore()
+
   const { boardScale, boardOffset, hoveredCoord, setHoveredCoord, setBoardScale, selectedMeepleType } = useUIStore()
 
   const containerRef = useRef<HTMLDivElement>(null)
@@ -22,7 +34,7 @@ export function GameBoard({ onTilePlaced, onMeeplePlaced }: GameBoardProps) {
   const panStart = useRef({ x: 0, y: 0, offsetX: 0, offsetY: 0 })
 
   // ── Keyboard shortcuts ──────────────────────────────────────────────────────
-  const { rotateTile } = useGameStore()
+  const { rotateTile } = useGameStore() // Keep using rotateTile for tentative rotation
   useEffect(() => {
     const handler = (e: KeyboardEvent) => {
       if (e.key === 'r' || e.key === 'R') rotateTile()
@@ -40,10 +52,18 @@ export function GameBoard({ onTilePlaced, onMeeplePlaced }: GameBoardProps) {
   }, [boardScale, setBoardScale])
 
   const onPointerDown = useCallback((e: React.PointerEvent) => {
-    if (e.button !== 0) return
+    // Only pan if middle mouse or if spacebar held (optional), or just left click on background
+    // But we need left click for interacting with tiles.
+    // Let's us middle click OR left click on background (checked in onPointerDown? No, event bubbles)
+
+    // Simple approach: drag background to pan. 
+    // If clicking a tile, e.stopPropagation() should be called there if it handles click.
+
+    if (e.button !== 0 && e.button !== 1) return // Left or Middle
+
     setIsPanning(true)
     panStart.current = { x: e.clientX, y: e.clientY, offsetX: boardOffset.x, offsetY: boardOffset.y }
-    ;(e.target as HTMLElement).setPointerCapture(e.pointerId)
+      ; (e.target as HTMLElement).setPointerCapture(e.pointerId)
   }, [boardOffset])
 
   const onPointerMove = useCallback((e: React.PointerEvent) => {
@@ -70,11 +90,11 @@ export function GameBoard({ onTilePlaced, onMeeplePlaced }: GameBoardProps) {
   const maxY = board.maxY + BOARD_PADDING
 
   const validSet = new Set(validPlacements.map(c => `${c.x},${c.y}`))
-  const isInMeeplePlacement = gameState.turnPhase === 'PLACE_MEEPLE'
-  const lastPlacedKey = gameState.lastPlacedCoord
-    ? `${gameState.lastPlacedCoord.x},${gameState.lastPlacedCoord.y}`
-    : null
-  const currentPlayer = gameState.players[gameState.currentPlayerIndex]
+
+  // Is this specific cell the tentative one?
+  const isTentative = (key: string) => {
+    return tentativeTileCoord && `${tentativeTileCoord.x},${tentativeTileCoord.y}` === key
+  }
 
   // ── Render ──────────────────────────────────────────────────────────────────
 
@@ -85,9 +105,10 @@ export function GameBoard({ onTilePlaced, onMeeplePlaced }: GameBoardProps) {
     <div
       ref={containerRef}
       style={{
-        flex: 1,
+        width: '100vw',
+        height: '100vh',
         overflow: 'hidden',
-        background: '#1a2a1a',
+        background: '#1a2a1a', // Dark green felt-like
         cursor: isPanning ? 'grabbing' : 'grab',
         position: 'relative',
       }}
@@ -122,23 +143,77 @@ export function GameBoard({ onTilePlaced, onMeeplePlaced }: GameBoardProps) {
                 const placedTile = board.tiles[key]
                 const isValid = validSet.has(key)
                 const isHovered = hoveredCoord?.x === x && hoveredCoord?.y === y
+                const tentative = isTentative(key)
 
-                if (placedTile) {
+                // If there's a tentative tile, show it as if it were placed (but distinct visual?)
+                // Or just render TileCell but pass it special props?
+
+                if (tentative && gameState.currentTile) {
                   return (
-                    <TileCell
+                    // Tentative Tile
+                    <div
                       key={key}
-                      tile={placedTile}
-                      size={CELL_SIZE}
-                      players={gameState.players}
-                      placeableSegments={isInMeeplePlacement && isHovered && key === lastPlacedKey ? placeableSegments : []}
-                      onSegmentClick={(segId) => {
-                        placeMeeple(segId, selectedMeepleType)
-                        onMeeplePlaced?.(segId)
+                      style={{ width: CELL_SIZE, height: CELL_SIZE }}
+                      onClick={(e) => {
+                        e.stopPropagation() // Prevent panning
+                        rotateTentativeTile() // Click to rotate!
                       }}
-                    />
+                      onPointerDown={(e) => e.stopPropagation()}
+                    >
+                      <TileCell
+                        tile={{
+                          coordinate: { x, y },
+                          definitionId: gameState.currentTile.definitionId,
+                          rotation: gameState.currentTile.rotation,
+                          meeples: {} // No meeples yet
+                        }}
+                        size={CELL_SIZE}
+                        players={gameState.players}
+                        placeableSegments={[]} // No meeples yet
+                        isTentative={true}
+                      />
+                    </div>
                   )
                 }
 
+                if (placedTile) {
+                  return (
+                    <div key={key} onClick={(e) => e.stopPropagation()}>
+                      <TileCell
+                        tile={placedTile}
+                        size={CELL_SIZE}
+                        players={gameState.players}
+                        placeableSegments={
+                          // Only show placeable segments if this is the TENTATIVELY placed tile (conceptually)
+                          // But wait, the tentative tile is rendered above. 
+                          // Once CONFIRMED, the phase moves to PLACE_MEEPLE.
+                          // In PLACE_MEEPLE, the tile is physically on the board (placedTile).
+                          // So we check if this tile is the one we just placed.
+
+                          (interactionState === 'IDLE' || interactionState === 'MEEPLE_SELECTED_TENTATIVELY') &&
+                            gameState.turnPhase === 'PLACE_MEEPLE' &&
+                            key === (gameState.lastPlacedCoord ? `${gameState.lastPlacedCoord.x},${gameState.lastPlacedCoord.y}` : '')
+                            ? placeableSegments
+                            : []
+                        }
+                        onSegmentClick={(segId) => {
+                          if (gameState.turnPhase === 'PLACE_MEEPLE') {
+                            selectMeeplePlacement(segId, selectedMeepleType)
+                          }
+                        }}
+                        tentativeMeepleSegment={
+                          // If this tile is the active one, show the tentative meeple
+                          tentativeMeepleSegment &&
+                            key === (gameState.lastPlacedCoord ? `${gameState.lastPlacedCoord.x},${gameState.lastPlacedCoord.y}` : '')
+                            ? tentativeMeepleSegment
+                            : undefined
+                        }
+                      />
+                    </div>
+                  )
+                }
+
+                // Placeholder / Ghost
                 return (
                   <PlaceholderCell
                     key={key}
@@ -146,13 +221,17 @@ export function GameBoard({ onTilePlaced, onMeeplePlaced }: GameBoardProps) {
                     size={CELL_SIZE}
                     isValid={isValid}
                     isHovered={isHovered}
-                    previewTile={gameState.currentTile}
+                    previewTile={gameState.currentTile} // Pass null to avoid old hover preview if we want only click?
+                    // Actually, if we want GHOST tiles, we can pass previewTile.
+                    // But typically ghosts are faint versions of the tile.
+                    // The 'PlaceholderCell' implementation might need checking.
+
                     onHover={() => setHoveredCoord({ x, y })}
                     onLeave={() => setHoveredCoord(null)}
-                    onClick={() => {
+                    onClick={(e) => {
+                      e.stopPropagation()
                       if (!isValid) return
-                      placeTile({ x, y })
-                      onTilePlaced?.({ x, y })
+                      selectTilePlacement({ x, y })
                     }}
                   />
                 )
@@ -171,43 +250,29 @@ export function GameBoard({ onTilePlaced, onMeeplePlaced }: GameBoardProps) {
         flexDirection: 'column',
         gap: 4,
         opacity: 0.7,
+        pointerEvents: 'auto',
+        zIndex: 100,
       }}>
         <button
-          onClick={() => setBoardScale(boardScale * 1.2)}
+          onClick={() => { setBoardScale(boardScale * 1.2) }}
           style={btnStyle}
           title="Zoom in"
         >+</button>
         <button
-          onClick={() => setBoardScale(1)}
+          onClick={() => { setBoardScale(1) }}
           style={btnStyle}
           title="Reset zoom"
         >⌖</button>
         <button
-          onClick={() => setBoardScale(boardScale * 0.8)}
+          onClick={() => { setBoardScale(boardScale * 0.8) }}
           style={btnStyle}
           title="Zoom out"
         >−</button>
       </div>
 
-      {/* Current player indicator */}
-      {currentPlayer && (
-        <div style={{
-          position: 'absolute',
-          top: 12,
-          left: '50%',
-          transform: 'translateX(-50%)',
-          background: 'rgba(0,0,0,0.7)',
-          color: currentPlayer.color,
-          padding: '4px 12px',
-          borderRadius: 20,
-          fontSize: 13,
-          fontWeight: 'bold',
-          border: `1px solid ${currentPlayer.color}`,
-          pointerEvents: 'none',
-        }}>
-          {currentPlayer.name}'s turn — {gameState.turnPhase.replace('_', ' ')}
-        </div>
-      )}
+      {/* HUD Overlay */}
+      <GameOverlay />
+
     </div>
   )
 }
