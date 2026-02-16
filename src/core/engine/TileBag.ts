@@ -1,9 +1,20 @@
 import type { TileDefinition, TileInstance } from '../types/tile.ts'
 
+/**
+ * Generates a cryptographically secure random number in the range [0, 1).
+ * Similar to Math.random() but using the Web Crypto API.
+ */
+function secureRandom(): number {
+  const array = new Uint32Array(1)
+  crypto.getRandomValues(array)
+  // Divide by 2^32 to get a float in [0, 1)
+  return array[0] / (0xffffffff + 1)
+}
+
 /** Fisher-Yates shuffle (in-place) */
 function shuffle<T>(arr: T[]): T[] {
   for (let i = arr.length - 1; i > 0; i--) {
-    const j = Math.floor(Math.random() * (i + 1))
+    const j = Math.floor(secureRandom() * (i + 1))
     ;[arr[i], arr[j]] = [arr[j], arr[i]]
   }
   return arr
