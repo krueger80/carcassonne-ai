@@ -612,7 +612,7 @@ export const BASE_TILES: TileDefinition[] = [
     edgePositionToSegment: {
       NORTH_LEFT: 'city0', NORTH_CENTER: 'city0', NORTH_RIGHT: 'city0',
       EAST_LEFT: 'city0', EAST_CENTER: 'city0', EAST_RIGHT: 'city0',
-      SOUTH_LEFT: 'field1', SOUTH_CENTER: 'road0', SOUTH_RIGHT: 'field2',
+      SOUTH_LEFT: 'field1', SOUTH_CENTER: 'road0', SOUTH_RIGHT: 'field0',
       WEST_LEFT: 'city0', WEST_CENTER: 'city0', WEST_RIGHT: 'city0',
     },
   },
