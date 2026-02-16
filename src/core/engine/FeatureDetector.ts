@@ -366,13 +366,7 @@ export function getFeature(state: UnionFindState, nodeKey_: string): Feature | n
  * Get all distinct features (one per root).
  */
 export function getAllFeatures(state: UnionFindState): Feature[] {
-  const roots = new Set<string>()
-  for (const key of Object.keys(state.parent)) {
-    roots.add(ufFind(state, key))
-  }
-  return Array.from(roots)
-    .map(root => state.featureData[root])
-    .filter((f): f is Feature => f !== undefined)
+  return Object.values(state.featureData)
 }
 
 /**
