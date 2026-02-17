@@ -163,6 +163,8 @@ export function GameOverlay() {
                 {/* ── Hamburger Menu (Top Left) ─────────────────────────────── */}
                 <div style={{ pointerEvents: 'auto', alignSelf: 'flex-start' }} onPointerDown={(e) => e.stopPropagation()}>
                     <button
+                        aria-label="Open game menu"
+                        aria-expanded={isMenuOpen}
                         onClick={(e) => { e.stopPropagation(); setIsMenuOpen(!isMenuOpen) }}
                         style={{
                             background: 'rgba(0,0,0,0.6)',
@@ -254,6 +256,8 @@ export function GameOverlay() {
                                                 {[2, 3, 4, 5].map(count => (
                                                     <button
                                                         key={count}
+                                                        aria-label={`${count} Players`}
+                                                        aria-pressed={newGamePlayerCount === count}
                                                         onClick={(e) => { e.stopPropagation(); setNewGamePlayerCount(count); }}
                                                         style={{
                                                             flex: 1,

@@ -116,12 +116,14 @@ export function TileCell({
         const isSelected = tentativeMeepleSegment === seg.id
 
         return (
-          <div
+          <button
             key={seg.id}
+            type="button"
             onClick={(e) => {
               e.stopPropagation()
               onSegmentClick?.(seg.id)
             }}
+            aria-label={`Place meeple on ${seg.type.toLowerCase()}`}
             style={{
               position: 'absolute',
               left: `${x}%`,
@@ -135,7 +137,10 @@ export function TileCell({
               boxShadow: isSelected ? '0 0 15px rgba(0,0,0,0.6)' : 'none',
               cursor: 'pointer',
               zIndex: 20,
-              transition: 'all 0.2s'
+              transition: 'all 0.2s',
+              padding: 0,
+              margin: 0,
+              appearance: 'none',
             }}
             title={`Place meeple on ${seg.type.toLowerCase()}`}
           />
