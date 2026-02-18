@@ -3,6 +3,7 @@ import { useGameStore } from '../../store/gameStore.ts'
 import { PLAYER_COLORS } from '../../core/types/player.ts'
 
 const DEFAULT_NAMES = ['Alice', 'Bob', 'Carol', 'Dave', 'Eve', 'Frank']
+const COLOR_NAMES = ['Red', 'Blue', 'Green', 'Yellow', 'Purple', 'Teal']
 
 export function SetupScreen() {
   const [playerCount, setPlayerCount] = useState(2)
@@ -40,14 +41,20 @@ export function SetupScreen() {
       }}>
         {/* Player count */}
         <div>
-          <label style={{ display: 'block', marginBottom: 8, color: '#aaa', fontSize: 13 }}>
+          <label id="player-count-label" style={{ display: 'block', marginBottom: 8, color: '#aaa', fontSize: 13 }}>
             Number of players
           </label>
-          <div style={{ display: 'flex', gap: 8 }}>
+          <div
+            role="group"
+            aria-labelledby="player-count-label"
+            style={{ display: 'flex', gap: 8 }}
+          >
             {[2, 3, 4, 5, 6].map(n => (
               <button
                 key={n}
                 onClick={() => setPlayerCount(n)}
+                aria-pressed={playerCount === n}
+                aria-label={`${n} players`}
                 style={{
                   flex: 1,
                   padding: '8px 0',
@@ -70,13 +77,17 @@ export function SetupScreen() {
         <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
           {Array.from({ length: playerCount }, (_, i) => (
             <div key={i} style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
-              <div style={{
-                width: 14,
-                height: 14,
-                borderRadius: '50%',
-                background: PLAYER_COLORS[i],
-                flexShrink: 0,
-              }} />
+              <div
+                role="img"
+                aria-label={`${COLOR_NAMES[i]} player marker`}
+                style={{
+                  width: 14,
+                  height: 14,
+                  borderRadius: '50%',
+                  background: PLAYER_COLORS[i],
+                  flexShrink: 0,
+                }}
+              />
               <input
                 value={names[i]}
                 onChange={e => setNames(prev => {
@@ -94,6 +105,7 @@ export function SetupScreen() {
                   fontSize: 14,
                 }}
                 placeholder={`Player ${i + 1}`}
+                aria-label={`Player ${i + 1} Name`}
               />
             </div>
           ))}
