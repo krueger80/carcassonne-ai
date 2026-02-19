@@ -5,6 +5,8 @@ import { getAllPotentialPlacements } from '../../core/engine/GameEngine.ts'
 import { motion, AnimatePresence } from 'framer-motion'
 import { useEffect, useState, useMemo } from 'react'
 
+import { NewGameScreen } from './NewGameScreen.tsx'
+
 export function GameOverlay() {
     const {
         gameState,
@@ -22,32 +24,12 @@ export function GameOverlay() {
     const { selectedMeepleType, setSelectedMeepleType } = useUIStore()
 
     const [isMenuOpen, setIsMenuOpen] = useState(false)
-    const [showNewGameConfirm, setShowNewGameConfirm] = useState(false)
-    const [newGamePlayerCount, setNewGamePlayerCount] = useState(4)
-    const [newGameExpansions, setNewGameExpansions] = useState<string[]>([])
-
-    // Reset confirm state when menu closes
-    useEffect(() => {
-        if (!isMenuOpen) {
-            setShowNewGameConfirm(false)
-            setNewGamePlayerCount(4)
-            setNewGameExpansions([])
-        }
-    }, [isMenuOpen])
+    const [showNewGameScreen, setShowNewGameScreen] = useState(false)
 
     // Reset meeple type selection when turn changes
     useEffect(() => {
         setSelectedMeepleType('NORMAL')
     }, [gameState?.currentPlayerIndex, setSelectedMeepleType])
-
-    const startNewGame = () => {
-        const names = Array.from({ length: newGamePlayerCount }, (_, i) => `Player ${i + 1}`)
-        useGameStore.getState().newGame({
-            playerNames: names,
-            expansions: newGameExpansions,
-        })
-        setIsMenuOpen(false)
-    }
 
     // Failsafe: if we are in PLACE_TILE but have no valid placements, try to recalculate
     useEffect(() => {
@@ -77,29 +59,12 @@ export function GameOverlay() {
     const orderedPlayers = useMemo(() => {
         if (!gameState) return []
         const { players, currentPlayerIndex } = gameState
-
-        // Strategy: We want the Active Player at the BOTTOM.
-        // We want the Next Player just ABOVE the Active Player.
-        // And so on upwards.
-        // Example: Players [0, 1, 2, 3]. Active 0. Next 1.
-        // Desired Visual Stack (Top to Bottom):
-        // 3 (Prev)
-        // 2
-        // 1 (Next)
-        // 0 (Active)
-
-        // 1. Get List rotated starting from Next Player: [1, 2, 3, 0]
         const rotated = []
         for (let i = 1; i < players.length; i++) {
             rotated.push(players[(currentPlayerIndex + i) % players.length])
         }
-
-        // 2. Reverse the "waiting" players: [3, 2, 1]
         rotated.reverse()
-
-        // 3. Add Active Player at the end: [3, 2, 1, 0]
         rotated.push(players[currentPlayerIndex])
-
         return rotated
     }, [gameState?.players, gameState?.currentPlayerIndex])
 
@@ -139,6 +104,37 @@ export function GameOverlay() {
             pointerEvents: 'none',
             overflow: 'hidden',
         }}>
+            <AnimatePresence>
+                {showNewGameScreen && (
+                    <div style={{ pointerEvents: 'auto' }}>
+                        <NewGameScreen
+                            currentConfig={{
+                                playerCount: gameState.players.length,
+                                expansions: (gameState.expansionData?.expansions as string[]) || []
+                            }}
+                            onStart={(config) => {
+                                useGameStore.getState().newGame(config)
+                                setShowNewGameScreen(false)
+                                setIsMenuOpen(false)
+                            }}
+                            onCancel={() => setShowNewGameScreen(false)}
+                        />
+                    </div>
+                )}
+            </AnimatePresence>
+
+            {/* ── Backdrop for Menu Click-Away ──────────────────────────────── */}
+            {isMenuOpen && (
+                <div
+                    style={{
+                        position: 'fixed',
+                        inset: 0,
+                        zIndex: 45,
+                        pointerEvents: 'auto',
+                    }}
+                    onPointerDown={() => setIsMenuOpen(false)}
+                />
+            )}
 
             {/* ── Game Info (Tiles Left) ────────────────────────────────────── */}
             <div style={{
@@ -204,7 +200,7 @@ export function GameOverlay() {
                                 exit={{ opacity: 0, x: -10, scale: 0.95 }}
                                 style={{
                                     position: 'absolute',
-                                    top: 40,
+                                    top: 48,
                                     left: 0,
                                     background: 'rgba(30, 30, 40, 0.95)',
                                     border: '1px solid #555',
@@ -216,139 +212,37 @@ export function GameOverlay() {
                                     minWidth: 220,
                                     backdropFilter: 'blur(10px)',
                                     boxShadow: '0 4px 20px rgba(0,0,0,0.5)',
-                                    pointerEvents: 'auto', // CRITICAL FIX: Ensure clicks are captured
+                                    pointerEvents: 'auto',
                                 }}
                             >
                                 <div style={{ fontSize: 14, fontWeight: 'bold', color: '#fff', paddingBottom: 8, borderBottom: '1px solid #444', marginBottom: 4 }}>
                                     Menu
                                 </div>
 
-                                {!showNewGameConfirm ? (
-                                    <button
-                                        onClick={(e) => {
-                                            e.stopPropagation()
-                                            setNewGamePlayerCount(players.length) // Preselect current player count
-                                            setShowNewGameConfirm(true)
-                                        }}
-                                        style={{
-                                            background: '#3a3a4a',
-                                            border: 'none',
-                                            borderRadius: 6,
-                                            color: 'white',
-                                            padding: '10px',
-                                            cursor: 'pointer',
-                                            textAlign: 'left',
-                                            transition: 'background 0.2s',
-                                            display: 'flex',
-                                            alignItems: 'center',
-                                            gap: 8,
-                                        }}
-                                        onMouseEnter={(e) => (e.currentTarget.style.background = '#4a4a5a')}
-                                        onMouseLeave={(e) => (e.currentTarget.style.background = '#3a3a4a')}
-                                    >
-                                        <span>🔄</span> New Game
-                                    </button>
-                                ) : (
-                                    <div style={{
-                                        background: '#2a2a35',
-                                        padding: 12,
-                                        borderRadius: 8,
-                                        border: '1px solid #444',
+                                <button
+                                    onClick={(e) => {
+                                        e.stopPropagation()
+                                        setShowNewGameScreen(true)
+                                        setIsMenuOpen(false)
+                                    }}
+                                    style={{
+                                        background: '#3a3a4a',
+                                        border: 'none',
+                                        borderRadius: 6,
+                                        color: 'white',
+                                        padding: '10px',
+                                        cursor: 'pointer',
+                                        textAlign: 'left',
+                                        transition: 'background 0.2s',
                                         display: 'flex',
-                                        flexDirection: 'column',
-                                        gap: 12
-                                    }}>
-                                        <div style={{ fontSize: 13, color: '#ccc', fontWeight: 'bold' }}>New Game Setup</div>
-
-                                        {/* Player Count Selector */}
-                                        <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
-                                            <label style={{ fontSize: 11, color: '#888' }}>Players:</label>
-                                            <div style={{ display: 'flex', gap: 4, justifyContent: 'space-between' }}>
-                                                {[2, 3, 4, 5].map(count => (
-                                                    <button
-                                                        key={count}
-                                                        onClick={(e) => { e.stopPropagation(); setNewGamePlayerCount(count); }}
-                                                        style={{
-                                                            flex: 1,
-                                                            padding: '6px 0',
-                                                            borderRadius: 4,
-                                                            border: newGamePlayerCount === count ? '1px solid #3498db' : '1px solid #444',
-                                                            background: newGamePlayerCount === count ? 'rgba(52, 152, 219, 0.2)' : '#333',
-                                                            color: newGamePlayerCount === count ? '#3498db' : '#aaa',
-                                                            cursor: 'pointer',
-                                                            fontSize: 12,
-                                                            fontWeight: newGamePlayerCount === count ? 'bold' : 'normal',
-                                                        }}
-                                                    >
-                                                        {count}
-                                                    </button>
-                                                ))}
-                                            </div>
-                                        </div>
-
-                                        <div style={{ display: 'flex', gap: 8, marginTop: 4 }}>
-                                            <button
-                                                onClick={(e) => {
-                                                    e.stopPropagation()
-                                                    startNewGame()
-                                                }}
-                                                style={{
-                                                    flex: 1,
-                                                    background: '#27ae60', // Green for start
-                                                    border: 'none',
-                                                    borderRadius: 4,
-                                                    color: 'white',
-                                                    padding: '8px',
-                                                    cursor: 'pointer',
-                                                    fontSize: 12,
-                                                    fontWeight: 'bold',
-                                                }}
-                                            >
-                                                Start
-                                            </button>
-                                            <button
-                                                onClick={(e) => {
-                                                    e.stopPropagation()
-                                                    setShowNewGameConfirm(false)
-                                                }}
-                                                style={{
-                                                    flex: 1,
-                                                    background: '#555',
-                                                    border: 'none',
-                                                    borderRadius: 4,
-                                                    color: 'white',
-                                                    padding: '8px',
-                                                    cursor: 'pointer',
-                                                    fontSize: 12,
-                                                }}
-                                            >
-                                                Cancel
-                                            </button>
-                                        </div>
-                                    </div>
-                                )}
-
-                                <div style={{ fontSize: 12, color: '#888', paddingTop: 4, borderTop: '1px solid #444' }}>
-                                    <label style={{
-                                        display: 'flex', alignItems: 'center', gap: 6,
-                                        cursor: 'pointer', padding: '4px 0', color: '#ccc',
-                                    }}>
-                                        <input
-                                            type="checkbox"
-                                            checked={newGameExpansions.includes('inns-cathedrals')}
-                                            onChange={(e) => {
-                                                e.stopPropagation()
-                                                setNewGameExpansions(
-                                                    e.target.checked
-                                                        ? [...newGameExpansions, 'inns-cathedrals']
-                                                        : newGameExpansions.filter(x => x !== 'inns-cathedrals')
-                                                )
-                                            }}
-                                            style={{ accentColor: '#9955cc' }}
-                                        />
-                                        Inns & Cathedrals
-                                    </label>
-                                </div>
+                                        alignItems: 'center',
+                                        gap: 8,
+                                    }}
+                                    onMouseEnter={(e) => (e.currentTarget.style.background = '#4a4a5a')}
+                                    onMouseLeave={(e) => (e.currentTarget.style.background = '#3a3a4a')}
+                                >
+                                    <span>🔄</span> New Game
+                                </button>
                             </motion.div>
                         )}
                     </AnimatePresence>
