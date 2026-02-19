@@ -1,7 +1,6 @@
 import type { Board, Coordinate } from '../types/board.ts'
-import type { TileDefinition, TileInstance, Direction, EdgeType, EdgePosition, Rotation } from '../types/tile.ts'
+import type { TileDefinition, TileInstance, Direction, EdgeType, EdgePosition, Rotation, FeatureType } from '../types/tile.ts'
 import { coordKey } from '../types/board.ts'
-import { TILE_MAP } from '../data/baseTiles.ts'
 
 // Re-export for convenience
 export { coordKey }
@@ -48,10 +47,13 @@ export function unrotateDirection(physicalDir: Direction, rotation: Rotation): D
 
 /**
  * Get the EdgeType of a tile at a physical direction, taking rotation into account.
+ * Derived from the center segment of the edge.
  */
 export function getEdge(def: TileDefinition, rotation: Rotation, physicalDir: Direction): EdgeType {
-  const logicalDir = unrotateDirection(physicalDir, rotation)
-  return def.edges[logicalDir]
+  const features = getEdgeFeatures(def, rotation, physicalDir)
+  const center = features[1]
+  /* CLOISTERS shouldn't be at edges usually, but if so treat as FIELD for simple type checks */
+  return (center === 'CLOISTER' ? 'FIELD' : center) as EdgeType
 }
 
 /**
@@ -127,6 +129,24 @@ export function getSegmentAtEdgePosition(
 
 // ─── Placement validation ─────────────────────────────────────────────────────
 
+/**
+ * Get the feature types at a physical direction (Left, Center, Right), taking rotation into account.
+ */
+export function getEdgeFeatures(
+  def: TileDefinition,
+  rotation: Rotation,
+  physicalDir: Direction
+): [FeatureType, FeatureType, FeatureType] {
+  const sides = ['LEFT', 'CENTER', 'RIGHT'] as const
+  return sides.map(side => {
+    const physicalPos = `${physicalDir}_${side}` as EdgePosition
+    const segId = getSegmentAtEdgePosition(def, rotation, physicalPos)
+    const seg = def.segments.find(s => s.id === segId)
+    // Fallback to FIELD if missing, but data integrity should prevent this
+    return seg ? seg.type : 'FIELD'
+  }) as [FeatureType, FeatureType, FeatureType]
+}
+
 function getNeighborCoord(coord: Coordinate, dir: Direction): Coordinate {
   const { dx, dy } = DIRECTION_DELTA[dir]
   return { x: coord.x + dx, y: coord.y + dy }
@@ -137,7 +157,7 @@ function getNeighborCoord(coord: Coordinate, dir: Direction): Coordinate {
  * Rules:
  *  1. The cell must be empty.
  *  2. The cell must be adjacent to at least one placed tile.
- *  3. All adjacent tile edges must match on the shared edge.
+ *  3. All adjacent tile edges must match on the shared edge (checking all 3 sub-positions).
  */
 export function isValidPlacement(
   board: Board,
@@ -170,11 +190,18 @@ export function isValidPlacement(
     if (!neighborDef) return false
 
     // My physical edge facing this neighbor
-    const myEdge = getEdge(def, instance.rotation, dir)
+    const myFeatures = getEdgeFeatures(def, instance.rotation, dir)
     // Neighbor's physical edge facing back at me
-    const neighborEdge = getEdge(neighborDef, neighborTile.rotation, OPPOSITE_DIRECTION[dir])
+    const neighborDir = OPPOSITE_DIRECTION[dir]
+    const neighborFeatures = getEdgeFeatures(neighborDef, neighborTile.rotation, neighborDir)
 
-    if (myEdge !== neighborEdge) return false
+    // Compare matching sub-positions:
+    // My LEFT matches Neighbor's RIGHT
+    // My CENTER matches Neighbor's CENTER
+    // My RIGHT matches Neighbor's LEFT
+    if (myFeatures[0] !== neighborFeatures[2]) return false
+    if (myFeatures[1] !== neighborFeatures[1]) return false
+    if (myFeatures[2] !== neighborFeatures[0]) return false
   }
 
   return hasNeighbor
@@ -299,6 +326,3 @@ export function getAllPotentialPlacements(
 
   return valid
 }
-
-// Export TILE_MAP for convenience (engines can pass it through)
-export { TILE_MAP }

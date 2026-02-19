@@ -8,13 +8,22 @@ export function SetupScreen() {
   const [playerCount, setPlayerCount] = useState(2)
   const [names, setNames] = useState<string[]>(DEFAULT_NAMES.slice(0, 6))
   const [useInnsCathedrals, setUseInnsCathedrals] = useState(false)
+  const [isStarting, setIsStarting] = useState(false)
   const { newGame } = useGameStore()
 
-  const handleStart = () => {
-    newGame({
-      playerNames: names.slice(0, playerCount),
-      expansions: useInnsCathedrals ? ['inns-cathedrals'] : [],
-    })
+  const handleStart = async () => {
+    if (isStarting) return
+    setIsStarting(true)
+    try {
+      await newGame({
+        playerNames: names.slice(0, playerCount),
+        expansions: useInnsCathedrals ? ['inns-cathedrals'] : [],
+      })
+    } catch (e: any) {
+      console.error(e)
+      alert("Failed to start game: " + (e.message || e))
+      setIsStarting(false)
+    }
   }
 
   return (
@@ -132,19 +141,21 @@ export function SetupScreen() {
         {/* Start button */}
         <button
           onClick={handleStart}
+          disabled={isStarting}
           style={{
-            background: '#c8a46e',
+            background: isStarting ? '#666' : '#c8a46e',
             color: '#1a1a2e',
             border: 'none',
             padding: '12px 0',
             borderRadius: 8,
-            cursor: 'pointer',
+            cursor: isStarting ? 'wait' : 'pointer',
             fontSize: 16,
             fontWeight: 'bold',
             marginTop: 8,
+            opacity: isStarting ? 0.7 : 1
           }}
         >
-          Start Game
+          {isStarting ? 'Starting Game...' : 'Start Game'}
         </button>
       </div>
     </div>

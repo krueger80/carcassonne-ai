@@ -1,7 +1,7 @@
 /**
  * 18 tile definitions for the Inns & Cathedrals expansion.
  *
- * Tile IDs: ic_A through ic_R (18 tiles, 18 total instances).
+ * Tile IDs: ic_A through ic_Q, with ic_Ka and ic_Kb variants (18 tiles, 18 total instances).
  * Special segment flags:
  *   - hasInn: true   on ROAD segments near a lake
  *   - hasCathedral: true  on CITY segments with a cathedral
@@ -34,7 +34,7 @@ const ROAD_CURVE_SW = 'M0,46 L54,46 L54,100 L46,100 L46,54 L0,54 Z'
 const ROAD_CURVE_ES = 'M46,46 L100,46 L100,54 L54,54 L54,100 L46,100 Z'
 
 // Cloister
-const CLOISTER_RECT = 'M30,30 L70,30 L70,70 L30,70 Z'
+// const CLOISTER_RECT = 'M30,30 L70,30 L70,70 L30,70 Z'
 
 // Meeple centroids
 const C_NORTH = { x: 50, y: 20 }
@@ -57,10 +57,9 @@ export const IC_TILES: TileDefinition[] = [
 
   // ── ic_A: Full city (all 4 edges) with cathedral ──
   {
-    id: 'ic_A',
+    id: 'ic_A', imageUrl: '/images/InnsAndCathedrals_C2/Inns_And_Cathedrals_C2_Tile_A.jpg',
     count: 1,
     expansionId: 'inns-cathedrals',
-    edges: { NORTH: 'CITY', EAST: 'CITY', SOUTH: 'CITY', WEST: 'CITY' },
     segments: [
       {
         id: 'city0', type: 'CITY', hasCathedral: true,
@@ -77,10 +76,9 @@ export const IC_TILES: TileDefinition[] = [
 
   // ── ic_B: 3-sided city (N+E+W connected) with cathedral ──
   {
-    id: 'ic_B',
+    id: 'ic_B', imageUrl: '/images/InnsAndCathedrals_C2/Inns_And_Cathedrals_C2_Tile_B.jpg',
     count: 1,
     expansionId: 'inns-cathedrals',
-    edges: { NORTH: 'CITY', EAST: 'CITY', SOUTH: 'FIELD', WEST: 'CITY' },
     segments: [
       {
         id: 'city0', type: 'CITY', hasCathedral: true,
@@ -101,14 +99,13 @@ export const IC_TILES: TileDefinition[] = [
 
   // ── ic_C: City N+E connected (no pennant) + road S→W ──
   {
-    id: 'ic_C',
+    id: 'ic_C', imageUrl: '/images/InnsAndCathedrals_C2/Inns_And_Cathedrals_C2_Tile_C.jpg',
     count: 1,
     expansionId: 'inns-cathedrals',
-    edges: { NORTH: 'CITY', EAST: 'CITY', SOUTH: 'ROAD', WEST: 'ROAD' },
     segments: [
       {
         id: 'city0', type: 'CITY',
-        svgPath: CITY_NE, meepleCentroid: { x: 70, y: 25 },
+        svgPath: CITY_NE, meepleCentroid: C_FIELD_NE,
       },
       {
         id: 'road0', type: 'ROAD',
@@ -134,14 +131,13 @@ export const IC_TILES: TileDefinition[] = [
 
   // ── ic_D: City N+E connected (with pennant) + road S→W ──
   {
-    id: 'ic_D',
+    id: 'ic_D', imageUrl: '/images/InnsAndCathedrals_C2/Inns_And_Cathedrals_C2_Tile_D.jpg',
     count: 1,
     expansionId: 'inns-cathedrals',
-    edges: { NORTH: 'CITY', EAST: 'CITY', SOUTH: 'ROAD', WEST: 'ROAD' },
     segments: [
       {
         id: 'city0', type: 'CITY', hasPennant: true,
-        svgPath: CITY_NE, meepleCentroid: { x: 70, y: 25 },
+        svgPath: CITY_NE, meepleCentroid: C_FIELD_NE,
       },
       {
         id: 'road0', type: 'ROAD',
@@ -167,10 +163,9 @@ export const IC_TILES: TileDefinition[] = [
 
   // ── ic_E: City N + road S→W with inn ──
   {
-    id: 'ic_E',
+    id: 'ic_E', imageUrl: '/images/InnsAndCathedrals_C2/Inns_And_Cathedrals_C2_Tile_E.jpg',
     count: 1,
     expansionId: 'inns-cathedrals',
-    edges: { NORTH: 'CITY', EAST: 'FIELD', SOUTH: 'ROAD', WEST: 'ROAD' },
     segments: [
       {
         id: 'city0', type: 'CITY',
@@ -199,10 +194,9 @@ export const IC_TILES: TileDefinition[] = [
 
   // ── ic_F: City N + road E→W with inn ──
   {
-    id: 'ic_F',
+    id: 'ic_F', imageUrl: '/images/InnsAndCathedrals_C2/Inns_And_Cathedrals_C2_Tile_F.jpg',
     count: 1,
     expansionId: 'inns-cathedrals',
-    edges: { NORTH: 'CITY', EAST: 'ROAD', SOUTH: 'FIELD', WEST: 'ROAD' },
     segments: [
       {
         id: 'city0', type: 'CITY',
@@ -231,10 +225,9 @@ export const IC_TILES: TileDefinition[] = [
 
   // ── ic_G: City N + road dead-end S ──
   {
-    id: 'ic_G',
+    id: 'ic_G', imageUrl: '/images/InnsAndCathedrals_C2/Inns_And_Cathedrals_C2_Tile_G.jpg',
     count: 1,
     expansionId: 'inns-cathedrals',
-    edges: { NORTH: 'CITY', EAST: 'FIELD', SOUTH: 'ROAD', WEST: 'FIELD' },
     segments: [
       {
         id: 'city0', type: 'CITY',
@@ -259,10 +252,9 @@ export const IC_TILES: TileDefinition[] = [
 
   // ── ic_H: City N with pennant (large city cap) ──
   {
-    id: 'ic_H',
+    id: 'ic_H', imageUrl: '/images/InnsAndCathedrals_C2/Inns_And_Cathedrals_C2_Tile_H.jpg',
     count: 1,
     expansionId: 'inns-cathedrals',
-    edges: { NORTH: 'CITY', EAST: 'FIELD', SOUTH: 'FIELD', WEST: 'FIELD' },
     segments: [
       {
         id: 'city0', type: 'CITY', hasPennant: true,
@@ -283,10 +275,9 @@ export const IC_TILES: TileDefinition[] = [
 
   // ── ic_I: Straight road N→S with inn ──
   {
-    id: 'ic_I',
+    id: 'ic_I', imageUrl: '/images/InnsAndCathedrals_C2/Inns_And_Cathedrals_C2_Tile_I.jpg',
     count: 1,
     expansionId: 'inns-cathedrals',
-    edges: { NORTH: 'ROAD', EAST: 'FIELD', SOUTH: 'ROAD', WEST: 'FIELD' },
     segments: [
       {
         id: 'road0', type: 'ROAD', hasInn: true,
@@ -311,10 +302,9 @@ export const IC_TILES: TileDefinition[] = [
 
   // ── ic_J: Road curve S→W with inn ──
   {
-    id: 'ic_J',
+    id: 'ic_J', imageUrl: '/images/InnsAndCathedrals_C2/Inns_And_Cathedrals_C2_Tile_J.jpg',
     count: 1,
     expansionId: 'inns-cathedrals',
-    edges: { NORTH: 'FIELD', EAST: 'FIELD', SOUTH: 'ROAD', WEST: 'ROAD' },
     segments: [
       {
         id: 'road0', type: 'ROAD', hasInn: true,
@@ -337,16 +327,42 @@ export const IC_TILES: TileDefinition[] = [
     },
   },
 
-  // ── ic_K: City N+E connected (with pennant), field S+W ──
+  // ── ic_Ka: City N+E connected (with pennant), field S+W ──
   {
-    id: 'ic_K',
+    id: 'ic_Ka', imageUrl: '/images/InnsAndCathedrals_C2/Inns_And_Cathedrals_C2_Tile_Ka.jpg',
     count: 1,
     expansionId: 'inns-cathedrals',
-    edges: { NORTH: 'CITY', EAST: 'CITY', SOUTH: 'FIELD', WEST: 'FIELD' },
     segments: [
       {
         id: 'city0', type: 'CITY', hasPennant: true,
-        svgPath: CITY_NE, meepleCentroid: { x: 70, y: 25 },
+        svgPath: CITY_NE, meepleCentroid: C_FIELD_NE,
+      },
+      {
+        id: 'field0', type: 'FIELD',
+        svgPath: 'M0,0 L30,25 L50,50 L0,60 Z', meepleCentroid: C_FIELD_NW,
+      },
+      {
+        id: 'field1', type: 'FIELD',
+        svgPath: 'M0,60 L50,50 L75,70 L100,100 L0,100 Z', meepleCentroid: C_FIELD_SW,
+      },
+    ],
+    edgePositionToSegment: {
+      NORTH_LEFT: 'city0', NORTH_CENTER: 'city0', NORTH_RIGHT: 'city0',
+      EAST_LEFT: 'city0', EAST_CENTER: 'city0', EAST_RIGHT: 'city0',
+      SOUTH_LEFT: 'field1', SOUTH_CENTER: 'field1', SOUTH_RIGHT: 'field1',
+      WEST_LEFT: 'field1', WEST_CENTER: 'field0', WEST_RIGHT: 'field0',
+    },
+  },
+
+  // ── ic_Kb: City N+E connected (with pennant), field S+W (same features as Ka, different art) ──
+  {
+    id: 'ic_Kb', imageUrl: '/images/InnsAndCathedrals_C2/Inns_And_Cathedrals_C2_Tile_Kb.jpg',
+    count: 1,
+    expansionId: 'inns-cathedrals',
+    segments: [
+      {
+        id: 'city0', type: 'CITY', hasPennant: true,
+        svgPath: CITY_NE, meepleCentroid: C_FIELD_NE,
       },
       {
         id: 'field0', type: 'FIELD',
@@ -367,10 +383,9 @@ export const IC_TILES: TileDefinition[] = [
 
   // ── ic_L: City N+E+W connected (with pennant) ──
   {
-    id: 'ic_L',
+    id: 'ic_L', imageUrl: '/images/InnsAndCathedrals_C2/Inns_And_Cathedrals_C2_Tile_L.jpg',
     count: 1,
     expansionId: 'inns-cathedrals',
-    edges: { NORTH: 'CITY', EAST: 'CITY', SOUTH: 'FIELD', WEST: 'CITY' },
     segments: [
       {
         id: 'city0', type: 'CITY', hasPennant: true,
@@ -391,10 +406,9 @@ export const IC_TILES: TileDefinition[] = [
 
   // ── ic_M: City N+W connected (no pennant) ──
   {
-    id: 'ic_M',
+    id: 'ic_M', imageUrl: '/images/InnsAndCathedrals_C2/Inns_And_Cathedrals_C2_Tile_M.jpg',
     count: 1,
     expansionId: 'inns-cathedrals',
-    edges: { NORTH: 'CITY', EAST: 'FIELD', SOUTH: 'FIELD', WEST: 'CITY' },
     segments: [
       {
         id: 'city0', type: 'CITY',
@@ -415,11 +429,15 @@ export const IC_TILES: TileDefinition[] = [
 
   // ── ic_N: City E + City W (separate, not connected) ──
   {
-    id: 'ic_N',
+    id: 'ic_N', imageUrl: '/images/InnsAndCathedrals_C2/Inns_And_Cathedrals_C2_Tile_N.jpg',
     count: 1,
     expansionId: 'inns-cathedrals',
-    edges: { NORTH: 'FIELD', EAST: 'CITY', SOUTH: 'FIELD', WEST: 'CITY' },
     segments: [
+      {
+        id: 'field0', type: 'FIELD',
+        svgPath: FIELD_FULL,
+        meepleCentroid: C_CENTER,
+      },
       {
         id: 'city0', type: 'CITY',
         svgPath: CITY_E, meepleCentroid: C_EAST,
@@ -427,11 +445,6 @@ export const IC_TILES: TileDefinition[] = [
       {
         id: 'city1', type: 'CITY',
         svgPath: CITY_W, meepleCentroid: C_WEST,
-      },
-      {
-        id: 'field0', type: 'FIELD',
-        svgPath: 'M40,50 L60,50 L60,40 L100,40 L100,60 L60,60 L60,50 L40,50 L40,60 L0,60 L0,40 L40,40 Z',
-        meepleCentroid: C_CENTER,
       },
     ],
     edgePositionToSegment: {
@@ -444,10 +457,9 @@ export const IC_TILES: TileDefinition[] = [
 
   // ── ic_O: 4-way road crossroads with inn ──
   {
-    id: 'ic_O',
+    id: 'ic_O', imageUrl: '/images/InnsAndCathedrals_C2/Inns_And_Cathedrals_C2_Tile_O.jpg',
     count: 1,
     expansionId: 'inns-cathedrals',
-    edges: { NORTH: 'ROAD', EAST: 'ROAD', SOUTH: 'ROAD', WEST: 'ROAD' },
     segments: [
       {
         id: 'road_n', type: 'ROAD', hasInn: true,
@@ -492,10 +504,9 @@ export const IC_TILES: TileDefinition[] = [
 
   // ── ic_P: City N + road E→S ──
   {
-    id: 'ic_P',
+    id: 'ic_P', imageUrl: '/images/InnsAndCathedrals_C2/Inns_And_Cathedrals_C2_Tile_P.jpg',
     count: 1,
     expansionId: 'inns-cathedrals',
-    edges: { NORTH: 'CITY', EAST: 'ROAD', SOUTH: 'ROAD', WEST: 'FIELD' },
     segments: [
       {
         id: 'city0', type: 'CITY',
@@ -524,10 +535,9 @@ export const IC_TILES: TileDefinition[] = [
 
   // ── ic_Q: City N+E+W connected + road S ──
   {
-    id: 'ic_Q',
+    id: 'ic_Q', imageUrl: '/images/InnsAndCathedrals_C2/Inns_And_Cathedrals_C2_Tile_Q.jpg',
     count: 1,
     expansionId: 'inns-cathedrals',
-    edges: { NORTH: 'CITY', EAST: 'CITY', SOUTH: 'ROAD', WEST: 'CITY' },
     segments: [
       {
         id: 'city0', type: 'CITY',
@@ -554,33 +564,6 @@ export const IC_TILES: TileDefinition[] = [
     },
   },
 
-  // ── ic_R: Cloister with road N→S ──
-  {
-    id: 'ic_R',
-    count: 1,
-    expansionId: 'inns-cathedrals',
-    edges: { NORTH: 'ROAD', EAST: 'FIELD', SOUTH: 'ROAD', WEST: 'FIELD' },
-    segments: [
-      {
-        id: 'field0', type: 'FIELD',
-        svgPath: FIELD_FULL, meepleCentroid: C_FIELD_NE,
-      },
-      {
-        id: 'road0', type: 'ROAD',
-        svgPath: ROAD_NS, meepleCentroid: C_ROAD_N,
-      },
-      {
-        id: 'cloister0', type: 'CLOISTER',
-        svgPath: CLOISTER_RECT, meepleCentroid: C_CENTER,
-      },
-    ],
-    edgePositionToSegment: {
-      NORTH_LEFT: 'field0', NORTH_CENTER: 'road0', NORTH_RIGHT: 'field0',
-      EAST_LEFT: 'field0', EAST_CENTER: 'field0', EAST_RIGHT: 'field0',
-      SOUTH_LEFT: 'field0', SOUTH_CENTER: 'road0', SOUTH_RIGHT: 'field0',
-      WEST_LEFT: 'field0', WEST_CENTER: 'field0', WEST_RIGHT: 'field0',
-    },
-  },
 ]
 
 // Total tile count for verification

@@ -1,16 +1,16 @@
 import type { Segment } from '../../core/types/tile.ts'
 
 export const TERRAIN_COLORS: Record<string, string> = {
-  CITY:     '#c8a46e',
-  ROAD:     '#e8d8a0',
-  FIELD:    '#5a9e4b',
+  CITY: '#c8a46e',
+  ROAD: '#e8d8a0',
+  FIELD: '#5a9e4b',
   CLOISTER: '#e8c8a0',
 }
 
 const TERRAIN_STROKE: Record<string, string> = {
-  CITY:     '#8b6914',
-  ROAD:     '#b0a060',
-  FIELD:    '#3a7e2b',
+  CITY: '#8b6914',
+  ROAD: '#b0a060',
+  FIELD: '#3a7e2b',
   CLOISTER: '#c0906a',
 }
 
@@ -36,6 +36,20 @@ export function SegmentPath({ segment, highlighted = false, dimmed = false }: Se
         {/* Cross decoration on cloister */}
         <rect x="48" y="32" width="4" height="36" fill={TERRAIN_STROKE['CLOISTER']} opacity={0.5} />
         <rect x="32" y="48" width="36" height="4" fill={TERRAIN_STROKE['CLOISTER']} opacity={0.5} />
+      </g>
+    )
+  }
+
+  if (segment.type === 'ROAD') {
+    const roadColor = highlighted ? '#ffffaa' : (TERRAIN_COLORS['ROAD'] ?? '#e8d8a0')
+    const roadBorder = TERRAIN_STROKE['ROAD'] ?? '#b0a060'
+
+    return (
+      <g opacity={opacity}>
+        {/* Outer stroke (border) */}
+        <path d={segment.svgPath} fill="none" stroke={roadBorder} strokeWidth="12" strokeLinecap="round" strokeLinejoin="round" />
+        {/* Inner stroke (road surface) */}
+        <path d={segment.svgPath} fill="none" stroke={roadColor} strokeWidth="8" strokeLinecap="round" strokeLinejoin="round" />
       </g>
     )
   }

@@ -161,6 +161,7 @@ export function GameBoard({ }: GameBoardProps) {
                       onPointerDown={(e) => e.stopPropagation()}
                     >
                       <TileCell
+                        definition={gameState.staticTileMap[gameState.currentTile.definitionId]}
                         tile={{
                           coordinate: { x, y },
                           definitionId: gameState.currentTile.definitionId,
@@ -180,6 +181,7 @@ export function GameBoard({ }: GameBoardProps) {
                   return (
                     <div key={key} onClick={(e) => e.stopPropagation()}>
                       <TileCell
+                        definition={gameState.staticTileMap[placedTile.definitionId]}
                         tile={placedTile}
                         size={CELL_SIZE}
                         players={gameState.players}
@@ -225,7 +227,7 @@ export function GameBoard({ }: GameBoardProps) {
                     // Actually, if we want GHOST tiles, we can pass previewTile.
                     // But typically ghosts are faint versions of the tile.
                     // The 'PlaceholderCell' implementation might need checking.
-
+                    tileMap={gameState.staticTileMap}
                     onHover={() => setHoveredCoord({ x, y })}
                     onLeave={() => setHoveredCoord(null)}
                     onClick={(e) => {

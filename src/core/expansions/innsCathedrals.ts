@@ -13,17 +13,17 @@ import { IC_TILES } from '../data/innsCathedralsTiles.ts'
 export const IC_SCORING_RULES: ScoringRule[] = [
   {
     featureType: 'ROAD',
-    scoreComplete: (f) => f.metadata.hasInn ? f.tileCount * 2 : f.tileCount,
-    scoreIncomplete: (f) => f.metadata.hasInn ? 0 : f.tileCount,
+    scoreComplete: (f) => (f.metadata as any)?.hasInn ? f.tileCount * 2 : f.tileCount,
+    scoreIncomplete: (f) => (f.metadata as any)?.hasInn ? 0 : f.tileCount,
   },
   {
     featureType: 'CITY',
     scoreComplete: (f) => {
       const base = f.tileCount + f.pennantCount
-      return f.metadata.hasCathedral ? base * 3 : base * 2
+      return (f.metadata as any)?.hasCathedral ? base * 3 : base * 2
     },
     scoreIncomplete: (f) => {
-      return f.metadata.hasCathedral ? 0 : f.tileCount + f.pennantCount
+      return (f.metadata as any)?.hasCathedral ? 0 : f.tileCount + f.pennantCount
     },
   },
   {

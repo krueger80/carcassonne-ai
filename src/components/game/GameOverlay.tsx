@@ -1,7 +1,7 @@
 import { useGameStore } from '../../store/gameStore.ts'
 import { useUIStore } from '../../store/uiStore.ts'
 import { TileSVG } from '../svg/TileSVG.tsx'
-import { TILE_MAP, getAllPotentialPlacements } from '../../core/engine/GameEngine.ts'
+import { getAllPotentialPlacements } from '../../core/engine/GameEngine.ts'
 import { motion, AnimatePresence } from 'framer-motion'
 import { useEffect, useState, useMemo } from 'react'
 
@@ -55,7 +55,8 @@ export function GameOverlay() {
         if (gameState.turnPhase === 'PLACE_TILE' && gameState.currentTile) {
             const store = useGameStore.getState()
             if (store.validPlacements.length === 0 && store.interactionState !== 'TILE_PLACED_TENTATIVELY') {
-                const potential = getAllPotentialPlacements(gameState.board, TILE_MAP, gameState.currentTile)
+                const tileMap = gameState.staticTileMap
+                const potential = getAllPotentialPlacements(gameState.board, tileMap, gameState.currentTile)
                 if (potential.length > 0) {
                     useGameStore.setState({ validPlacements: potential })
                 }
@@ -498,9 +499,9 @@ export function GameOverlay() {
                             border: '2px solid #555',
                             boxShadow: 'inset 0 0 20px rgba(0,0,0,0.5)'
                         }}>
-                            {currentTile && TILE_MAP[currentTile.definitionId] ? (
+                            {currentTile && gameState.staticTileMap[currentTile.definitionId] ? (
                                 <TileSVG
-                                    definition={TILE_MAP[currentTile.definitionId]}
+                                    definition={gameState.staticTileMap[currentTile.definitionId]}
                                     rotation={currentTile.rotation}
                                     size={100}
                                 />
@@ -517,6 +518,23 @@ export function GameOverlay() {
                                 pointerEvents: 'none',
                                 transition: 'opacity 0.2s'
                             }} />
+                            {currentTile && (
+                                <div style={{
+                                    position: 'absolute',
+                                    bottom: 0,
+                                    right: 0,
+                                    background: 'rgba(0,0,0,0.7)',
+                                    color: '#fff',
+                                    fontSize: 10,
+                                    padding: '2px 4px',
+                                    fontFamily: 'monospace',
+                                    borderTopLeftRadius: 4,
+                                    pointerEvents: 'none',
+                                    zIndex: 10
+                                }}>
+                                    {currentTile.definitionId}
+                                </div>
+                            )}
                         </div>
 
                         {/* Action Buttons */}

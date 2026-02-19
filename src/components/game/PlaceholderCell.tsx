@@ -1,7 +1,6 @@
 import type { Coordinate } from '../../core/types/board.ts'
 import { TileSVG } from '../svg/TileSVG.tsx'
-import { TILE_MAP } from '../../core/data/baseTiles.ts'
-import type { TileInstance } from '../../core/types/tile.ts'
+import type { TileInstance, TileDefinition } from '../../core/types/tile.ts'
 
 interface PlaceholderCellProps {
   coord: Coordinate
@@ -9,6 +8,7 @@ interface PlaceholderCellProps {
   isValid: boolean
   isHovered: boolean
   previewTile?: TileInstance | null   // ghost preview of the current tile
+  tileMap: Record<string, TileDefinition>
   onHover: () => void
   onLeave: () => void
   onClick: (e: React.MouseEvent) => void
@@ -19,6 +19,7 @@ export function PlaceholderCell({
   isValid,
   isHovered,
   previewTile,
+  tileMap,
   onHover,
   onLeave,
   onClick,
@@ -58,7 +59,7 @@ export function PlaceholderCell({
       {isHovered && previewTile && isValid && (
         <div style={{ opacity: 0.55, pointerEvents: 'none' }}>
           <TileSVG
-            definition={TILE_MAP[previewTile.definitionId]!}
+            definition={tileMap[previewTile.definitionId]!}
             rotation={previewTile.rotation}
             size={size - 4}
             isValidTarget

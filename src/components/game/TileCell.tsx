@@ -1,10 +1,8 @@
 import { TileSVG } from '../svg/TileSVG.tsx'
-import { TILE_MAP } from '../../core/data/baseTiles.ts'
 import type { PlacedTile } from '../../core/types/board.ts'
 import type { Player } from '../../core/types/player.ts'
-import type { Rotation } from '../../core/types/tile.ts'
+import type { Rotation, TileDefinition } from '../../core/types/tile.ts'
 
-/** Rotate a centroid (0–100 SVG coords) by the tile rotation (90° CW steps). */
 function rotateCentroid(
   pt: { x: number; y: number },
   rotation: Rotation,
@@ -20,6 +18,7 @@ function rotateCentroid(
 
 interface TileCellProps {
   tile: PlacedTile
+  definition: TileDefinition
   size: number
   players: Player[]
   /** Segment IDs clickable for meeple placement */
@@ -33,6 +32,7 @@ interface TileCellProps {
 
 export function TileCell({
   tile,
+  definition,
   size,
   players,
   placeableSegments = [],
@@ -40,7 +40,7 @@ export function TileCell({
   isTentative = false,
   tentativeMeepleSegment,
 }: TileCellProps) {
-  const def = TILE_MAP[tile.definitionId]
+  const def = definition
   if (!def) return null
 
   // Build meeple color map for this tile
@@ -92,6 +92,21 @@ export function TileCell({
         meeples={meepleColors}
       />
 
+      {/* Tile ID Label */}
+      <div style={{
+        position: 'absolute',
+        bottom: 1,
+        right: 2,
+        fontSize: 8,
+        fontFamily: 'monospace',
+        color: 'rgba(255, 255, 255, 0.9)',
+        zIndex: 5,
+        pointerEvents: 'none',
+        textShadow: '0 0 2px black'
+      }}>
+        {def.id}
+      </div>
+
       {/* Visual indicator for tentative tile (rotate icon?) */}
       {isTentative && (
         <div style={{
@@ -127,8 +142,8 @@ export function TileCell({
               left: `${x}%`,
               top: `${y}%`,
               transform: 'translate(-50%, -50%)',
-              width: 40, // Increased touch target
-              height: 40,
+              width: 24, // Smaller touch target
+              height: 24,
               borderRadius: '50%',
               background: isSelected ? 'rgba(255,255,255,0.8)' : 'rgba(255,255,100,0.4)',
               border: isSelected ? '3px solid #fff' : '2px dashed rgba(255,255,0,0.8)',

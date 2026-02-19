@@ -7,16 +7,16 @@ export type Rotation = 0 | 90 | 180 | 270
 // Roads always occupy CENTER. Cities can span the full edge. Fields fill the rest.
 export type EdgePosition =
   | 'NORTH_LEFT' | 'NORTH_CENTER' | 'NORTH_RIGHT'
-  | 'EAST_LEFT'  | 'EAST_CENTER'  | 'EAST_RIGHT'
+  | 'EAST_LEFT' | 'EAST_CENTER' | 'EAST_RIGHT'
   | 'SOUTH_LEFT' | 'SOUTH_CENTER' | 'SOUTH_RIGHT'
-  | 'WEST_LEFT'  | 'WEST_CENTER'  | 'WEST_RIGHT'
+  | 'WEST_LEFT' | 'WEST_CENTER' | 'WEST_RIGHT'
 
 // All edge positions grouped by direction
 export const EDGE_POSITIONS: Record<Direction, EdgePosition[]> = {
   NORTH: ['NORTH_LEFT', 'NORTH_CENTER', 'NORTH_RIGHT'],
-  EAST:  ['EAST_LEFT',  'EAST_CENTER',  'EAST_RIGHT'],
+  EAST: ['EAST_LEFT', 'EAST_CENTER', 'EAST_RIGHT'],
   SOUTH: ['SOUTH_LEFT', 'SOUTH_CENTER', 'SOUTH_RIGHT'],
-  WEST:  ['WEST_LEFT',  'WEST_CENTER',  'WEST_RIGHT'],
+  WEST: ['WEST_LEFT', 'WEST_CENTER', 'WEST_RIGHT'],
 }
 
 // One discrete terrain region within a tile.
@@ -37,14 +37,14 @@ export interface Segment {
 export interface TileDefinition {
   id: string            // e.g. 'base_D' (matches canonical Carcassonne tile IDs)
   count: number         // how many copies in the bag
-  // Fast lookup for placement validation
-  edges: Record<Direction, EdgeType>
+
   // The terrain segments
   segments: Segment[]
   // Bridge from edge sub-position → segment id (used by FeatureDetector)
   edgePositionToSegment: Record<EdgePosition, string>
   startingTile?: boolean
   expansionId?: string  // undefined = base game
+  imageUrl?: string     // Optional image asset to render instead of SVG
 }
 
 // An instance of a tile (either in the bag or placed on the board)
