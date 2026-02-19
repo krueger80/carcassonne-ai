@@ -84,18 +84,20 @@ export function GameBoard({ }: GameBoardProps) {
   // ── Builder/Pig segment map (computed once per render cycle) ────────────────
 
   const currentPlayer = gameState?.players[gameState.currentPlayerIndex]
-  const isBuilderPigMode =
-    (selectedMeepleType === 'BUILDER' || selectedMeepleType === 'PIG') &&
-    gameState?.turnPhase === 'PLACE_MEEPLE'
 
-  const builderPigSegmentsMap = useMemo<Record<string, string[]>>(() => {
-    if (!isBuilderPigMode || !gameState || !currentPlayer) return {}
+
+  // ── Builder/Pig segment maps (calculated if player has meeples) ─────────────
+
+  const builderSegmentsMap = useMemo<Record<string, string[]>>(() => {
+    if (!gameState || !currentPlayer || !gameState.lastPlacedCoord) return {}
+    if ((currentPlayer.meeples.available['BUILDER'] ?? 0) <= 0) return {}
     const results = getBuilderPigPlaceableSegments(
       gameState.featureUnionFind,
       gameState.staticTileMap,
       gameState.board,
+      gameState.lastPlacedCoord,
       currentPlayer,
-      selectedMeepleType as 'BUILDER' | 'PIG',
+      'BUILDER',
     )
     const map: Record<string, string[]> = {}
     for (const { coord, segmentId } of results) {
@@ -104,7 +106,28 @@ export function GameBoard({ }: GameBoardProps) {
       map[k].push(segmentId)
     }
     return map
-  }, [isBuilderPigMode, gameState, currentPlayer, selectedMeepleType])
+  }, [gameState, currentPlayer])
+
+  const pigSegmentsMap = useMemo<Record<string, string[]>>(() => {
+    if (!gameState || !currentPlayer || !gameState.lastPlacedCoord) return {}
+    if ((currentPlayer.meeples.available['PIG'] ?? 0) <= 0) return {}
+    const results = getBuilderPigPlaceableSegments(
+      gameState.featureUnionFind,
+      gameState.staticTileMap,
+      gameState.board,
+      gameState.lastPlacedCoord,
+      currentPlayer,
+      'PIG',
+    )
+    const map: Record<string, string[]> = {}
+    for (const { coord, segmentId } of results) {
+      const k = `${coord.x},${coord.y}`
+      if (!map[k]) map[k] = []
+      map[k].push(segmentId)
+    }
+    return map
+  }, [gameState, currentPlayer])
+
 
   // ── Board bounds ────────────────────────────────────────────────────────────
 
@@ -218,8 +241,11 @@ export function GameBoard({ }: GameBoardProps) {
                   // Determine which segments to highlight on this tile
                   const segmentsHere: string[] = (() => {
                     if (!inMeeplePhaseBrowsing) return []
-                    if (isBuilderPigMode) return builderPigSegmentsMap[key] ?? []
-                    return key === lastKey ? placeableSegments : []
+                    const fromLast = key === lastKey ? placeableSegments : []
+                    // Merge with builder/pig options
+                    const builderOpts = builderSegmentsMap[key] ?? []
+                    const pigOpts = pigSegmentsMap[key] ?? []
+                    return [...new Set([...fromLast, ...builderOpts, ...pigOpts])]
                   })()
 
                   // Show tentative meeple ghost on the correct tile
@@ -240,10 +266,33 @@ export function GameBoard({ }: GameBoardProps) {
                         placeableSegments={segmentsHere}
                         onSegmentClick={(segId) => {
                           if (gameState.turnPhase === 'PLACE_MEEPLE') {
-                            if (isBuilderPigMode) {
-                              selectMeeplePlacement(segId, selectedMeepleType, { x, y })
+                            const bMap = builderSegmentsMap[key]
+                            const pMap = pigSegmentsMap[key]
+                            const canBuild = bMap?.includes(segId)
+                            const canPig = pMap?.includes(segId)
+                            const canNormal = key === lastKey && placeableSegments.includes(segId)
+
+                            let typeToPlace = selectedMeepleType
+                            if (canBuild) {
+                              typeToPlace = 'BUILDER'
+                              if (selectedMeepleType !== 'BUILDER') useUIStore.setState({ selectedMeepleType: 'BUILDER' })
+                            } else if (canPig) {
+                              typeToPlace = 'PIG'
+                              if (selectedMeepleType !== 'PIG') useUIStore.setState({ selectedMeepleType: 'PIG' })
+                            } else if (canNormal) {
+                              // If currently BIG, stay BIG. Else NORMAL.
+                              const isBig = selectedMeepleType === 'BIG'
+                              typeToPlace = isBig ? 'BIG' : 'NORMAL'
+                              // Ensure UI matches (if we were in Builder/Pig mode, switch back)
+                              if (selectedMeepleType === 'BUILDER' || selectedMeepleType === 'PIG') {
+                                useUIStore.setState({ selectedMeepleType: typeToPlace })
+                              }
+                            }
+
+                            if (typeToPlace === 'BUILDER' || typeToPlace === 'PIG') {
+                              selectMeeplePlacement(segId, typeToPlace, { x, y })
                             } else {
-                              selectMeeplePlacement(segId, selectedMeepleType)
+                              selectMeeplePlacement(segId, typeToPlace)
                             }
                           }
                         }}

@@ -377,16 +377,16 @@ export function placeMeepleOnExistingTile(
   const updatedPlayers = state.players.map(p =>
     p.id === player.id
       ? {
-          ...p,
-          meeples: {
-            ...p.meeples,
-            available: {
-              ...p.meeples.available,
-              [meepleType]: p.meeples.available[meepleType] - 1,
-            },
-            onBoard: [...p.meeples.onBoard, nKey],
+        ...p,
+        meeples: {
+          ...p.meeples,
+          available: {
+            ...p.meeples.available,
+            [meepleType]: p.meeples.available[meepleType] - 1,
           },
-        }
+          onBoard: [...p.meeples.onBoard, nKey],
+        },
+      }
       : p,
   )
 
@@ -408,13 +408,40 @@ export function skipMeeple(state: GameState): GameState {
   return { ...state, turnPhase: 'SCORE' }
 }
 
+// ─── Rule Resolution ──────────────────────────────────────────────────────────
+
+function resolveScoringRules(expansions: string[]): ScoringRule[] {
+  let activeRules = BASE_SCORING_RULES
+  const hasIc = expansions.includes('inns-cathedrals')
+  const hasTb = expansions.includes('traders-builders')
+
+  if (hasIc) {
+    const ic = getExpansionConfig('inns-cathedrals')
+    if (ic) activeRules = ic.scoringRules
+  }
+
+  if (hasTb) {
+    const tb = getExpansionConfig('traders-builders')
+    if (tb) {
+      if (hasIc) {
+        activeRules = buildCombinedIcTbRules(activeRules)
+      } else {
+        activeRules = tb.scoringRules
+      }
+    }
+  }
+  return activeRules
+}
+
 export function endTurn(state: GameState): GameState {
   if (state.turnPhase !== 'SCORE') return state
 
   // Score completed features NOW (after meeple placement), then return meeples.
   // Scoring here instead of in placeTile means any meeple placed on a just-completed
   // feature is correctly included in the scoring.
-  const rules = (state.expansionData.scoringRules as ScoringRule[] | undefined) ?? BASE_SCORING_RULES
+  // We resolve rules from expansions (robust against rehydration loss)
+  const rules = resolveScoringRules(state.expansionData.expansions as string[] ?? [])
+
   const scoreEvents = scoreCompletedFeatures(
     state.completedFeatureIds,
     state.featureUnionFind,
@@ -501,7 +528,7 @@ export function endTurn(state: GameState): GameState {
           traderTokens: {
             CLOTH: p.traderTokens.CLOTH + tokens.CLOTH,
             WHEAT: p.traderTokens.WHEAT + tokens.WHEAT,
-            WINE:  p.traderTokens.WINE  + tokens.WINE,
+            WINE: p.traderTokens.WINE + tokens.WINE,
           },
         }
       })
@@ -553,7 +580,7 @@ export function endGame(state: GameState): GameState {
     )
   )
 
-  const rules = (state.expansionData.scoringRules as ScoringRule[] | undefined) ?? BASE_SCORING_RULES
+  const rules = resolveScoringRules(state.expansionData.expansions as string[] ?? [])
   const endGameEvents = scoreAllRemainingFeatures(
     state.featureUnionFind,
     completedFeatureIds,

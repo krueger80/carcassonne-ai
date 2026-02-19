@@ -101,11 +101,9 @@ export const useGameStore = create<GameStore>()(
 
         set((store) => {
           const debugPrioritize = new URLSearchParams(window.location.search).has('prioritizeExpansions')
-          // If debug prioritize is on, auto-enable I&C expansion
-          const expansions = config.expansions ?? []
-          if (debugPrioritize && !expansions.includes('inns-cathedrals')) {
-            expansions.push('inns-cathedrals')
-          }
+          // Clone to avoid mutating the config's original array
+          const expansions = [...(config.expansions ?? [])]
+
           store.gameState = initGame({
             ...config,
             expansions,

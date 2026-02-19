@@ -103,28 +103,33 @@ export function canPlaceBuilderOrPig(
  * Returns all board positions where the player can place a BUILDER or PIG.
  * Searches ALL placed tiles (not just the last-placed tile).
  */
+/**
+ * Returns all board positions where the player can place a BUILDER or PIG.
+ * RESTRICTED to the last-placed tile (as per rules).
+ */
 export function getBuilderPigPlaceableSegments(
   state: UnionFindState,
   tileMap: Record<string, TileDefinition>,
   board: Board,
+  lastPlacedCoord: Coordinate,
   player: Player,
   meepleType: 'BUILDER' | 'PIG',
 ): Array<{ coord: Coordinate; segmentId: string }> {
   if (availableMeepleCount(player, meepleType) <= 0) return []
 
+  const key = coordKey(lastPlacedCoord)
+  const tile = board.tiles[key]
+  if (!tile) return []
+
+  const def = tileMap[tile.definitionId]
+  if (!def) return []
+
   const results: Array<{ coord: Coordinate; segmentId: string }> = []
-
-  for (const placedTile of Object.values(board.tiles)) {
-    const def = tileMap[placedTile.definitionId]
-    if (!def) continue
-
-    for (const seg of def.segments) {
-      if (canPlaceBuilderOrPig(state, player, placedTile.coordinate, seg.id, meepleType)) {
-        results.push({ coord: placedTile.coordinate, segmentId: seg.id })
-      }
+  for (const seg of def.segments) {
+    if (canPlaceBuilderOrPig(state, player, lastPlacedCoord, seg.id, meepleType)) {
+      results.push({ coord: lastPlacedCoord, segmentId: seg.id })
     }
   }
-
   return results
 }
 

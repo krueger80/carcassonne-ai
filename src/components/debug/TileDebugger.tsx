@@ -250,7 +250,16 @@ export function TileDebugger() {
                                     paddingBottom: 4
                                 }}>
                                     <span>{t.id}</span>
-                                    <span>x{t.count}</span>
+                                    <span style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
+                                        {(() => {
+                                            const commodity = t.segments.find(s => s.commodity)?.commodity
+                                            if (!commodity) return null
+                                            const icon = commodity === 'CLOTH' ? '🧵' : commodity === 'WHEAT' ? '🌾' : '🍷'
+                                            const color = commodity === 'CLOTH' ? '#5588cc' : commodity === 'WHEAT' ? '#ccaa33' : '#cc4466'
+                                            return <span title={commodity} style={{ fontSize: 11, background: color, borderRadius: 3, padding: '0 3px', lineHeight: '16px' }}>{icon}</span>
+                                        })()}
+                                        <span>x{t.count}</span>
+                                    </span>
                                 </div>
 
                                 <div style={{ display: 'flex', justifyContent: 'center', marginBottom: 5 }}>
@@ -492,10 +501,28 @@ function PropertiesPanel({
                                 >Del</button>
                             </div>
 
-                            <div style={{ display: 'flex', gap: 10, marginBottom: 5, fontSize: 12 }}>
+                            <div style={{ display: 'flex', gap: 10, marginBottom: 5, fontSize: 12, flexWrap: 'wrap', alignItems: 'center' }}>
                                 <label onClick={e => e.stopPropagation()}><input type="checkbox" checked={seg.hasPennant || false} onChange={e => onSegmentUpdate(seg.id, { hasPennant: e.target.checked })} /> Penn</label>
                                 <label onClick={e => e.stopPropagation()}><input type="checkbox" checked={seg.hasInn || false} onChange={e => onSegmentUpdate(seg.id, { hasInn: e.target.checked })} /> Inn</label>
                                 <label onClick={e => e.stopPropagation()}><input type="checkbox" checked={seg.hasCathedral || false} onChange={e => onSegmentUpdate(seg.id, { hasCathedral: e.target.checked })} /> Cath</label>
+                                {seg.type === 'CITY' && (
+                                    <label onClick={e => e.stopPropagation()} style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
+                                        <span style={{ color: '#aaa' }}>Commodity:</span>
+                                        <select
+                                            value={seg.commodity || ''}
+                                            onChange={e => {
+                                                const val = e.target.value as 'CLOTH' | 'WHEAT' | 'WINE' | ''
+                                                onSegmentUpdate(seg.id, { commodity: val || undefined } as Partial<Segment>)
+                                            }}
+                                            style={{ fontSize: 11, background: '#222', color: '#fff', border: '1px solid #555', borderRadius: 3, padding: '2px 4px' }}
+                                        >
+                                            <option value="">None</option>
+                                            <option value="CLOTH">🧵 Cloth</option>
+                                            <option value="WHEAT">🌾 Wheat</option>
+                                            <option value="WINE">🍷 Wine</option>
+                                        </select>
+                                    </label>
+                                )}
                             </div>
 
                             <div style={{ marginBottom: 5 }}>

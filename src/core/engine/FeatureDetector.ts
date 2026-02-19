@@ -42,6 +42,19 @@ function ufFind(state: UnionFindState, key: string): string {
   return state.parent[key]
 }
 
+/**
+ * Non-mutating version of Find, for use in read-only queries (e.g. valid placement checks).
+ * Does NOT perform path compression.
+ */
+function ufFindReadOnly(state: UnionFindState, key: string): string {
+  if (!(key in state.parent)) return key
+  let curr = key
+  while (state.parent[curr] !== curr) {
+    curr = state.parent[curr]
+  }
+  return curr
+}
+
 function ufMakeSet(state: UnionFindState, key: string, initialFeature: Feature): void {
   state.parent[key] = key
   state.rank[key] = 0
@@ -374,8 +387,11 @@ export function countSurroundingTiles(board: Board, coord: Coordinate): number {
 /**
  * Get a Feature by any node key (finds root first).
  */
+/**
+ * Get a Feature by any node key (finds root first).
+ */
 export function getFeature(state: UnionFindState, nodeKey_: string): Feature | null {
-  const root = ufFind(state, nodeKey_)
+  const root = ufFindReadOnly(state, nodeKey_)
   return state.featureData[root] ?? null
 }
 
@@ -385,7 +401,7 @@ export function getFeature(state: UnionFindState, nodeKey_: string): Feature | n
 export function getAllFeatures(state: UnionFindState): Feature[] {
   const roots = new Set<string>()
   for (const key of Object.keys(state.parent)) {
-    roots.add(ufFind(state, key))
+    roots.add(ufFindReadOnly(state, key))
   }
   return Array.from(roots)
     .map(root => state.featureData[root])

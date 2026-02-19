@@ -10,6 +10,7 @@ import type { TileDefinition } from '../core/types/tile.ts'
 import { tileService } from './tileService.ts'
 import { BASE_TILES } from '../core/data/baseTiles.ts'
 import { IC_TILES } from '../core/data/innsCathedralsTiles.ts'
+import { TB_TILES } from '../core/data/tradersBuildersTiles.ts'
 
 // ─── Cache ───────────────────────────────────────────────────────────────────
 
@@ -37,7 +38,7 @@ export async function loadAllTiles(): Promise<TileDefinition[]> {
     }
 
     // Fallback to hardcoded definitions
-    cachedTiles = [...BASE_TILES, ...IC_TILES]
+    cachedTiles = [...BASE_TILES, ...IC_TILES, ...TB_TILES]
     cachedMap = null
     return cachedTiles
 }
@@ -74,7 +75,7 @@ export async function loadExpansionTiles(expansionId: string): Promise<TileDefin
  * Used by the engine and tests when no async context is available.
  */
 export function getFallbackTiles(): TileDefinition[] {
-    return [...BASE_TILES, ...IC_TILES]
+    return [...BASE_TILES, ...IC_TILES, ...TB_TILES]
 }
 
 export function getFallbackBaseTiles(): TileDefinition[] {
@@ -82,7 +83,7 @@ export function getFallbackBaseTiles(): TileDefinition[] {
 }
 
 export function getFallbackTileMap(): Record<string, TileDefinition> {
-    return Object.fromEntries([...BASE_TILES, ...IC_TILES].map(t => [t.id, t]))
+    return Object.fromEntries([...BASE_TILES, ...IC_TILES, ...TB_TILES].map(t => [t.id, t]))
 }
 
 /**
