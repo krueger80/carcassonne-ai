@@ -49,6 +49,29 @@ function ufMakeSet(state: UnionFindState, key: string, initialFeature: Feature):
 }
 
 /**
+ * Merge two feature metadata objects.
+ * - Commodity counts (CLOTH/WHEAT/WINE) are summed.
+ * - Boolean flags (hasInn, hasCathedral) are OR'd (true wins).
+ * - All other keys: last-write wins.
+ */
+function mergeMetadata(
+  a: Record<string, unknown>,
+  b: Record<string, unknown>,
+): Record<string, unknown> {
+  const result: Record<string, unknown> = { ...a }
+  for (const [key, value] of Object.entries(b)) {
+    if (key === 'CLOTH' || key === 'WHEAT' || key === 'WINE') {
+      result[key] = ((result[key] as number) ?? 0) + (value as number)
+    } else if (typeof value === 'boolean') {
+      result[key] = Boolean(result[key]) || value
+    } else {
+      result[key] = value
+    }
+  }
+  return result
+}
+
+/**
  * Union two nodes. Returns the new root key.
  * Merges feature data (sums tile counts, pennants; reduces open edges by 2 for the joined edge pair).
  */
@@ -102,7 +125,7 @@ function ufUnion(state: UnionFindState, keyA: string, keyB: string): string {
     openEdgeCount: featureA_data.openEdgeCount + featureB_data.openEdgeCount - 2,
     adjacentCompletedCities: featureA_data.adjacentCompletedCities + featureB_data.adjacentCompletedCities,
     isComplete: false,  // recalculated below
-    metadata: { ...featureA_data.metadata, ...featureB_data.metadata },
+    metadata: mergeMetadata(featureA_data.metadata, featureB_data.metadata),
   }
 
   // Update isComplete
@@ -192,6 +215,7 @@ export function addTileToUnionFind(
       metadata: {
         ...(seg.hasInn ? { hasInn: true } : {}),
         ...(seg.hasCathedral ? { hasCathedral: true } : {}),
+        ...(seg.commodity ? { [seg.commodity]: 1 } : {}),
       },
     }
 
@@ -381,6 +405,20 @@ export function getNodeKey(coord: Coordinate, segmentId: string): string {
 export function featureHasMeeples(state: UnionFindState, nKey: string): boolean {
   const feature = getFeature(state, nKey)
   return (feature?.meeples.length ?? 0) > 0
+}
+
+/**
+ * Find the root node key for a given node key.
+ * Exported for use by GameEngine builder-bonus detection.
+ */
+export function findRoot(state: UnionFindState, key: string): string {
+  // Work on a mutable copy to allow path compression
+  const working = {
+    parent: { ...state.parent },
+    rank: { ...state.rank },
+    featureData: state.featureData,
+  }
+  return ufFind(working, key)
 }
 
 /**

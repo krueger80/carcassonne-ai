@@ -108,10 +108,16 @@ export function GameOverlay() {
     const { players, currentPlayerIndex, turnPhase, tileBag } = gameState
     const { currentTile } = gameState
     const currentPlayer = players[currentPlayerIndex]
-    const hasInnsCathedrals = (gameState.expansionData?.expansions as string[] | undefined)?.includes('inns-cathedrals') ?? false
+    const expansionList = (gameState.expansionData?.expansions as string[] | undefined) ?? []
+    const hasInnsCathedrals = expansionList.includes('inns-cathedrals')
+    const hasTradersBuilders = expansionList.includes('traders-builders')
+    const tbData = gameState.expansionData?.['tradersBuilders'] as { isBuilderBonusTurn?: boolean } | undefined
+    const isBuilderBonusTurn = tbData?.isBuilderBonusTurn ?? false
 
     // Determine status text
-    let statusText = `${currentPlayer.name}'s turn`
+    let statusText = isBuilderBonusTurn
+        ? `${currentPlayer.name}'s BONUS TURN`
+        : `${currentPlayer.name}'s turn`
     let instructionText = ''
 
     if (turnPhase === 'DRAW_TILE') {
@@ -328,7 +334,7 @@ export function GameOverlay() {
                                     </div>
                                 )}
 
-                                <div style={{ fontSize: 12, color: '#888', paddingTop: 4, borderTop: '1px solid #444' }}>
+                                <div style={{ fontSize: 12, color: '#888', paddingTop: 4, borderTop: '1px solid #444', display: 'flex', flexDirection: 'column', gap: 4 }}>
                                     <label style={{
                                         display: 'flex', alignItems: 'center', gap: 6,
                                         cursor: 'pointer', padding: '4px 0', color: '#ccc',
@@ -347,6 +353,25 @@ export function GameOverlay() {
                                             style={{ accentColor: '#9955cc' }}
                                         />
                                         Inns & Cathedrals
+                                    </label>
+                                    <label style={{
+                                        display: 'flex', alignItems: 'center', gap: 6,
+                                        cursor: 'pointer', padding: '4px 0', color: '#ccc',
+                                    }}>
+                                        <input
+                                            type="checkbox"
+                                            checked={newGameExpansions.includes('traders-builders')}
+                                            onChange={(e) => {
+                                                e.stopPropagation()
+                                                setNewGameExpansions(
+                                                    e.target.checked
+                                                        ? [...newGameExpansions, 'traders-builders']
+                                                        : newGameExpansions.filter(x => x !== 'traders-builders')
+                                                )
+                                            }}
+                                            style={{ accentColor: '#c8a46e' }}
+                                        />
+                                        Traders & Builders
                                     </label>
                                 </div>
                             </motion.div>
@@ -404,7 +429,7 @@ export function GameOverlay() {
                                         )}
                                     </div>
 
-                                    <div style={{ display: 'flex', gap: 12, alignItems: 'center' }}>
+                                    <div style={{ display: 'flex', gap: 8, alignItems: 'center', flexWrap: 'wrap', justifyContent: 'flex-end' }}>
                                         <div style={{ textAlign: 'center', lineHeight: 1 }}>
                                             <div style={{ fontSize: 10, opacity: 0.8, textShadow: '0 1px 2px rgba(0,0,0,0.8)' }}>VP</div>
                                             <div style={{ fontWeight: 'bold', fontSize: 15, textShadow: '0 1px 2px rgba(0,0,0,0.8)' }}>{p.score}</div>
@@ -413,11 +438,29 @@ export function GameOverlay() {
                                             <div style={{ fontSize: 10, opacity: 0.8, textShadow: '0 1px 2px rgba(0,0,0,0.8)' }}>Meep</div>
                                             <div style={{ fontWeight: 'bold', fontSize: 15, textShadow: '0 1px 2px rgba(0,0,0,0.8)' }}>{p.meeples.available['NORMAL'] ?? 0}</div>
                                         </div>
-                                        {hasInnsCathedrals && (
+                                        {(hasInnsCathedrals || hasTradersBuilders) && (
                                             <div style={{ textAlign: 'center', lineHeight: 1 }}>
                                                 <div style={{ fontSize: 10, opacity: 0.8, textShadow: '0 1px 2px rgba(0,0,0,0.8)' }}>Big</div>
                                                 <div style={{ fontWeight: 'bold', fontSize: 15, textShadow: '0 1px 2px rgba(0,0,0,0.8)' }}>{p.meeples.available['BIG'] ?? 0}</div>
                                             </div>
+                                        )}
+                                        {hasTradersBuilders && (
+                                            <>
+                                                <div style={{ textAlign: 'center', lineHeight: 1 }}>
+                                                    <div style={{ fontSize: 9, opacity: 0.8, textShadow: '0 1px 2px rgba(0,0,0,0.8)' }}>Bld</div>
+                                                    <div style={{ fontWeight: 'bold', fontSize: 13, textShadow: '0 1px 2px rgba(0,0,0,0.8)' }}>{p.meeples.available['BUILDER'] ?? 0}</div>
+                                                </div>
+                                                <div style={{ textAlign: 'center', lineHeight: 1 }}>
+                                                    <div style={{ fontSize: 9, opacity: 0.8, textShadow: '0 1px 2px rgba(0,0,0,0.8)' }}>Pig</div>
+                                                    <div style={{ fontWeight: 'bold', fontSize: 13, textShadow: '0 1px 2px rgba(0,0,0,0.8)' }}>{p.meeples.available['PIG'] ?? 0}</div>
+                                                </div>
+                                                <div style={{ textAlign: 'center', lineHeight: 1, borderLeft: '1px solid rgba(255,255,255,0.3)', paddingLeft: 8 }}>
+                                                    <div style={{ fontSize: 9, opacity: 0.8, textShadow: '0 1px 2px rgba(0,0,0,0.8)' }}>🧵🌾🍷</div>
+                                                    <div style={{ fontWeight: 'bold', fontSize: 11, textShadow: '0 1px 2px rgba(0,0,0,0.8)' }}>
+                                                        {p.traderTokens?.CLOTH ?? 0}/{p.traderTokens?.WHEAT ?? 0}/{p.traderTokens?.WINE ?? 0}
+                                                    </div>
+                                                </div>
+                                            </>
                                         )}
                                     </div>
                                 </motion.div>
@@ -453,15 +496,15 @@ export function GameOverlay() {
                         key={statusText + instructionText}
                         onPointerDown={(e) => e.stopPropagation()}
                         style={{
-                            background: 'rgba(20, 20, 20, 0.9)',
+                            background: isBuilderBonusTurn ? 'rgba(40, 30, 10, 0.95)' : 'rgba(20, 20, 20, 0.9)',
                             color: '#fff',
                             padding: '8px 24px',
                             borderRadius: 40, // Pill shape
                             fontSize: 16,
                             fontWeight: 500,
                             backdropFilter: 'blur(8px)',
-                            border: `2px solid ${currentPlayer.color}`,
-                            boxShadow: `0 4px 15px rgba(0,0,0,0.3)`,
+                            border: isBuilderBonusTurn ? '2px solid #c8a46e' : `2px solid ${currentPlayer.color}`,
+                            boxShadow: isBuilderBonusTurn ? '0 4px 15px rgba(200,164,110,0.4)' : `0 4px 15px rgba(0,0,0,0.3)`,
                             display: 'flex',
                             alignItems: 'center',
                             gap: 12,
@@ -559,29 +602,57 @@ export function GameOverlay() {
                             {/* PHASE: PLACE MEEPLE */}
                             {turnPhase === 'PLACE_MEEPLE' && (
                                 <>
-                                    {/* Meeple type toggle (I&C expansion) */}
-                                    {hasInnsCathedrals && (currentPlayer.meeples.available['NORMAL'] > 0 || (currentPlayer.meeples.available['BIG'] ?? 0) > 0) && (
-                                        <div style={{ display: 'flex', gap: 4, marginBottom: 4 }}>
+                                    {/* Meeple type toggle (I&C + T&B expansions) */}
+                                    {(hasInnsCathedrals || hasTradersBuilders) && (
+                                        <div style={{ display: 'flex', gap: 4, marginBottom: 4, flexWrap: 'wrap' }}>
                                             <button
                                                 onClick={(e) => { e.stopPropagation(); setSelectedMeepleType('NORMAL') }}
                                                 disabled={currentPlayer.meeples.available['NORMAL'] <= 0}
                                                 style={{
-                                                    flex: 1, padding: '6px 8px', borderRadius: 6, border: 'none', cursor: 'pointer', fontSize: 12, fontWeight: 'bold',
+                                                    flex: 1, padding: '5px 6px', borderRadius: 6, border: 'none', cursor: 'pointer', fontSize: 11, fontWeight: 'bold',
                                                     background: selectedMeepleType === 'NORMAL' ? '#4a9a4a' : '#333',
                                                     color: selectedMeepleType === 'NORMAL' ? '#fff' : '#aaa',
                                                     opacity: currentPlayer.meeples.available['NORMAL'] <= 0 ? 0.4 : 1,
                                                 }}
                                             >Normal</button>
-                                            <button
-                                                onClick={(e) => { e.stopPropagation(); setSelectedMeepleType('BIG') }}
-                                                disabled={(currentPlayer.meeples.available['BIG'] ?? 0) <= 0}
-                                                style={{
-                                                    flex: 1, padding: '6px 8px', borderRadius: 6, border: 'none', cursor: 'pointer', fontSize: 12, fontWeight: 'bold',
-                                                    background: selectedMeepleType === 'BIG' ? '#9955cc' : '#333',
-                                                    color: selectedMeepleType === 'BIG' ? '#fff' : '#aaa',
-                                                    opacity: (currentPlayer.meeples.available['BIG'] ?? 0) <= 0 ? 0.4 : 1,
-                                                }}
-                                            >Big</button>
+                                            {(hasInnsCathedrals || hasTradersBuilders) && (
+                                                <button
+                                                    onClick={(e) => { e.stopPropagation(); setSelectedMeepleType('BIG') }}
+                                                    disabled={(currentPlayer.meeples.available['BIG'] ?? 0) <= 0}
+                                                    style={{
+                                                        flex: 1, padding: '5px 6px', borderRadius: 6, border: 'none', cursor: 'pointer', fontSize: 11, fontWeight: 'bold',
+                                                        background: selectedMeepleType === 'BIG' ? '#9955cc' : '#333',
+                                                        color: selectedMeepleType === 'BIG' ? '#fff' : '#aaa',
+                                                        opacity: (currentPlayer.meeples.available['BIG'] ?? 0) <= 0 ? 0.4 : 1,
+                                                    }}
+                                                >Big</button>
+                                            )}
+                                            {hasTradersBuilders && (
+                                                <>
+                                                    <button
+                                                        onClick={(e) => { e.stopPropagation(); setSelectedMeepleType('BUILDER') }}
+                                                        disabled={(currentPlayer.meeples.available['BUILDER'] ?? 0) <= 0}
+                                                        title="Builder: place on a city/road where you already have a meeple → earn a bonus turn"
+                                                        style={{
+                                                            flex: 1, padding: '5px 6px', borderRadius: 6, border: 'none', cursor: 'pointer', fontSize: 11, fontWeight: 'bold',
+                                                            background: selectedMeepleType === 'BUILDER' ? '#c8a46e' : '#333',
+                                                            color: selectedMeepleType === 'BUILDER' ? '#1a1a2e' : '#aaa',
+                                                            opacity: (currentPlayer.meeples.available['BUILDER'] ?? 0) <= 0 ? 0.4 : 1,
+                                                        }}
+                                                    >Bld</button>
+                                                    <button
+                                                        onClick={(e) => { e.stopPropagation(); setSelectedMeepleType('PIG') }}
+                                                        disabled={(currentPlayer.meeples.available['PIG'] ?? 0) <= 0}
+                                                        title="Pig: place on a farm where you already have a farmer → score 4pts/city instead of 3"
+                                                        style={{
+                                                            flex: 1, padding: '5px 6px', borderRadius: 6, border: 'none', cursor: 'pointer', fontSize: 11, fontWeight: 'bold',
+                                                            background: selectedMeepleType === 'PIG' ? '#e8a04a' : '#333',
+                                                            color: selectedMeepleType === 'PIG' ? '#1a1a2e' : '#aaa',
+                                                            opacity: (currentPlayer.meeples.available['PIG'] ?? 0) <= 0 ? 0.4 : 1,
+                                                        }}
+                                                    >Pig</button>
+                                                </>
+                                            )}
                                         </div>
                                     )}
                                     {interactionState === 'MEEPLE_SELECTED_TENTATIVELY' ? (

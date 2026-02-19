@@ -28,9 +28,16 @@ export interface Player {
   color: string
   score: number
   meeples: PlayerMeeples
+  traderTokens: Record<'CLOTH' | 'WHEAT' | 'WINE', number>
 }
 
-export function createPlayer(id: string, name: string, color: string, bigMeeple = false): Player {
+export function createPlayer(
+  id: string,
+  name: string,
+  color: string,
+  bigMeeple = false,
+  builderAndPig = false,
+): Player {
   return {
     id,
     name,
@@ -41,11 +48,12 @@ export function createPlayer(id: string, name: string, color: string, bigMeeple 
         NORMAL: 7,
         BIG: bigMeeple ? 1 : 0,
         FARMER: 0,
-        BUILDER: 0,
-        PIG: 0,
+        BUILDER: builderAndPig ? 1 : 0,
+        PIG: builderAndPig ? 1 : 0,
       },
       onBoard: [],
     },
+    traderTokens: { CLOTH: 0, WHEAT: 0, WINE: 0 },
   }
 }
 

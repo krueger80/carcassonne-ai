@@ -27,6 +27,7 @@ export interface Segment {
   hasPennant?: boolean        // cities only
   hasInn?: boolean            // roads only – inn on lake
   hasCathedral?: boolean      // cities only – cathedral
+  commodity?: 'CLOTH' | 'WHEAT' | 'WINE'  // cities only – T&B trader token
   // SVG path for visual rendering (100x100 viewBox)
   svgPath: string
   // Where to place a meeple visually (in 0-100 viewBox coords)

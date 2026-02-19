@@ -3,13 +3,25 @@ import { useGameStore } from '../../store/gameStore.ts'
 
 interface EndGameModalProps {
   players: Player[]
+  expansions?: string[]
 }
 
-export function EndGameModal({ players }: EndGameModalProps) {
+export function EndGameModal({ players, expansions = [] }: EndGameModalProps) {
   const { resetGame } = useGameStore()
+  const hasTradersBuilders = expansions.includes('traders-builders')
 
   const sorted = [...players].sort((a, b) => b.score - a.score)
   const winner = sorted[0]
+
+  // Trader token summaries (if T&B active)
+  const commodities = ['CLOTH', 'WHEAT', 'WINE'] as const
+  const commodityLabels: Record<string, string> = { CLOTH: '🧵 Cloth', WHEAT: '🌾 Wheat', WINE: '🍷 Wine' }
+  const traderBonuses = hasTradersBuilders ? commodities.map(c => {
+    const max = Math.max(...players.map(p => p.traderTokens?.[c] ?? 0))
+    if (max === 0) return null
+    const winners = players.filter(p => (p.traderTokens?.[c] ?? 0) === max)
+    return { commodity: c, max, winners }
+  }).filter(Boolean) : []
 
   return (
     <div style={{
@@ -26,7 +38,8 @@ export function EndGameModal({ players }: EndGameModalProps) {
         border: '1px solid #555',
         borderRadius: 16,
         padding: 40,
-        minWidth: 340,
+        minWidth: 360,
+        maxWidth: 480,
         textAlign: 'center',
         color: '#f0f0f0',
       }}>
@@ -37,7 +50,7 @@ export function EndGameModal({ players }: EndGameModalProps) {
           {winner.name} wins with {winner.score} points!
         </p>
 
-        <div style={{ display: 'flex', flexDirection: 'column', gap: 8, marginBottom: 32 }}>
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 8, marginBottom: hasTradersBuilders ? 24 : 32 }}>
           {sorted.map((player, i) => (
             <div key={player.id} style={{
               display: 'flex',
@@ -52,10 +65,36 @@ export function EndGameModal({ players }: EndGameModalProps) {
                 <div style={{ width: 10, height: 10, borderRadius: '50%', background: player.color }} />
                 <span style={{ color: player.color, fontWeight: 'bold' }}>{player.name}</span>
               </div>
-              <span style={{ fontWeight: 'bold', fontSize: 20 }}>{player.score}</span>
+              <div style={{ display: 'flex', gap: 16, alignItems: 'center' }}>
+                {hasTradersBuilders && (
+                  <span style={{ fontSize: 12, color: '#aaa' }}>
+                    🧵{player.traderTokens?.CLOTH ?? 0} 🌾{player.traderTokens?.WHEAT ?? 0} 🍷{player.traderTokens?.WINE ?? 0}
+                  </span>
+                )}
+                <span style={{ fontWeight: 'bold', fontSize: 20 }}>{player.score}</span>
+              </div>
             </div>
           ))}
         </div>
+
+        {hasTradersBuilders && traderBonuses.length > 0 && (
+          <div style={{
+            background: 'rgba(200,164,110,0.1)',
+            border: '1px solid rgba(200,164,110,0.4)',
+            borderRadius: 8,
+            padding: '12px 16px',
+            marginBottom: 24,
+            textAlign: 'left',
+          }}>
+            <div style={{ fontSize: 12, fontWeight: 'bold', color: '#c8a46e', marginBottom: 8 }}>Trader Bonuses</div>
+            {traderBonuses.map(b => b && (
+              <div key={b.commodity} style={{ fontSize: 12, color: '#ccc', marginBottom: 4 }}>
+                <span>{commodityLabels[b.commodity]}</span>
+                <span style={{ color: '#888' }}> — {b.winners.map(w => w.name).join(' & ')} ({b.max} tokens → +10 pts)</span>
+              </div>
+            ))}
+          </div>
+        )}
 
         <button
           onClick={resetGame}

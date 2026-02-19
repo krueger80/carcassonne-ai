@@ -14,6 +14,7 @@ import { emptyUnionFindState } from '../types/feature.ts'
 import { createPlayer, PLAYER_COLORS } from '../types/player.ts'
 import { getFallbackBaseTiles } from '../../services/tileRegistry.ts'
 import { getExpansionConfig } from '../expansions/registry.ts'
+import { buildCombinedIcTbRules } from '../expansions/tradersBuilders.ts'
 import { createTileBag, drawTile as drawFromBag } from './TileBag.ts'
 import {
   isValidPlacement,
@@ -29,12 +30,14 @@ export {
   getAllPotentialPlacements,
 }
 
-import { addTileToUnionFind, updateFeatureMeeples } from './FeatureDetector.ts'
-import { canPlaceMeeple, getPlaceableSegments, createMeeplePlacement } from './MeeplePlacement.ts'
+import { addTileToUnionFind, updateFeatureMeeples, findRoot, getFeature } from './FeatureDetector.ts'
+import { canPlaceMeeple, getPlaceableSegments, createMeeplePlacement, canPlaceBuilderOrPig } from './MeeplePlacement.ts'
 import {
   scoreCompletedFeatures,
   scoreAllRemainingFeatures,
   applyScoreEvents,
+  distributeCommodityTokens,
+  scoreTradersBonus,
   BASE_SCORING_RULES,
   type ScoringRule,
 } from './ScoreCalculator.ts'
@@ -66,14 +69,18 @@ export function initGame(config: GameConfig): GameState {
   }
 
   // Resolve expansion configs
-  const enableBigMeeple = expansions.includes('inns-cathedrals')
+  const hasIc = expansions.includes('inns-cathedrals')
+  const hasTb = expansions.includes('traders-builders')
+  const enableBigMeeple = hasIc || hasTb
+  const enableBuilderAndPig = hasTb
+
   // Filter extra tiles to only include tiles from enabled expansions
   let allExtraTiles = extraTileDefinitions.filter(
     t => !t.expansionId || expansions.includes(t.expansionId)
   )
   let activeRules = scoringRules
 
-  if (expansions.includes('inns-cathedrals')) {
+  if (hasIc) {
     const ic = getExpansionConfig('inns-cathedrals')
     if (ic) {
       // Only add hardcoded IC tiles if none were provided via extraTileDefinitions (DB)
@@ -85,8 +92,24 @@ export function initGame(config: GameConfig): GameState {
     }
   }
 
+  if (hasTb) {
+    const tb = getExpansionConfig('traders-builders')
+    if (tb) {
+      const hasDbTbTiles = allExtraTiles.some(t => t.expansionId === 'traders-builders')
+      if (!hasDbTbTiles) {
+        allExtraTiles = [...allExtraTiles, ...tb.tiles]
+      }
+      if (hasIc) {
+        // Both expansions: IC rules for ROAD/CITY/CLOISTER + pig-aware FIELD
+        activeRules = buildCombinedIcTbRules(activeRules)
+      } else {
+        activeRules = tb.scoringRules
+      }
+    }
+  }
+
   const players: Player[] = playerNames.map((name, i) =>
-    createPlayer(`player_${i}`, name, PLAYER_COLORS[i], enableBigMeeple)
+    createPlayer(`player_${i}`, name, PLAYER_COLORS[i], enableBigMeeple, enableBuilderAndPig)
   )
 
   const allDefs = [...baseDefinitions, ...allExtraTiles]
@@ -123,6 +146,7 @@ export function initGame(config: GameConfig): GameState {
     expansionData: {
       scoringRules: activeRules,
       expansions,
+      ...(hasTb ? { tradersBuilders: { isBuilderBonusTurn: false, pendingBuilderBonus: false } } : {}),
     },
     staticTileMap: tileMap,
 
@@ -199,6 +223,42 @@ export function placeTile(state: GameState, coord: Coordinate): GameState {
     placedTile,
   )
 
+  // ── Builder bonus detection (T&B) ─────────────────────────────────────────
+  const tbData = state.expansionData['tradersBuilders'] as
+    { isBuilderBonusTurn: boolean; pendingBuilderBonus: boolean } | undefined
+
+  let newExpansionData = state.expansionData
+
+  if (tbData && !tbData.isBuilderBonusTurn) {
+    const currentPlayer = state.players[state.currentPlayerIndex]
+
+    // Find if the current player has a builder on the board
+    const builderNodeKey = Object.entries(state.boardMeeples).find(
+      ([, mp]) => mp.playerId === currentPlayer.id && mp.meepleType === 'BUILDER',
+    )?.[0]
+
+    if (builderNodeKey) {
+      // Get the builder's feature root in the NEW state (after this tile was placed)
+      const builderRoot = findRoot(newUfState, builderNodeKey)
+      const builderFeature = newUfState.featureData[builderRoot]
+
+      if (builderFeature) {
+        // Builder bonus triggers if:
+        // 1. The placed tile is now part of the builder's feature
+        // 2. The feature is NOT complete (otherwise builder returns normally)
+        const tileIsInFeature = builderFeature.nodes.some(
+          n => n.coordinate.x === coord.x && n.coordinate.y === coord.y,
+        )
+        if (tileIsInFeature && !builderFeature.isComplete) {
+          newExpansionData = {
+            ...state.expansionData,
+            tradersBuilders: { ...tbData, pendingBuilderBonus: true },
+          }
+        }
+      }
+    }
+  }
+
   return {
     ...state,
     board: newBoard,
@@ -208,6 +268,7 @@ export function placeTile(state: GameState, coord: Coordinate): GameState {
     featureUnionFind: newUfState,
     lastScoreEvents: [],
     turnPhase: 'PLACE_MEEPLE',
+    expansionData: newExpansionData,
   }
 }
 
@@ -270,6 +331,70 @@ export function placeMeeple(
     board: {
       ...state.board,
       tiles: { ...state.board.tiles, [coordKey(lastCoord)]: updatedTile },
+    },
+    featureUnionFind: newUfState,
+    players: updatedPlayers,
+    boardMeeples: { ...state.boardMeeples, [nKey]: meepleData },
+    turnPhase: 'SCORE',
+  }
+}
+
+/**
+ * Place a BUILDER or PIG on a tile that already exists on the board (not the last-placed tile).
+ * Uses inverse placement rules: the feature must already contain a meeple from the player.
+ */
+export function placeMeepleOnExistingTile(
+  state: GameState,
+  coord: Coordinate,
+  segmentId: string,
+  meepleType: 'BUILDER' | 'PIG',
+): GameState {
+  if (state.turnPhase !== 'PLACE_MEEPLE') return state
+
+  const player = state.players[state.currentPlayerIndex]
+
+  if (!canPlaceBuilderOrPig(state.featureUnionFind, player, coord, segmentId, meepleType)) {
+    return state
+  }
+
+  const meepleData = createMeeplePlacement(player.id, meepleType, segmentId)
+  const nKey = nodeKey(coord, segmentId)
+
+  // Update the board tile's meeples record
+  const tileKey = `${coord.x},${coord.y}`
+  const existingTile = state.board.tiles[tileKey]!
+  const updatedTile = {
+    ...existingTile,
+    meeples: { ...existingTile.meeples, [segmentId]: meepleData },
+  }
+
+  // Update the union-find feature's meeples list
+  const feature = getFeature(state.featureUnionFind, nKey)
+  const updatedMeeples = [...(feature?.meeples ?? []), meepleData]
+  const newUfState = updateFeatureMeeples(state.featureUnionFind, nKey, updatedMeeples)
+
+  // Deduct meeple from player
+  const updatedPlayers = state.players.map(p =>
+    p.id === player.id
+      ? {
+          ...p,
+          meeples: {
+            ...p.meeples,
+            available: {
+              ...p.meeples.available,
+              [meepleType]: p.meeples.available[meepleType] - 1,
+            },
+            onBoard: [...p.meeples.onBoard, nKey],
+          },
+        }
+      : p,
+  )
+
+  return {
+    ...state,
+    board: {
+      ...state.board,
+      tiles: { ...state.board.tiles, [tileKey]: updatedTile },
     },
     featureUnionFind: newUfState,
     players: updatedPlayers,
@@ -358,8 +483,47 @@ export function endTurn(state: GameState): GameState {
     updatedUfState = updateFeatureMeeples(updatedUfState, event.featureId, [])
   }
 
-  // Advance to next player
-  const nextPlayerIndex = (state.currentPlayerIndex + 1) % state.players.length
+  // ── Commodity token distribution (T&B) ──────────────────────────────────
+  const tbData = state.expansionData['tradersBuilders'] as
+    { isBuilderBonusTurn: boolean; pendingBuilderBonus: boolean } | undefined
+
+  if (tbData) {
+    for (const featureId of state.completedFeatureIds) {
+      const feature = state.featureUnionFind.featureData[featureId]
+      if (!feature || feature.type !== 'CITY') continue
+
+      const tokenDist = distributeCommodityTokens(feature)
+      updatedPlayers = updatedPlayers.map(p => {
+        const tokens = tokenDist[p.id]
+        if (!tokens) return p
+        return {
+          ...p,
+          traderTokens: {
+            CLOTH: p.traderTokens.CLOTH + tokens.CLOTH,
+            WHEAT: p.traderTokens.WHEAT + tokens.WHEAT,
+            WINE:  p.traderTokens.WINE  + tokens.WINE,
+          },
+        }
+      })
+    }
+  }
+
+  // ── Builder bonus turn logic ────────────────────────────────────────────
+  const pendingBonus = tbData?.pendingBuilderBonus ?? false
+  const isAlreadyBonusTurn = tbData?.isBuilderBonusTurn ?? false
+
+  let nextPlayerIndex: number
+  let nextTbData: typeof tbData
+
+  if (pendingBonus && !isAlreadyBonusTurn) {
+    // Grant bonus turn: same player, mark it as the bonus turn
+    nextPlayerIndex = state.currentPlayerIndex
+    nextTbData = { isBuilderBonusTurn: true, pendingBuilderBonus: false }
+  } else {
+    // Normal advance (covers regular turns and the bonus turn itself)
+    nextPlayerIndex = (state.currentPlayerIndex + 1) % state.players.length
+    nextTbData = tbData ? { isBuilderBonusTurn: false, pendingBuilderBonus: false } : undefined
+  }
 
   return {
     ...state,
@@ -373,6 +537,10 @@ export function endTurn(state: GameState): GameState {
     completedFeatureIds: [],
     lastScoreEvents: scoreEvents,
     turnPhase: 'DRAW_TILE',
+    expansionData: {
+      ...state.expansionData,
+      ...(tbData !== undefined ? { tradersBuilders: nextTbData } : {}),
+    },
   }
 }
 
@@ -393,14 +561,25 @@ export function endGame(state: GameState): GameState {
     rules,
   )
 
-  const finalPlayers = applyScoreEvents(state.players, endGameEvents)
+  let finalPlayers = applyScoreEvents(state.players, endGameEvents)
+  let allEndGameEvents = endGameEvents
+
+  // ── Trader bonus (T&B) ───────────────────────────────────────────────────
+  const expansions = state.expansionData.expansions as string[] | undefined
+  if (expansions?.includes('traders-builders')) {
+    const traderBonusEvents = scoreTradersBonus(finalPlayers)
+    if (traderBonusEvents.length > 0) {
+      finalPlayers = applyScoreEvents(finalPlayers, traderBonusEvents)
+      allEndGameEvents = [...endGameEvents, ...traderBonusEvents]
+    }
+  }
 
   return {
     ...state,
     phase: 'END',
     turnPhase: 'NEXT_PLAYER',
     players: finalPlayers,
-    lastScoreEvents: endGameEvents,
+    lastScoreEvents: allEndGameEvents,
   }
 }
 
