@@ -170,7 +170,7 @@ export function GameOverlay() {
                 }}
             >
                 {/* ── Hamburger Menu (Top Left) ─────────────────────────────── */}
-                <div style={{ pointerEvents: 'auto', alignSelf: 'flex-start' }} onPointerDown={(e) => e.stopPropagation()}>
+                <div style={{ position: 'relative', pointerEvents: 'auto', alignSelf: 'flex-start' }} onPointerDown={(e) => e.stopPropagation()}>
                     <button
                         onClick={(e) => { e.stopPropagation(); setIsMenuOpen(!isMenuOpen) }}
                         style={{
@@ -195,12 +195,13 @@ export function GameOverlay() {
                     <AnimatePresence>
                         {isMenuOpen && (
                             <motion.div
-                                initial={{ opacity: 0, x: -10, scale: 0.95 }}
-                                animate={{ opacity: 1, x: 0, scale: 1 }}
-                                exit={{ opacity: 0, x: -10, scale: 0.95 }}
+                                initial={{ opacity: 0, y: -10, scale: 0.95 }}
+                                animate={{ opacity: 1, y: 0, scale: 1 }}
+                                exit={{ opacity: 0, y: -10, scale: 0.95 }}
                                 style={{
                                     position: 'absolute',
-                                    top: 48,
+                                    top: '100%',
+                                    marginTop: 8,
                                     left: 0,
                                     background: 'rgba(30, 30, 40, 0.95)',
                                     border: '1px solid #555',
@@ -213,6 +214,7 @@ export function GameOverlay() {
                                     backdropFilter: 'blur(10px)',
                                     boxShadow: '0 4px 20px rgba(0,0,0,0.5)',
                                     pointerEvents: 'auto',
+                                    zIndex: 60,
                                 }}
                             >
                                 <div style={{ fontSize: 14, fontWeight: 'bold', color: '#fff', paddingBottom: 8, borderBottom: '1px solid #444', marginBottom: 4 }}>
