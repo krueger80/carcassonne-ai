@@ -1,6 +1,7 @@
 import { useGameStore } from '../../store/gameStore.ts'
+import { useUIStore } from '../../store/uiStore.ts'
 import { TileSVG } from '../svg/TileSVG.tsx'
-import { TILE_MAP, getAllPotentialPlacements } from '../../core/engine/GameEngine.ts'
+import { getAllPotentialPlacements } from '../../core/engine/GameEngine.ts'
 import { motion, AnimatePresence } from 'framer-motion'
 import { useEffect, useState, useMemo } from 'react'
 
@@ -18,22 +19,32 @@ export function GameOverlay() {
         drawTile,
     } = useGameStore()
 
+    const { selectedMeepleType, setSelectedMeepleType } = useUIStore()
+
     const [isMenuOpen, setIsMenuOpen] = useState(false)
     const [showNewGameConfirm, setShowNewGameConfirm] = useState(false)
     const [newGamePlayerCount, setNewGamePlayerCount] = useState(4)
+    const [newGameExpansions, setNewGameExpansions] = useState<string[]>([])
 
     // Reset confirm state when menu closes
     useEffect(() => {
         if (!isMenuOpen) {
             setShowNewGameConfirm(false)
             setNewGamePlayerCount(4)
+            setNewGameExpansions([])
         }
     }, [isMenuOpen])
+
+    // Reset meeple type selection when turn changes
+    useEffect(() => {
+        setSelectedMeepleType('NORMAL')
+    }, [gameState?.currentPlayerIndex, setSelectedMeepleType])
 
     const startNewGame = () => {
         const names = Array.from({ length: newGamePlayerCount }, (_, i) => `Player ${i + 1}`)
         useGameStore.getState().newGame({
-            playerNames: names
+            playerNames: names,
+            expansions: newGameExpansions,
         })
         setIsMenuOpen(false)
     }
@@ -44,7 +55,8 @@ export function GameOverlay() {
         if (gameState.turnPhase === 'PLACE_TILE' && gameState.currentTile) {
             const store = useGameStore.getState()
             if (store.validPlacements.length === 0 && store.interactionState !== 'TILE_PLACED_TENTATIVELY') {
-                const potential = getAllPotentialPlacements(gameState.board, TILE_MAP, gameState.currentTile)
+                const tileMap = gameState.staticTileMap
+                const potential = getAllPotentialPlacements(gameState.board, tileMap, gameState.currentTile)
                 if (potential.length > 0) {
                     useGameStore.setState({ validPlacements: potential })
                 }
@@ -96,6 +108,7 @@ export function GameOverlay() {
     const { players, currentPlayerIndex, turnPhase, tileBag } = gameState
     const { currentTile } = gameState
     const currentPlayer = players[currentPlayerIndex]
+    const hasInnsCathedrals = (gameState.expansionData?.expansions as string[] | undefined)?.includes('inns-cathedrals') ?? false
 
     // Determine status text
     let statusText = `${currentPlayer.name}'s turn`
@@ -315,8 +328,26 @@ export function GameOverlay() {
                                     </div>
                                 )}
 
-                                <div style={{ fontSize: 12, color: '#888', fontStyle: 'italic', paddingTop: 4 }}>
-                                    More features soon...
+                                <div style={{ fontSize: 12, color: '#888', paddingTop: 4, borderTop: '1px solid #444' }}>
+                                    <label style={{
+                                        display: 'flex', alignItems: 'center', gap: 6,
+                                        cursor: 'pointer', padding: '4px 0', color: '#ccc',
+                                    }}>
+                                        <input
+                                            type="checkbox"
+                                            checked={newGameExpansions.includes('inns-cathedrals')}
+                                            onChange={(e) => {
+                                                e.stopPropagation()
+                                                setNewGameExpansions(
+                                                    e.target.checked
+                                                        ? [...newGameExpansions, 'inns-cathedrals']
+                                                        : newGameExpansions.filter(x => x !== 'inns-cathedrals')
+                                                )
+                                            }}
+                                            style={{ accentColor: '#9955cc' }}
+                                        />
+                                        Inns & Cathedrals
+                                    </label>
                                 </div>
                             </motion.div>
                         )}
@@ -382,6 +413,12 @@ export function GameOverlay() {
                                             <div style={{ fontSize: 10, opacity: 0.8, textShadow: '0 1px 2px rgba(0,0,0,0.8)' }}>Meep</div>
                                             <div style={{ fontWeight: 'bold', fontSize: 15, textShadow: '0 1px 2px rgba(0,0,0,0.8)' }}>{p.meeples.available['NORMAL'] ?? 0}</div>
                                         </div>
+                                        {hasInnsCathedrals && (
+                                            <div style={{ textAlign: 'center', lineHeight: 1 }}>
+                                                <div style={{ fontSize: 10, opacity: 0.8, textShadow: '0 1px 2px rgba(0,0,0,0.8)' }}>Big</div>
+                                                <div style={{ fontWeight: 'bold', fontSize: 15, textShadow: '0 1px 2px rgba(0,0,0,0.8)' }}>{p.meeples.available['BIG'] ?? 0}</div>
+                                            </div>
+                                        )}
                                     </div>
                                 </motion.div>
                             )
@@ -462,9 +499,9 @@ export function GameOverlay() {
                             border: '2px solid #555',
                             boxShadow: 'inset 0 0 20px rgba(0,0,0,0.5)'
                         }}>
-                            {currentTile && TILE_MAP[currentTile.definitionId] ? (
+                            {currentTile && gameState.staticTileMap[currentTile.definitionId] ? (
                                 <TileSVG
-                                    definition={TILE_MAP[currentTile.definitionId]}
+                                    definition={gameState.staticTileMap[currentTile.definitionId]}
                                     rotation={currentTile.rotation}
                                     size={100}
                                 />
@@ -481,6 +518,23 @@ export function GameOverlay() {
                                 pointerEvents: 'none',
                                 transition: 'opacity 0.2s'
                             }} />
+                            {currentTile && (
+                                <div style={{
+                                    position: 'absolute',
+                                    bottom: 0,
+                                    right: 0,
+                                    background: 'rgba(0,0,0,0.7)',
+                                    color: '#fff',
+                                    fontSize: 10,
+                                    padding: '2px 4px',
+                                    fontFamily: 'monospace',
+                                    borderTopLeftRadius: 4,
+                                    pointerEvents: 'none',
+                                    zIndex: 10
+                                }}>
+                                    {currentTile.definitionId}
+                                </div>
+                            )}
                         </div>
 
                         {/* Action Buttons */}
@@ -505,6 +559,31 @@ export function GameOverlay() {
                             {/* PHASE: PLACE MEEPLE */}
                             {turnPhase === 'PLACE_MEEPLE' && (
                                 <>
+                                    {/* Meeple type toggle (I&C expansion) */}
+                                    {hasInnsCathedrals && (currentPlayer.meeples.available['NORMAL'] > 0 || (currentPlayer.meeples.available['BIG'] ?? 0) > 0) && (
+                                        <div style={{ display: 'flex', gap: 4, marginBottom: 4 }}>
+                                            <button
+                                                onClick={(e) => { e.stopPropagation(); setSelectedMeepleType('NORMAL') }}
+                                                disabled={currentPlayer.meeples.available['NORMAL'] <= 0}
+                                                style={{
+                                                    flex: 1, padding: '6px 8px', borderRadius: 6, border: 'none', cursor: 'pointer', fontSize: 12, fontWeight: 'bold',
+                                                    background: selectedMeepleType === 'NORMAL' ? '#4a9a4a' : '#333',
+                                                    color: selectedMeepleType === 'NORMAL' ? '#fff' : '#aaa',
+                                                    opacity: currentPlayer.meeples.available['NORMAL'] <= 0 ? 0.4 : 1,
+                                                }}
+                                            >Normal</button>
+                                            <button
+                                                onClick={(e) => { e.stopPropagation(); setSelectedMeepleType('BIG') }}
+                                                disabled={(currentPlayer.meeples.available['BIG'] ?? 0) <= 0}
+                                                style={{
+                                                    flex: 1, padding: '6px 8px', borderRadius: 6, border: 'none', cursor: 'pointer', fontSize: 12, fontWeight: 'bold',
+                                                    background: selectedMeepleType === 'BIG' ? '#9955cc' : '#333',
+                                                    color: selectedMeepleType === 'BIG' ? '#fff' : '#aaa',
+                                                    opacity: (currentPlayer.meeples.available['BIG'] ?? 0) <= 0 ? 0.4 : 1,
+                                                }}
+                                            >Big</button>
+                                        </div>
+                                    )}
                                     {interactionState === 'MEEPLE_SELECTED_TENTATIVELY' ? (
                                         <>
                                             <Button onClick={confirmMeeplePlacement} primary>Confirm Meeple</Button>

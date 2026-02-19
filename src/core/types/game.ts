@@ -1,6 +1,6 @@
 import type { Board } from './board.ts'
 import type { Player } from './player.ts'
-import type { TileInstance, FeatureType } from './tile.ts'
+import type { TileDefinition, TileInstance, FeatureType } from './tile.ts'
 import type { Coordinate, MeeplePlacement } from './board.ts'
 import type { UnionFindState } from './feature.ts'
 
@@ -23,6 +23,13 @@ export interface ScoreEvent {
   isEndGame: boolean
 }
 
+export interface AiPhaseData {
+  isActive: boolean
+  narrative?: string
+  objectives?: unknown[]
+  mechanics?: unknown[]
+}
+
 export interface GameState {
   phase: GamePhase
   turnPhase: TurnPhase
@@ -43,12 +50,5 @@ export interface GameState {
   // Extension data for expansions and AI phase
   expansionData: Record<string, unknown>
   aiPhaseData?: AiPhaseData
-}
-
-// Stubbed for future AI phase
-export interface AiPhaseData {
-  isActive: boolean
-  narrative?: string
-  objectives?: unknown[]
-  mechanics?: unknown[]
+  staticTileMap: Record<string, TileDefinition>
 }

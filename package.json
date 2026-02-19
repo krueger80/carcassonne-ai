@@ -12,6 +12,7 @@
     "test:ui": "vitest --ui"
   },
   "dependencies": {
+    "@supabase/supabase-js": "^2.96.0",
     "framer-motion": "^12.34.0",
     "immer": "^10.1.1",
     "react": "^19.0.0",
@@ -26,6 +27,7 @@
     "@vitejs/plugin-react": "^4.3.4",
     "@vitest/ui": "^3.0.0",
     "jsdom": "^26.0.0",
+    "tsx": "^4.21.0",
     "typescript": "~5.7.2",
     "vite": "^6.2.0",
     "vitest": "^3.0.0"

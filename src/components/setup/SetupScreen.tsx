@@ -7,10 +7,23 @@ const DEFAULT_NAMES = ['Alice', 'Bob', 'Carol', 'Dave', 'Eve', 'Frank']
 export function SetupScreen() {
   const [playerCount, setPlayerCount] = useState(2)
   const [names, setNames] = useState<string[]>(DEFAULT_NAMES.slice(0, 6))
+  const [useInnsCathedrals, setUseInnsCathedrals] = useState(false)
+  const [isStarting, setIsStarting] = useState(false)
   const { newGame } = useGameStore()
 
-  const handleStart = () => {
-    newGame({ playerNames: names.slice(0, playerCount) })
+  const handleStart = async () => {
+    if (isStarting) return
+    setIsStarting(true)
+    try {
+      await newGame({
+        playerNames: names.slice(0, playerCount),
+        expansions: useInnsCathedrals ? ['inns-cathedrals'] : [],
+      })
+    } catch (e: any) {
+      console.error(e)
+      alert("Failed to start game: " + (e.message || e))
+      setIsStarting(false)
+    }
   }
 
   return (
@@ -99,22 +112,50 @@ export function SetupScreen() {
           ))}
         </div>
 
+        {/* Expansions */}
+        <div>
+          <label style={{ display: 'block', marginBottom: 8, color: '#aaa', fontSize: 13 }}>
+            Expansions
+          </label>
+          <label style={{
+            display: 'flex',
+            alignItems: 'center',
+            gap: 8,
+            cursor: 'pointer',
+            padding: '6px 8px',
+            borderRadius: 4,
+            background: useInnsCathedrals ? 'rgba(100,80,160,0.2)' : 'transparent',
+            border: `1px solid ${useInnsCathedrals ? '#6a4a9a' : '#555'}`,
+          }}>
+            <input
+              type="checkbox"
+              checked={useInnsCathedrals}
+              onChange={e => setUseInnsCathedrals(e.target.checked)}
+              style={{ accentColor: '#9955cc' }}
+            />
+            <span style={{ fontSize: 14, color: '#f0f0f0' }}>Inns & Cathedrals</span>
+            <span style={{ fontSize: 11, color: '#888', marginLeft: 'auto' }}>+18 tiles</span>
+          </label>
+        </div>
+
         {/* Start button */}
         <button
           onClick={handleStart}
+          disabled={isStarting}
           style={{
-            background: '#c8a46e',
+            background: isStarting ? '#666' : '#c8a46e',
             color: '#1a1a2e',
             border: 'none',
             padding: '12px 0',
             borderRadius: 8,
-            cursor: 'pointer',
+            cursor: isStarting ? 'wait' : 'pointer',
             fontSize: 16,
             fontWeight: 'bold',
             marginTop: 8,
+            opacity: isStarting ? 0.7 : 1
           }}
         >
-          Start Game
+          {isStarting ? 'Starting Game...' : 'Start Game'}
         </button>
       </div>
     </div>

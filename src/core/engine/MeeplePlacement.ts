@@ -47,7 +47,9 @@ export function getPlaceableSegments(
   const def = tileMap[placedTile.definitionId]
   if (!def) return []
 
-  if (availableMeepleCount(player, 'NORMAL') <= 0) return []
+  const hasNormal = availableMeepleCount(player, 'NORMAL') > 0
+  const hasBig = availableMeepleCount(player, 'BIG') > 0
+  if (!hasNormal && !hasBig) return []
 
   return def.segments
     .filter(seg => {

@@ -53,6 +53,7 @@ import type { TileDefinition } from '../types/tile.ts'
 const CITY_N = 'M0,0 L100,0 L70,25 L50,30 L30,25 Z'
 const CITY_E = 'M100,0 L100,100 L75,70 L70,50 L75,30 Z'
 const CITY_S = 'M0,100 L100,100 L70,75 L50,70 L30,75 Z'
+const CITY_W = 'M0,0 L0,100 L25,70 L30,50 L25,30 Z'
 const CITY_NW = 'M0,100 L0,0 L100,0 L70,25 L40,40 L30,75 Z'
 const CITY_WNE = 'M0,100 L0,0 L100,0 L100,100 L70,75 L50,70 L30,75 Z'
 const CITY_WE = 'M0,100 L0,0 L30,25 L50,30 L70,25 L100,0 L100,100 L70,75 L50,70 L30,75 Z'
@@ -92,9 +93,8 @@ const C_ROAD_W = { x: 25, y: 50 }
 export const BASE_TILES: TileDefinition[] = [
   // ── Tile A: Cloister with road to south ──
   {
-    id: 'base_A',
+    id: 'base_A', imageUrl: '/images/BaseGame_C2/Base_Game_C2_Tile_A.jpg',
     count: 2,
-    edges: { NORTH: 'FIELD', EAST: 'FIELD', SOUTH: 'ROAD', WEST: 'FIELD' },
     segments: [
       {
         id: 'field0', type: 'FIELD',
@@ -120,9 +120,8 @@ export const BASE_TILES: TileDefinition[] = [
 
   // ── Tile B: Cloister, surrounded by fields ──
   {
-    id: 'base_B',
+    id: 'base_B', imageUrl: '/images/BaseGame_C2/Base_Game_C2_Tile_B.jpg',
     count: 4,
-    edges: { NORTH: 'FIELD', EAST: 'FIELD', SOUTH: 'FIELD', WEST: 'FIELD' },
     segments: [
       {
         id: 'field0', type: 'FIELD',
@@ -144,9 +143,8 @@ export const BASE_TILES: TileDefinition[] = [
 
   // ── Tile C: City (all four sides, with pennant) ──
   {
-    id: 'base_C',
+    id: 'base_C', imageUrl: '/images/BaseGame_C2/Base_Game_C2_Tile_C.jpg',
     count: 1,
-    edges: { NORTH: 'CITY', EAST: 'CITY', SOUTH: 'CITY', WEST: 'CITY' },
     segments: [
       {
         id: 'city0', type: 'CITY', hasPennant: true,
@@ -165,9 +163,9 @@ export const BASE_TILES: TileDefinition[] = [
   // Road goes WEST→EAST through center, city on NORTH
   // count=4: one copy is placed as the starting tile before shuffling
   {
-    id: 'base_D',
+    id: 'base_D', imageUrl: '/images/BaseGame_C2/Base_Game_C2_Tile_D.jpg',
+    startingTile: true,
     count: 4,
-    edges: { NORTH: 'CITY', EAST: 'ROAD', SOUTH: 'FIELD', WEST: 'ROAD' },
     segments: [
       {
         id: 'city0', type: 'CITY',
@@ -196,9 +194,8 @@ export const BASE_TILES: TileDefinition[] = [
 
   // ── Tile E: City top only ──
   {
-    id: 'base_E',
+    id: 'base_E', imageUrl: '/images/BaseGame_C2/Base_Game_C2_Tile_E.jpg',
     count: 5,
-    edges: { NORTH: 'CITY', EAST: 'FIELD', SOUTH: 'FIELD', WEST: 'FIELD' },
     segments: [
       {
         id: 'city0', type: 'CITY',
@@ -219,9 +216,8 @@ export const BASE_TILES: TileDefinition[] = [
 
   // ── Tile F: City east + west connected (with pennant), no road ──
   {
-    id: 'base_F',
+    id: 'base_F', imageUrl: '/images/BaseGame_C2/Base_Game_C2_Tile_F.jpg',
     count: 2,
-    edges: { NORTH: 'FIELD', EAST: 'CITY', SOUTH: 'FIELD', WEST: 'CITY' },
     segments: [
       {
         id: 'city0', type: 'CITY', hasPennant: true,
@@ -246,9 +242,8 @@ export const BASE_TILES: TileDefinition[] = [
 
   // ── Tile G: City east + west connected (no pennant) ──
   {
-    id: 'base_G',
+    id: 'base_G', imageUrl: '/images/BaseGame_C2/Base_Game_C2_Tile_G.jpg',
     count: 1,
-    edges: { NORTH: 'FIELD', EAST: 'CITY', SOUTH: 'FIELD', WEST: 'CITY' },
     segments: [
       {
         id: 'city0', type: 'CITY',
@@ -271,39 +266,37 @@ export const BASE_TILES: TileDefinition[] = [
     },
   },
 
-  // ── Tile H: City north + south (separate, not connected) ──
+  // ── Tile H: City east + west (separate, not connected) ──
   {
-    id: 'base_H',
+    id: 'base_H', imageUrl: '/images/BaseGame_C2/Base_Game_C2_Tile_H.jpg',
     count: 3,
-    edges: { NORTH: 'CITY', EAST: 'FIELD', SOUTH: 'CITY', WEST: 'FIELD' },
     segments: [
       {
         id: 'city0', type: 'CITY',
-        svgPath: CITY_N, meepleCentroid: C_NORTH,
+        svgPath: CITY_E, meepleCentroid: C_EAST,
       },
       {
         id: 'city1', type: 'CITY',
-        svgPath: CITY_S, meepleCentroid: C_SOUTH,
+        svgPath: CITY_W, meepleCentroid: C_WEST,
       },
       {
         id: 'field0', type: 'FIELD',
-        svgPath: 'M40,50 L60,50 L60,60 L100,60 L100,40 L60,40 L60,50 L40,50 L40,40 L0,40 L0,60 L40,60 Z',
+        svgPath: 'M0,0 L60,0 L50,30 L50,70 L60,100 L0,100 Z',
         meepleCentroid: C_CENTER,
       },
     ],
     edgePositionToSegment: {
-      NORTH_LEFT: 'city0', NORTH_CENTER: 'city0', NORTH_RIGHT: 'city0',
-      EAST_LEFT: 'field0', EAST_CENTER: 'field0', EAST_RIGHT: 'field0',
-      SOUTH_LEFT: 'city1', SOUTH_CENTER: 'city1', SOUTH_RIGHT: 'city1',
-      WEST_LEFT: 'field0', WEST_CENTER: 'field0', WEST_RIGHT: 'field0',
+      NORTH_LEFT: 'field0', NORTH_CENTER: 'field0', NORTH_RIGHT: 'field0',
+      EAST_LEFT: 'city0', EAST_CENTER: 'city0', EAST_RIGHT: 'city0',
+      SOUTH_LEFT: 'field0', SOUTH_CENTER: 'field0', SOUTH_RIGHT: 'field0',
+      WEST_LEFT: 'city1', WEST_CENTER: 'city1', WEST_RIGHT: 'city1',
     },
   },
 
   // ── Tile I: City east + south (separate) ──
   {
-    id: 'base_I',
+    id: 'base_I', imageUrl: '/images/BaseGame_C2/Base_Game_C2_Tile_I.jpg',
     count: 2,
-    edges: { NORTH: 'FIELD', EAST: 'CITY', SOUTH: 'CITY', WEST: 'FIELD' },
     segments: [
       {
         id: 'city0', type: 'CITY',
@@ -328,9 +321,8 @@ export const BASE_TILES: TileDefinition[] = [
 
   // ── Tile J: City east, road south→west ──
   {
-    id: 'base_J',
+    id: 'base_J', imageUrl: '/images/BaseGame_C2/Base_Game_C2_Tile_J.jpg',
     count: 3,
-    edges: { NORTH: 'FIELD', EAST: 'CITY', SOUTH: 'ROAD', WEST: 'ROAD' },
     segments: [
       {
         id: 'city0', type: 'CITY',
@@ -359,9 +351,8 @@ export const BASE_TILES: TileDefinition[] = [
 
   // ── Tile K: City north, road south→west ──
   {
-    id: 'base_K',
+    id: 'base_K', imageUrl: '/images/BaseGame_C2/Base_Game_C2_Tile_K.jpg',
     count: 3,
-    edges: { NORTH: 'CITY', EAST: 'FIELD', SOUTH: 'ROAD', WEST: 'ROAD' },
     segments: [
       {
         id: 'city0', type: 'CITY',
@@ -390,9 +381,8 @@ export const BASE_TILES: TileDefinition[] = [
 
   // ── Tile L: City north, T-junction road (E+S+W) ──
   {
-    id: 'base_L',
+    id: 'base_L', imageUrl: '/images/BaseGame_C2/Base_Game_C2_Tile_L.jpg',
     count: 3,
-    edges: { NORTH: 'CITY', EAST: 'ROAD', SOUTH: 'ROAD', WEST: 'ROAD' },
     segments: [
       {
         id: 'city0', type: 'CITY',
@@ -434,9 +424,8 @@ export const BASE_TILES: TileDefinition[] = [
 
   // ── Tile M: City north+west connected (with pennant) ──
   {
-    id: 'base_M',
+    id: 'base_M', imageUrl: '/images/BaseGame_C2/Base_Game_C2_Tile_M.jpg',
     count: 2,
-    edges: { NORTH: 'CITY', EAST: 'FIELD', SOUTH: 'FIELD', WEST: 'CITY' },
     segments: [
       {
         id: 'city0', type: 'CITY', hasPennant: true,
@@ -457,9 +446,8 @@ export const BASE_TILES: TileDefinition[] = [
 
   // ── Tile N: City north+west connected (no pennant) ──
   {
-    id: 'base_N',
+    id: 'base_N', imageUrl: '/images/BaseGame_C2/Base_Game_C2_Tile_N.jpg',
     count: 3,
-    edges: { NORTH: 'CITY', EAST: 'FIELD', SOUTH: 'FIELD', WEST: 'CITY' },
     segments: [
       {
         id: 'city0', type: 'CITY',
@@ -480,9 +468,8 @@ export const BASE_TILES: TileDefinition[] = [
 
   // ── Tile O: City north+west connected (pennant) + road S ──
   {
-    id: 'base_O',
+    id: 'base_O', imageUrl: '/images/BaseGame_C2/Base_Game_C2_Tile_O.jpg',
     count: 2,
-    edges: { NORTH: 'CITY', EAST: 'ROAD', SOUTH: 'ROAD', WEST: 'CITY' },
     segments: [
       {
         id: 'city0', type: 'CITY', hasPennant: true,
@@ -511,9 +498,8 @@ export const BASE_TILES: TileDefinition[] = [
 
   // ── Tile P: City north+west connected (no pennant) + road S ──
   {
-    id: 'base_P',
+    id: 'base_P', imageUrl: '/images/BaseGame_C2/Base_Game_C2_Tile_P.jpg',
     count: 3,
-    edges: { NORTH: 'CITY', EAST: 'ROAD', SOUTH: 'ROAD', WEST: 'CITY' },
     segments: [
       {
         id: 'city0', type: 'CITY',
@@ -542,9 +528,8 @@ export const BASE_TILES: TileDefinition[] = [
 
   // ── Tile Q: City N+E+W connected (with pennant) ──
   {
-    id: 'base_Q',
+    id: 'base_Q', imageUrl: '/images/BaseGame_C2/Base_Game_C2_Tile_Q.jpg',
     count: 1,
-    edges: { NORTH: 'CITY', EAST: 'CITY', SOUTH: 'FIELD', WEST: 'CITY' },
     segments: [
       {
         id: 'city0', type: 'CITY', hasPennant: true,
@@ -565,9 +550,8 @@ export const BASE_TILES: TileDefinition[] = [
 
   // ── Tile R: City N+E+W connected (no pennant) ──
   {
-    id: 'base_R',
+    id: 'base_R', imageUrl: '/images/BaseGame_C2/Base_Game_C2_Tile_R.jpg',
     count: 3,
-    edges: { NORTH: 'CITY', EAST: 'CITY', SOUTH: 'FIELD', WEST: 'CITY' },
     segments: [
       {
         id: 'city0', type: 'CITY',
@@ -588,9 +572,8 @@ export const BASE_TILES: TileDefinition[] = [
 
   // ── Tile S: City N+E+W (pennant) + road south ──
   {
-    id: 'base_S',
+    id: 'base_S', imageUrl: '/images/BaseGame_C2/Base_Game_C2_Tile_S.jpg',
     count: 2,
-    edges: { NORTH: 'CITY', EAST: 'CITY', SOUTH: 'ROAD', WEST: 'CITY' },
     segments: [
       {
         id: 'city0', type: 'CITY', hasPennant: true,
@@ -612,16 +595,15 @@ export const BASE_TILES: TileDefinition[] = [
     edgePositionToSegment: {
       NORTH_LEFT: 'city0', NORTH_CENTER: 'city0', NORTH_RIGHT: 'city0',
       EAST_LEFT: 'city0', EAST_CENTER: 'city0', EAST_RIGHT: 'city0',
-      SOUTH_LEFT: 'field1', SOUTH_CENTER: 'road0', SOUTH_RIGHT: 'field2',
+      SOUTH_LEFT: 'field1', SOUTH_CENTER: 'road0', SOUTH_RIGHT: 'field0',
       WEST_LEFT: 'city0', WEST_CENTER: 'city0', WEST_RIGHT: 'city0',
     },
   },
 
   // ── Tile T: City N+E+W (no pennant) + road south ──
   {
-    id: 'base_T',
+    id: 'base_T', imageUrl: '/images/BaseGame_C2/Base_Game_C2_Tile_T.jpg',
     count: 1,
-    edges: { NORTH: 'CITY', EAST: 'CITY', SOUTH: 'ROAD', WEST: 'CITY' },
     segments: [
       {
         id: 'city0', type: 'CITY',
@@ -650,9 +632,8 @@ export const BASE_TILES: TileDefinition[] = [
 
   // ── Tile U: Road north-south (straight) ──
   {
-    id: 'base_U',
+    id: 'base_U', imageUrl: '/images/BaseGame_C2/Base_Game_C2_Tile_U.jpg',
     count: 8,
-    edges: { NORTH: 'ROAD', EAST: 'FIELD', SOUTH: 'ROAD', WEST: 'FIELD' },
     segments: [
       {
         id: 'road0', type: 'ROAD',
@@ -677,9 +658,8 @@ export const BASE_TILES: TileDefinition[] = [
 
   // ── Tile V: Road curve south→west ──
   {
-    id: 'base_V',
+    id: 'base_V', imageUrl: '/images/BaseGame_C2/Base_Game_C2_Tile_V.jpg',
     count: 9,
-    edges: { NORTH: 'FIELD', EAST: 'FIELD', SOUTH: 'ROAD', WEST: 'ROAD' },
     segments: [
       {
         id: 'road0', type: 'ROAD',
@@ -704,9 +684,8 @@ export const BASE_TILES: TileDefinition[] = [
 
   // ── Tile W: T-junction (3 roads: E, S, W) no city ──
   {
-    id: 'base_W',
+    id: 'base_W', imageUrl: '/images/BaseGame_C2/Base_Game_C2_Tile_W.jpg',
     count: 4,
-    edges: { NORTH: 'FIELD', EAST: 'ROAD', SOUTH: 'ROAD', WEST: 'ROAD' },
     segments: [
       {
         id: 'road_e', type: 'ROAD',
@@ -722,7 +701,7 @@ export const BASE_TILES: TileDefinition[] = [
       },
       {
         id: 'field0', type: 'FIELD',  // north + east-left + west-right
-        svgPath: 'M0,0 L100,0 L100,46 L54,46 L54,46 L50,50 L46,46 L0,46 Z', meepleCentroid: C_FIELD_NE,
+        svgPath: 'M0,0 L100,0 L100,46 L54,46 L54,46 L50,50 L46,46 L0,46 Z', meepleCentroid: C_NORTH,
       },
       {
         id: 'field1', type: 'FIELD',  // between east road and south road
@@ -743,9 +722,8 @@ export const BASE_TILES: TileDefinition[] = [
 
   // ── Tile X: 4-way road junction ──
   {
-    id: 'base_X',
+    id: 'base_X', imageUrl: '/images/BaseGame_C2/Base_Game_C2_Tile_X.jpg',
     count: 1,
-    edges: { NORTH: 'ROAD', EAST: 'ROAD', SOUTH: 'ROAD', WEST: 'ROAD' },
     segments: [
       {
         id: 'road_n', type: 'ROAD',
@@ -806,6 +784,16 @@ export const TILE_MAP: Record<string, TileDefinition> = Object.fromEntries(
 
   // Mark the starting tile
   ; (TILE_MAP['base_D'] as TileDefinition & { startingTile?: boolean }).startingTile = true
+
+/**
+ * Register additional tile definitions (from expansions) into the global TILE_MAP.
+ * Called once during game initialization so all consumers can resolve expansion tiles.
+ */
+export function registerTiles(defs: TileDefinition[]): void {
+  for (const def of defs) {
+    TILE_MAP[def.id] = def
+  }
+}
 
 // Total tile count for verification
 export const BASE_TILE_COUNT = BASE_TILES.reduce((sum, t) => sum + t.count, 0)

@@ -15,6 +15,8 @@ interface TileSVGProps {
   hovered?: boolean
   /** Show a valid-placement indicator */
   isValidTarget?: boolean
+  /** Force render of schematic data (segments/features) even if image is present */
+  showSchematic?: boolean
 }
 
 /**
@@ -40,6 +42,7 @@ export function TileSVG({
   meeples = {},
   hovered = false,
   isValidTarget = false,
+  showSchematic = false,
 }: TileSVGProps) {
   // Sort segments: FIELD first (background), then CITY, ROAD, CLOISTER
   const renderOrder: Record<string, number> = { FIELD: 0, CITY: 1, ROAD: 2, CLOISTER: 3 }
@@ -59,33 +62,81 @@ export function TileSVG({
         flexShrink: 0,
       }}
     >
-      {/* Base field fill (in case any gaps between segment paths) */}
-      <rect x="0" y="0" width="100" height="100" fill={TERRAIN_COLORS['FIELD']} />
-
-      {/* Terrain segments */}
-      {sortedSegments.map(seg => (
-        <SegmentPath
-          key={seg.id}
-          segment={seg}
-          highlighted={highlightedSegments.includes(seg.id)}
-          dimmed={highlightedSegments.length > 0 && !highlightedSegments.includes(seg.id)}
+      {/* Layer 1: Image Background */}
+      {definition.imageUrl && (
+        <image
+          href={definition.imageUrl}
+          x="0"
+          y="0"
+          width="100"
+          height="100"
+          preserveAspectRatio="none"
         />
-      ))}
+      )}
 
-      {/* Pennant indicators — one gold shield per pennant-bearing segment,
-          positioned at the segment's centroid (rotates with the tile). */}
-      {sortedSegments.filter(s => s.hasPennant).map(seg => {
-        const { x: cx, y: cy } = seg.meepleCentroid
-        return (
-          <polygon
-            key={`pennant-${seg.id}`}
-            points={`${cx - 7},${cy - 10} ${cx + 8},${cy} ${cx - 7},${cy + 10}`}
-            fill="#ffd700"
-            stroke="#b8860b"
-            strokeWidth="1"
-          />
-        )
-      })}
+      {/* Layer 2: Schematic Overlay (Fallback or Debug Overlay) */}
+      {(!definition.imageUrl || showSchematic) && (
+        <g opacity={definition.imageUrl ? 0.6 : 1} style={{ pointerEvents: 'none' }}>
+          {/* Base field fill - only if no image (otherwise covers image) */}
+          {!definition.imageUrl && (
+            <rect x="0" y="0" width="100" height="100" fill={TERRAIN_COLORS['FIELD']} />
+          )}
+
+          {/* Terrain segments */}
+          {sortedSegments.map(seg => (
+            <SegmentPath
+              key={seg.id}
+              segment={seg}
+              highlighted={highlightedSegments.includes(seg.id)}
+              dimmed={highlightedSegments.length > 0 && !highlightedSegments.includes(seg.id)}
+            />
+          ))}
+
+          {/* Pennant indicators */}
+          {sortedSegments.filter(s => s.hasPennant).map(seg => {
+            if (!seg.meepleCentroid) return null
+            const { x: cx, y: cy } = seg.meepleCentroid
+            return (
+              <polygon
+                key={`pennant-${seg.id}`}
+                points={`${cx - 7},${cy - 10} ${cx + 8},${cy} ${cx - 7},${cy + 10}`}
+                fill="#ffd700"
+                stroke="#b8860b"
+                strokeWidth="1"
+              />
+            )
+          })}
+
+          {/* Inn indicators */}
+          {sortedSegments.filter(s => s.hasInn).map(seg => {
+            if (!seg.meepleCentroid) return null
+            const { x: cx, y: cy } = seg.meepleCentroid
+            return (
+              <g key={`inn-${seg.id}`}>
+                <ellipse cx={cx} cy={cy - 10} rx={7} ry={4.5}
+                  fill="#4488cc" stroke="#2266aa" strokeWidth="0.8" />
+                <ellipse cx={cx} cy={cy - 10} rx={4} ry={2}
+                  fill="#66aaee" opacity="0.5" />
+              </g>
+            )
+          })}
+
+          {/* Cathedral indicators */}
+          {sortedSegments.filter(s => s.hasCathedral).map(seg => {
+            if (!seg.meepleCentroid) return null
+            const { x: cx, y: cy } = seg.meepleCentroid
+            return (
+              <g key={`cathedral-${seg.id}`}>
+                <polygon
+                  points={`${cx},${cy - 14} ${cx - 5},${cy - 4} ${cx - 3},${cy - 4} ${cx - 3},${cy + 2} ${cx + 3},${cy + 2} ${cx + 3},${cy - 4} ${cx + 5},${cy - 4}`}
+                  fill="#9955cc" stroke="#6622aa" strokeWidth="0.8"
+                />
+                <circle cx={cx} cy={cy - 8} r={1.5} fill="#ddc0ff" />
+              </g>
+            )
+          })}
+        </g>
+      )}
 
       {/* Tile border */}
       <rect
@@ -106,6 +157,7 @@ export function TileSVG({
       {definition.segments.map(seg => {
         const meeple = meeples[seg.id]
         if (!meeple) return null
+        if (!seg.meepleCentroid) return null
         const { x, y } = seg.meepleCentroid
         return (
           <g key={seg.id} transform={`rotate(${-rotation}, ${x}, ${y})`}>

@@ -47,10 +47,11 @@ export function distributeMajorityScore(
 ): Record<string, number> {
   if (feature.meeples.length === 0 || points === 0) return {}
 
-  // Count meeples per player
+  // Count meeples per player (BIG meeples count as 2)
   const counts: Record<string, number> = {}
   for (const meeple of feature.meeples) {
-    counts[meeple.playerId] = (counts[meeple.playerId] ?? 0) + 1
+    const weight = meeple.meepleType === 'BIG' ? 2 : 1
+    counts[meeple.playerId] = (counts[meeple.playerId] ?? 0) + weight
   }
 
   const maxCount = Math.max(...Object.values(counts))

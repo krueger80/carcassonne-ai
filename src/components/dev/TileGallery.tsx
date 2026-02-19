@@ -1,7 +1,8 @@
 import { useState } from 'react'
 import { TileSVG } from '../svg/TileSVG.tsx'
-import { BASE_TILES } from '../../core/data/baseTiles.ts'
+import { getFallbackTiles } from '../../services/tileRegistry.ts'
 import type { Rotation } from '../../core/types/tile.ts'
+import { getEdge } from '../../core/engine/TilePlacement.ts'
 
 const ROTATIONS: Rotation[] = [0, 90, 180, 270]
 
@@ -14,9 +15,10 @@ export function TileGallery() {
   const [filter, setFilter] = useState('')
   const [tileSize, setTileSize] = useState(80)
 
+  const allTiles = getFallbackTiles()
   const rotationsToShow = selectedRotation === 'all' ? ROTATIONS : [selectedRotation]
 
-  const filteredTiles = BASE_TILES.filter(def =>
+  const filteredTiles = allTiles.filter(def =>
     def.id.toLowerCase().includes(filter.toLowerCase())
   )
 
@@ -102,7 +104,7 @@ export function TileGallery() {
 
             {/* Edge summary */}
             <div style={{ fontSize: '10px', color: '#666', marginTop: '4px', fontFamily: 'monospace' }}>
-              N:{def.edges.NORTH[0]} E:{def.edges.EAST[0]} S:{def.edges.SOUTH[0]} W:{def.edges.WEST[0]}
+              N:{getEdge(def, 0, 'NORTH')[0]} E:{getEdge(def, 0, 'EAST')[0]} S:{getEdge(def, 0, 'SOUTH')[0]} W:{getEdge(def, 0, 'WEST')[0]}
             </div>
           </div>
         ))}

@@ -12,8 +12,8 @@ import type { Player, MeepleType } from '../types/player.ts'
 import { coordKey, emptyBoard } from '../types/board.ts'
 import { emptyUnionFindState } from '../types/feature.ts'
 import { createPlayer, PLAYER_COLORS } from '../types/player.ts'
-import { BASE_TILES, TILE_MAP } from '../data/baseTiles.ts'
-export { TILE_MAP } // Re-export for GameStore
+import { getFallbackBaseTiles } from '../../services/tileRegistry.ts'
+import { getExpansionConfig } from '../expansions/registry.ts'
 import { createTileBag, drawTile as drawFromBag } from './TileBag.ts'
 import {
   isValidPlacement,
@@ -45,24 +45,56 @@ import { nodeKey } from '../types/feature.ts'
 export interface GameConfig {
   playerNames: string[]
   extraTileDefinitions?: TileDefinition[]
+  baseDefinitions?: TileDefinition[]
   scoringRules?: ScoringRule[]
+  expansions?: string[]
+  debugPrioritizeExpansions?: boolean
 }
 
 export function initGame(config: GameConfig): GameState {
-  const { playerNames, extraTileDefinitions = [], scoringRules: _rules = BASE_SCORING_RULES } = config
+  const {
+    playerNames,
+    extraTileDefinitions = [],
+    baseDefinitions = getFallbackBaseTiles(),
+    scoringRules = BASE_SCORING_RULES,
+    expansions = [],
+    debugPrioritizeExpansions = false,
+  } = config
 
   if (playerNames.length < 2 || playerNames.length > 6) {
     throw new Error('Carcassonne supports 2–6 players')
   }
 
+  // Resolve expansion configs
+  const enableBigMeeple = expansions.includes('inns-cathedrals')
+  // Filter extra tiles to only include tiles from enabled expansions
+  let allExtraTiles = extraTileDefinitions.filter(
+    t => !t.expansionId || expansions.includes(t.expansionId)
+  )
+  let activeRules = scoringRules
+
+  if (expansions.includes('inns-cathedrals')) {
+    const ic = getExpansionConfig('inns-cathedrals')
+    if (ic) {
+      // Only add hardcoded IC tiles if none were provided via extraTileDefinitions (DB)
+      const hasDbIcTiles = allExtraTiles.some(t => t.expansionId === 'inns-cathedrals')
+      if (!hasDbIcTiles) {
+        allExtraTiles = [...allExtraTiles, ...ic.tiles]
+      }
+      activeRules = ic.scoringRules
+    }
+  }
+
   const players: Player[] = playerNames.map((name, i) =>
-    createPlayer(`player_${i}`, name, PLAYER_COLORS[i])
+    createPlayer(`player_${i}`, name, PLAYER_COLORS[i], enableBigMeeple)
   )
 
-  const allDefs = [...BASE_TILES, ...extraTileDefinitions]
-  const { bag, startingTile } = createTileBag(allDefs)
+  const allDefs = [...baseDefinitions, ...allExtraTiles]
+  const tileMap: Record<string, TileDefinition> = {}
+  allDefs.forEach(d => { tileMap[d.id] = d })
 
-  // Place the starting tile at (0,0)
+  const { bag, startingTile } = createTileBag(allDefs, [], debugPrioritizeExpansions)
+
   const board = emptyBoard()
   board.tiles['0,0'] = {
     coordinate: { x: 0, y: 0 },
@@ -73,7 +105,7 @@ export function initGame(config: GameConfig): GameState {
 
   // Initialize union-find with the starting tile's segments
   const ufState = emptyUnionFindState()
-  const { state: initialUfState } = addTileToUnionFind(ufState, board, TILE_MAP, board.tiles['0,0'])
+  const { state: initialUfState } = addTileToUnionFind(ufState, board, tileMap, board.tiles['0,0'])
 
   return {
     phase: 'PLAYING',
@@ -88,7 +120,12 @@ export function initGame(config: GameConfig): GameState {
     featureUnionFind: initialUfState,
     lastScoreEvents: [],
     boardMeeples: {},
-    expansionData: {},
+    expansionData: {
+      scoringRules: activeRules,
+      expansions,
+    },
+    staticTileMap: tileMap,
+
   }
 }
 
@@ -105,7 +142,7 @@ export function drawTile(state: GameState): GameState {
 
   // Check if this tile has any valid placement; if not, discard and draw again
   // (simplified: in real Carcassonne you can look for a valid tile)
-  if (!hasAnyValidPlacement(state.board, TILE_MAP, result.tile)) {
+  if (!hasAnyValidPlacement(state.board, state.staticTileMap, result.tile)) {
     // Discard this tile and try the next
     return drawTile({ ...state, tileBag: result.remaining })
   }
@@ -135,7 +172,7 @@ export function rotateTile(state: GameState): GameState {
 export function placeTile(state: GameState, coord: Coordinate): GameState {
   if (state.turnPhase !== 'PLACE_TILE' || !state.currentTile) return state
 
-  if (!isValidPlacement(state.board, TILE_MAP, state.currentTile, coord)) {
+  if (!isValidPlacement(state.board, state.staticTileMap, state.currentTile, coord)) {
     return state  // invalid placement — no change
   }
 
@@ -158,7 +195,7 @@ export function placeTile(state: GameState, coord: Coordinate): GameState {
   const { state: newUfState, completedFeatureIds } = addTileToUnionFind(
     state.featureUnionFind,
     newBoard,
-    TILE_MAP,
+    state.staticTileMap,
     placedTile,
   )
 
@@ -252,10 +289,12 @@ export function endTurn(state: GameState): GameState {
   // Score completed features NOW (after meeple placement), then return meeples.
   // Scoring here instead of in placeTile means any meeple placed on a just-completed
   // feature is correctly included in the scoring.
+  const rules = (state.expansionData.scoringRules as ScoringRule[] | undefined) ?? BASE_SCORING_RULES
   const scoreEvents = scoreCompletedFeatures(
     state.completedFeatureIds,
     state.featureUnionFind,
     state.players,
+    rules,
   )
 
   let updatedPlayers = [...state.players]
@@ -346,10 +385,12 @@ export function endGame(state: GameState): GameState {
     )
   )
 
+  const rules = (state.expansionData.scoringRules as ScoringRule[] | undefined) ?? BASE_SCORING_RULES
   const endGameEvents = scoreAllRemainingFeatures(
     state.featureUnionFind,
     completedFeatureIds,
     state.players,
+    rules,
   )
 
   const finalPlayers = applyScoreEvents(state.players, endGameEvents)
@@ -367,12 +408,12 @@ export function endGame(state: GameState): GameState {
 
 export function getValidPlacements(state: GameState): Coordinate[] {
   if (!state.currentTile || state.turnPhase !== 'PLACE_TILE') return []
-  return getValidPositions(state.board, TILE_MAP, state.currentTile)
+  return getValidPositions(state.board, state.staticTileMap, state.currentTile)
 }
 
 export function getValidTileRotations(state: GameState, coord: Coordinate): Rotation[] {
   if (!state.currentTile) return []
-  return getValidRotations(state.board, TILE_MAP, state.currentTile, coord)
+  return getValidRotations(state.board, state.staticTileMap, state.currentTile, coord)
 }
 
 export function getAvailableSegmentsForMeeple(state: GameState): string[] {
@@ -380,7 +421,7 @@ export function getAvailableSegmentsForMeeple(state: GameState): string[] {
   if (!lastCoord) return []
 
   const player = state.players[state.currentPlayerIndex]
-  return getPlaceableSegments(state.featureUnionFind, TILE_MAP, state.board, lastCoord, player)
+  return getPlaceableSegments(state.featureUnionFind, state.staticTileMap, state.board, lastCoord, player)
 }
 
 // ─── Private helpers ──────────────────────────────────────────────────────────

@@ -8,18 +8,16 @@ import type { Rotation } from '../core/types/tile.ts'
 import {
   initGame,
   drawTile,
-  // rotateTile, // used by internal logic duplication
   placeTile,
   placeMeeple,
   skipMeeple,
   endTurn,
-  // getValidPlacements,
   getAllPotentialPlacements,
   getAvailableSegmentsForMeeple,
-  isValidPlacement, // We need this to check validity during auto-rotate
-  TILE_MAP, // We need this map for validation
+  isValidPlacement,
 } from '../core/engine/GameEngine.ts'
 import type { GameConfig } from '../core/engine/GameEngine.ts'
+import { loadAllTiles, loadTileMap, invalidateCache } from '../services/tileRegistry.ts'
 
 // Re-export Rotation for convenience
 export type { Rotation }
@@ -39,6 +37,7 @@ interface GameStore {
   // Tentative placement state
   tentativeTileCoord: Coordinate | null
   tentativeMeepleSegment: string | null
+  tentativeMeepleType: MeepleType | null
 
   // Undo history (limit 1 for now, just to go back from meeple phase)
   prevGameState: GameState | null
@@ -47,7 +46,7 @@ interface GameStore {
   placeableSegments: string[]
 
   // ── Actions ──────────────────────────────────────────────────────────────
-  newGame: (config: GameConfig) => void
+  newGame: (config: GameConfig) => Promise<void>
   drawTile: () => void
 
   // Tile Placement Phase
@@ -65,6 +64,7 @@ interface GameStore {
 
   endTurn: () => void
   resetGame: () => void
+  refreshDefinitions: () => Promise<void>
 
   // Old actions kept for compatibility if needed, but likely to be replaced
   rotateTile: () => void
@@ -79,22 +79,53 @@ export const useGameStore = create<GameStore>()(
       validPlacements: [],
       tentativeTileCoord: null,
       tentativeMeepleSegment: null,
+      tentativeMeepleType: null,
       placeableSegments: [],
 
-      newGame: (config) => set((store) => {
-        store.gameState = initGame(config)
-        // Auto-draw first tile
-        if (store.gameState.tileBag.length > 0) {
-          store.gameState = drawTile(store.gameState)
-          store.validPlacements = store.gameState.currentTile
-            ? getAllPotentialPlacements(store.gameState.board, TILE_MAP, store.gameState.currentTile)
-            : []
+      newGame: async (config) => {
+        let baseDefinitions = config.baseDefinitions
+        let extraTileDefinitions = config.extraTileDefinitions
+        if (!baseDefinitions) {
+          try {
+            const allTiles = await loadAllTiles()
+            if (allTiles.length > 0) {
+              baseDefinitions = allTiles.filter(t => !t.expansionId || t.expansionId === 'base')
+              // Provide DB expansion tiles so the engine uses DB configs, not hardcoded
+              extraTileDefinitions = allTiles.filter(t => t.expansionId && t.expansionId !== 'base')
+            }
+          } catch (e) {
+            console.warn("Failed to load tiles, using defaults", e)
+          }
         }
-        store.interactionState = 'IDLE'
-        store.tentativeTileCoord = null
-        store.tentativeMeepleSegment = null
-        store.placeableSegments = []
-      }),
+
+        set((store) => {
+          const debugPrioritize = new URLSearchParams(window.location.search).has('prioritizeExpansions')
+          // If debug prioritize is on, auto-enable I&C expansion
+          const expansions = config.expansions ?? []
+          if (debugPrioritize && !expansions.includes('inns-cathedrals')) {
+            expansions.push('inns-cathedrals')
+          }
+          store.gameState = initGame({
+            ...config,
+            expansions,
+            baseDefinitions,
+            extraTileDefinitions,
+            debugPrioritizeExpansions: debugPrioritize
+          })
+          // Auto-draw first tile
+          if (store.gameState.tileBag.length > 0) {
+            store.gameState = drawTile(store.gameState)
+            store.validPlacements = store.gameState.currentTile
+              ? getAllPotentialPlacements(store.gameState.board, store.gameState.staticTileMap, store.gameState.currentTile)
+              : []
+          }
+          store.interactionState = 'IDLE'
+          store.tentativeTileCoord = null
+          store.tentativeMeepleSegment = null
+          store.tentativeMeepleType = null
+          store.placeableSegments = []
+        })
+      },
 
       drawTile: () => set((store) => {
         // Redundant if auto-draw is working, but kept for safety/dev
@@ -103,7 +134,7 @@ export const useGameStore = create<GameStore>()(
         store.interactionState = 'IDLE'
         store.tentativeTileCoord = null
         store.validPlacements = store.gameState.currentTile
-          ? getAllPotentialPlacements(store.gameState.board, TILE_MAP, store.gameState.currentTile)
+          ? getAllPotentialPlacements(store.gameState.board, store.gameState.staticTileMap, store.gameState.currentTile)
           : []
         store.placeableSegments = []
       }),
@@ -123,7 +154,7 @@ export const useGameStore = create<GameStore>()(
 
         for (const r of rotations) {
           const testTile = { ...currentTile, rotation: r }
-          if (isValidPlacement(board, TILE_MAP, testTile, coord)) {
+          if (isValidPlacement(board, store.gameState.staticTileMap, testTile, coord)) {
             store.gameState.currentTile.rotation = r
             break
           }
@@ -140,7 +171,7 @@ export const useGameStore = create<GameStore>()(
         // Find next valid rotation
         for (let i = 0; i < 4; i++) {
           r = (r + 90) % 360 as Rotation
-          if (isValidPlacement(board, TILE_MAP, { ...currentTile, rotation: r }, coord)) {
+          if (isValidPlacement(board, store.gameState.staticTileMap, { ...currentTile, rotation: r }, coord)) {
             store.gameState.currentTile.rotation = r
             return
           }
@@ -184,30 +215,37 @@ export const useGameStore = create<GameStore>()(
 
         // Recalculate valid placements for the restored state
         if (store.gameState?.currentTile) {
-          store.validPlacements = getAllPotentialPlacements(store.gameState.board, TILE_MAP, store.gameState.currentTile)
+          store.validPlacements = getAllPotentialPlacements(store.gameState.board, store.gameState.staticTileMap, store.gameState.currentTile)
         }
       }),
 
       // ── New Meeple Placement Workflow ────────────────────────────────────
 
-      selectMeeplePlacement: (segmentId, /* meepleType = 'NORMAL' */) => set((store) => {
+      selectMeeplePlacement: (segmentId, meepleType = 'NORMAL') => set((store) => {
         store.tentativeMeepleSegment = segmentId
+        store.tentativeMeepleType = meepleType
         store.interactionState = 'MEEPLE_SELECTED_TENTATIVELY'
       }),
 
       confirmMeeplePlacement: () => set((store) => {
-        if (!store.gameState || !store.tentativeMeepleSegment) return
+        if (!store.gameState) return
 
-        // 1. Place Meeple
-        store.gameState = placeMeeple(store.gameState, store.tentativeMeepleSegment, 'NORMAL')
+        // 1. Place or Skip Meeple
+        if (store.tentativeMeepleSegment) {
+          store.gameState = placeMeeple(store.gameState, store.tentativeMeepleSegment, store.tentativeMeepleType ?? 'NORMAL')
+        } else {
+          // No selection confirmed = Skip
+          store.gameState = skipMeeple(store.gameState)
+        }
 
         // 2. Auto-End Turn & Draw Next
         store.gameState = endTurn(store.gameState)
 
         if (store.gameState.tileBag.length > 0) {
+          // Auto-draw next
           store.gameState = drawTile(store.gameState)
           store.validPlacements = store.gameState.currentTile
-            ? getAllPotentialPlacements(store.gameState.board, TILE_MAP, store.gameState.currentTile)
+            ? getAllPotentialPlacements(store.gameState.board, store.gameState.staticTileMap, store.gameState.currentTile)
             : []
         } else {
           store.validPlacements = []
@@ -215,12 +253,14 @@ export const useGameStore = create<GameStore>()(
 
         store.interactionState = 'IDLE'
         store.tentativeMeepleSegment = null
+        store.tentativeMeepleType = null
         store.placeableSegments = []
         store.tentativeTileCoord = null
       }),
 
       cancelMeeplePlacement: () => set((store) => {
         store.tentativeMeepleSegment = null
+        store.tentativeMeepleType = null
         store.interactionState = 'IDLE'
       }),
 
@@ -239,7 +279,7 @@ export const useGameStore = create<GameStore>()(
         if (store.gameState.tileBag.length > 0) {
           store.gameState = drawTile(store.gameState)
           store.validPlacements = store.gameState.currentTile
-            ? getAllPotentialPlacements(store.gameState.board, TILE_MAP, store.gameState.currentTile)
+            ? getAllPotentialPlacements(store.gameState.board, store.gameState.staticTileMap, store.gameState.currentTile)
             : []
         } else {
           store.validPlacements = []
@@ -249,6 +289,7 @@ export const useGameStore = create<GameStore>()(
         store.interactionState = 'IDLE'
         store.tentativeTileCoord = null
         store.tentativeMeepleSegment = null
+        store.tentativeMeepleType = null
       }),
 
       endTurn: () => set((store) => {
@@ -264,8 +305,24 @@ export const useGameStore = create<GameStore>()(
         store.placeableSegments = []
         store.tentativeTileCoord = null
         store.tentativeMeepleSegment = null
+        store.tentativeMeepleType = null
         store.interactionState = 'IDLE'
       }),
+
+      refreshDefinitions: async () => {
+        try {
+          invalidateCache()
+          const tileMap = await loadTileMap()
+          set((store) => {
+            if (store.gameState) {
+              // Merge registry definitions into existing map
+              store.gameState.staticTileMap = { ...store.gameState.staticTileMap, ...tileMap }
+            }
+          })
+        } catch (e) {
+          console.error("Failed to refresh definitions", e)
+        }
+      },
 
       // Keeping for keyboard shortcut 'R' compatibility if valid
       rotateTile: () => set((store) => {
@@ -283,7 +340,7 @@ export const useGameStore = create<GameStore>()(
           let r = currentTile.rotation
           for (let i = 0; i < 4; i++) {
             r = (r + 90) % 360 as Rotation
-            if (isValidPlacement(board, TILE_MAP, { ...currentTile, rotation: r }, coord)) {
+            if (isValidPlacement(board, store.gameState.staticTileMap, { ...currentTile, rotation: r }, coord)) {
               store.gameState.currentTile.rotation = r
               return
             }
@@ -301,8 +358,9 @@ export const useGameStore = create<GameStore>()(
         validPlacements: s.validPlacements,
         tentativeTileCoord: s.tentativeTileCoord,
         tentativeMeepleSegment: s.tentativeMeepleSegment,
+        tentativeMeepleType: s.tentativeMeepleType,
         placeableSegments: s.placeableSegments,
-        prevGameState: s.prevGameState,
+        // prevGameState: s.prevGameState, // Exclude to reduce size/complexity
       }),
     }
   )

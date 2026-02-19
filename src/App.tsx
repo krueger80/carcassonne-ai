@@ -1,11 +1,29 @@
 import { useGameStore } from './store/gameStore.ts'
-// import { useCallback } from 'react'
+import { useState, useEffect } from 'react'
 import { SetupScreen } from './components/setup/SetupScreen.tsx'
 import { GameBoard } from './components/game/GameBoard.tsx'
 import { EndGameModal } from './components/ui/EndGameModal.tsx'
+import { TileDebugger } from './components/debug/TileDebugger.tsx'
+
+import { CarcassonneGallery } from './components/CarcassonneGallery.tsx'
 
 function App() {
-  const { gameState } = useGameStore()
+  const { gameState, refreshDefinitions } = useGameStore()
+  const [showDebug] = useState(window.location.hash === '#debug')
+  const [showGallery] = useState(window.location.hash === '#gallery')
+
+  useEffect(() => {
+    // Refresh definitions from DB on mount so that persisted games get logic updates
+    refreshDefinitions()
+  }, [])
+
+  if (showGallery) {
+    return <CarcassonneGallery />
+  }
+
+  if (showDebug) {
+    return <TileDebugger />
+  }
 
   if (!gameState) {
     return <SetupScreen />

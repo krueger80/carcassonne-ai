@@ -17,18 +17,20 @@ const DIRECTIONS: Direction[] = ['NORTH', 'EAST', 'SOUTH', 'WEST']
 
 const EDGE_POSITIONS_BY_DIR: Record<Direction, EdgePosition[]> = {
   NORTH: ['NORTH_LEFT', 'NORTH_CENTER', 'NORTH_RIGHT'],
-  EAST:  ['EAST_LEFT',  'EAST_CENTER',  'EAST_RIGHT'],
+  EAST: ['EAST_LEFT', 'EAST_CENTER', 'EAST_RIGHT'],
   SOUTH: ['SOUTH_LEFT', 'SOUTH_CENTER', 'SOUTH_RIGHT'],
-  WEST:  ['WEST_LEFT',  'WEST_CENTER',  'WEST_RIGHT'],
+  WEST: ['WEST_LEFT', 'WEST_CENTER', 'WEST_RIGHT'],
 }
 
 // The "mirror" position on the opposite edge (for matching neighbors)
 const MIRROR_POSITION: Record<EdgePosition, EdgePosition> = {
-  NORTH_LEFT:  'SOUTH_RIGHT', NORTH_CENTER: 'SOUTH_CENTER', NORTH_RIGHT:  'SOUTH_LEFT',
-  EAST_LEFT:   'WEST_RIGHT',  EAST_CENTER:  'WEST_CENTER',  EAST_RIGHT:   'WEST_LEFT',
-  SOUTH_LEFT:  'NORTH_RIGHT', SOUTH_CENTER: 'NORTH_CENTER', SOUTH_RIGHT:  'NORTH_LEFT',
-  WEST_LEFT:   'EAST_RIGHT',  WEST_CENTER:  'EAST_CENTER',  WEST_RIGHT:   'EAST_LEFT',
+  NORTH_LEFT: 'SOUTH_RIGHT', NORTH_CENTER: 'SOUTH_CENTER', NORTH_RIGHT: 'SOUTH_LEFT',
+  EAST_LEFT: 'WEST_RIGHT', EAST_CENTER: 'WEST_CENTER', EAST_RIGHT: 'WEST_LEFT',
+  SOUTH_LEFT: 'NORTH_RIGHT', SOUTH_CENTER: 'NORTH_CENTER', SOUTH_RIGHT: 'NORTH_LEFT',
+  WEST_LEFT: 'EAST_RIGHT', WEST_CENTER: 'EAST_CENTER', WEST_RIGHT: 'EAST_LEFT',
 }
+
+// ─── Union-Find operations (all pure / returns new state) ─────────────────────
 
 // ─── Union-Find operations (all pure / returns new state) ─────────────────────
 
@@ -56,10 +58,10 @@ function ufUnion(state: UnionFindState, keyA: string, keyB: string): string {
 
   if (rootA === rootB) {
     // The two edge positions are already in the same feature, but that position is now
-    // an internal connection (no longer open). Subtract 1 open edge from the feature.
+    // an internal connection (no longer open). Subtract 2 open edges (1 from each side of the connection).
     const existing = state.featureData[rootA]
     if (existing) {
-      existing.openEdgeCount -= 1
+      existing.openEdgeCount -= 2
       existing.isComplete = isFeatureComplete(existing)
     }
     return rootA
@@ -96,9 +98,8 @@ function ufUnion(state: UnionFindState, keyA: string, keyB: string): string {
     meeples: [...featureA_data.meeples, ...featureB_data.meeples],
     tileCount: tileKeys.size,
     pennantCount: featureA_data.pennantCount + featureB_data.pennantCount,
-    // -1 per ufUnion call: each call represents exactly one edge-position pair being closed.
-    // (The newly-placed tile's matching positions already counted as 0 open on init.)
-    openEdgeCount: featureA_data.openEdgeCount + featureB_data.openEdgeCount - 1,
+    // -2 per ufUnion call: each call represents exactly one connection (2 ends) being closed.
+    openEdgeCount: featureA_data.openEdgeCount + featureB_data.openEdgeCount - 2,
     adjacentCompletedCities: featureA_data.adjacentCompletedCities + featureB_data.adjacentCompletedCities,
     isComplete: false,  // recalculated below
     metadata: { ...featureA_data.metadata, ...featureB_data.metadata },
@@ -131,22 +132,11 @@ function isFeatureComplete(feature: Feature): boolean {
 // ─── Count open edge positions for a segment on a newly placed tile ───────────
 
 function countOpenEdgePositions(
-  board: Board,
-  coord: Coordinate,
   physicalPositions: EdgePosition[],
 ): number {
-  let open = 0
-  for (const physPos of physicalPositions) {
-    // Determine which direction this edge position belongs to
-    const dir = physPos.split('_')[0] as Direction
-    const { dx, dy } = DIRECTION_DELTA[dir]
-    const neighborKey = coordKey({ x: coord.x + dx, y: coord.y + dy })
-    if (!board.tiles[neighborKey]) {
-      open++
-    }
-    // If neighbor exists, this edge is NOT open (it will be unified)
-  }
-  return open
+  // We now count EVERY physical position as an open edge initially.
+  // Connections to neighbors will be handled by the subtract-2 logic in ufUnion.
+  return physicalPositions.length
 }
 
 // ─── Main: add a tile to the union-find ──────────────────────────────────────
@@ -187,7 +177,7 @@ export function addTileToUnionFind(
       .filter(([, segId]) => segId === seg.id)
       .map(([lp]) => rotateEdgePosition(lp, rotation))
 
-    const openEdges = countOpenEdgePositions(board, coord, physicalEdgePositions)
+    const openEdges = countOpenEdgePositions(physicalEdgePositions)
 
     const feature: Feature = {
       id: key,
@@ -199,7 +189,10 @@ export function addTileToUnionFind(
       pennantCount: seg.hasPennant ? 1 : 0,
       openEdgeCount: openEdges,
       adjacentCompletedCities: 0,
-      metadata: {},
+      metadata: {
+        ...(seg.hasInn ? { hasInn: true } : {}),
+        ...(seg.hasCathedral ? { hasCathedral: true } : {}),
+      },
     }
 
     ufMakeSet(working, key, feature)

@@ -4,7 +4,7 @@ import type { TileDefinition, TileInstance } from '../types/tile.ts'
 function shuffle<T>(arr: T[]): T[] {
   for (let i = arr.length - 1; i > 0; i--) {
     const j = Math.floor(Math.random() * (i + 1))
-    ;[arr[i], arr[j]] = [arr[j], arr[i]]
+      ;[arr[i], arr[j]] = [arr[j], arr[i]]
   }
   return arr
 }
@@ -16,9 +16,11 @@ function shuffle<T>(arr: T[]): T[] {
 export function createTileBag(
   definitions: TileDefinition[],
   extraTiles: TileInstance[] = [],
+  prioritizeExpansions: boolean = false
 ): { bag: TileInstance[]; startingTile: TileInstance } {
   const instances: TileInstance[] = []
   let startingTile: TileInstance | null = null
+  const defMap = new Map(definitions.map(d => [d.id, d]))
 
   for (const def of definitions) {
     for (let i = 0; i < def.count; i++) {
@@ -37,9 +39,23 @@ export function createTileBag(
   }
 
   instances.push(...extraTiles)
-  shuffle(instances)
 
-  return { bag: instances, startingTile }
+  if (prioritizeExpansions) {
+    const isExpansionTile = (t: TileInstance) => {
+      const def = defMap.get(t.definitionId)
+      return def && !!def.expansionId && def.expansionId !== 'base'
+    }
+    const expansionTiles = instances.filter(t => isExpansionTile(t))
+    const baseTiles = instances.filter(t => !isExpansionTile(t))
+
+    shuffle(expansionTiles)
+    shuffle(baseTiles)
+
+    return { bag: [...expansionTiles, ...baseTiles], startingTile }
+  } else {
+    shuffle(instances)
+    return { bag: instances, startingTile }
+  }
 }
 
 export function drawTile(bag: TileInstance[]): { tile: TileInstance; remaining: TileInstance[] } | null {
