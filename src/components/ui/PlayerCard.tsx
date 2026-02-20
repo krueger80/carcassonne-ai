@@ -53,23 +53,31 @@ const MeepleIcon = ({ type, count, label, color, onClick, isSelected, disabled }
     const isAvailable = count > 0;
     const isInteractive = !!onClick;
 
-    return (
-        <div
-            onClick={!disabled && onClick ? onClick : undefined}
-            style={{
-                display: 'flex',
-                flexDirection: 'column',
-                alignItems: 'center',
-                opacity: isAvailable ? (isInteractive && disabled ? 0.4 : 1) : 0.3,
-                cursor: isInteractive && !disabled ? 'pointer' : 'default',
-                background: isSelected ? 'rgba(255,255,255,0.1)' : 'transparent',
-                padding: 4,
-                borderRadius: 6,
-                border: isSelected ? `1px solid ${color}` : '1px solid transparent',
-                transition: 'all 0.2s'
-            }}
-            title={label}
-        >
+    const commonStyle: React.CSSProperties = {
+        display: 'flex',
+        flexDirection: 'column',
+        alignItems: 'center',
+        opacity: isAvailable ? (isInteractive && disabled ? 0.4 : 1) : 0.3,
+        cursor: isInteractive && !disabled ? 'pointer' : 'default',
+        background: isSelected ? 'rgba(255,255,255,0.1)' : 'transparent',
+        padding: 4,
+        borderRadius: 6,
+        border: isSelected ? `1px solid ${color}` : '1px solid transparent',
+        transition: 'all 0.2s',
+        ...(isInteractive ? {
+            fontFamily: 'inherit',
+            fontSize: 'inherit',
+            lineHeight: 'inherit',
+            color: 'inherit',
+            margin: 0,
+            textTransform: 'none',
+            WebkitAppearance: 'none',
+            MozAppearance: 'none',
+        } : {})
+    };
+
+    const content = (
+        <>
             <div style={{ width: 24, height: 24, position: 'relative' }}>
                 <svg width="24" height="24" viewBox="0 0 24 24" style={{ filter: 'drop-shadow(0 1px 2px rgba(0,0,0,0.5))' }}>
                     <MeepleSVG
@@ -93,6 +101,32 @@ const MeepleIcon = ({ type, count, label, color, onClick, isSelected, disabled }
                 </div>
             </div>
             {label && <div style={{ fontSize: 9, color: isSelected ? color : '#aaa', marginTop: 2, fontWeight: isSelected ? 'bold' : 'normal' }}>{label}</div>}
+        </>
+    );
+
+    if (isInteractive) {
+        return (
+            <button
+                type="button"
+                onClick={!disabled && onClick ? onClick : undefined}
+                disabled={disabled}
+                aria-label={`Select ${label || type} Meeple`}
+                aria-pressed={isSelected}
+                style={commonStyle}
+                title={label}
+            >
+                {content}
+            </button>
+        );
+    }
+
+    return (
+        <div
+            onClick={undefined} // Not interactive
+            style={commonStyle}
+            title={label}
+        >
+            {content}
         </div>
     );
 };
