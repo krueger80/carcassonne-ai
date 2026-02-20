@@ -111,9 +111,32 @@ export function NewGameScreen({ currentConfig, onStart, onCancel }: NewGameScree
                                 onChange={() => toggleExpansion('inns-cathedrals')}
                                 style={{ width: 20, height: 20, accentColor: '#9955cc' }}
                             />
-                            <span style={{ color: 'white', fontWeight: 500 }}>Inns & Cathedrals</span>
+                            <div>
+                                <span style={{ color: 'white', fontWeight: 500 }}>Inns & Cathedrals</span>
+                                <span style={{ display: 'block', fontSize: 12, color: '#888', marginTop: 2 }}>+18 tiles</span>
+                            </div>
                         </label>
-                        {/* Future expansions can go here */}
+                        <label style={{
+                            display: 'flex',
+                            alignItems: 'center',
+                            gap: 12,
+                            padding: 16,
+                            background: '#333',
+                            borderRadius: 12,
+                            cursor: 'pointer',
+                            border: expansions.includes('traders-builders') ? '1px solid #c8a46e' : '1px solid transparent',
+                        }}>
+                            <input
+                                type="checkbox"
+                                checked={expansions.includes('traders-builders')}
+                                onChange={() => toggleExpansion('traders-builders')}
+                                style={{ width: 20, height: 20, accentColor: '#c8a46e' }}
+                            />
+                            <div>
+                                <span style={{ color: 'white', fontWeight: 500 }}>Traders & Builders</span>
+                                <span style={{ display: 'block', fontSize: 12, color: '#888', marginTop: 2 }}>+24 tiles · Builder & Pig meeples</span>
+                            </div>
+                        </label>
                     </div>
                 </div>
 

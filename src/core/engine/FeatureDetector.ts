@@ -42,10 +42,46 @@ function ufFind(state: UnionFindState, key: string): string {
   return state.parent[key]
 }
 
+/**
+ * Non-mutating version of Find, for use in read-only queries (e.g. valid placement checks).
+ * Does NOT perform path compression.
+ */
+function ufFindReadOnly(state: UnionFindState, key: string): string {
+  if (!(key in state.parent)) return key
+  let curr = key
+  while (state.parent[curr] !== curr) {
+    curr = state.parent[curr]
+  }
+  return curr
+}
+
 function ufMakeSet(state: UnionFindState, key: string, initialFeature: Feature): void {
   state.parent[key] = key
   state.rank[key] = 0
   state.featureData[key] = initialFeature
+}
+
+/**
+ * Merge two feature metadata objects.
+ * - Commodity counts (CLOTH/WHEAT/WINE) are summed.
+ * - Boolean flags (hasInn, hasCathedral) are OR'd (true wins).
+ * - All other keys: last-write wins.
+ */
+function mergeMetadata(
+  a: Record<string, unknown>,
+  b: Record<string, unknown>,
+): Record<string, unknown> {
+  const result: Record<string, unknown> = { ...a }
+  for (const [key, value] of Object.entries(b)) {
+    if (key === 'CLOTH' || key === 'WHEAT' || key === 'WINE') {
+      result[key] = ((result[key] as number) ?? 0) + (value as number)
+    } else if (typeof value === 'boolean') {
+      result[key] = Boolean(result[key]) || value
+    } else {
+      result[key] = value
+    }
+  }
+  return result
 }
 
 /**
@@ -102,7 +138,7 @@ function ufUnion(state: UnionFindState, keyA: string, keyB: string): string {
     openEdgeCount: featureA_data.openEdgeCount + featureB_data.openEdgeCount - 2,
     adjacentCompletedCities: featureA_data.adjacentCompletedCities + featureB_data.adjacentCompletedCities,
     isComplete: false,  // recalculated below
-    metadata: { ...featureA_data.metadata, ...featureB_data.metadata },
+    metadata: mergeMetadata(featureA_data.metadata, featureB_data.metadata),
   }
 
   // Update isComplete
@@ -192,6 +228,7 @@ export function addTileToUnionFind(
       metadata: {
         ...(seg.hasInn ? { hasInn: true } : {}),
         ...(seg.hasCathedral ? { hasCathedral: true } : {}),
+        ...(seg.commodity ? { [seg.commodity]: 1 } : {}),
       },
     }
 
@@ -350,8 +387,11 @@ export function countSurroundingTiles(board: Board, coord: Coordinate): number {
 /**
  * Get a Feature by any node key (finds root first).
  */
+/**
+ * Get a Feature by any node key (finds root first).
+ */
 export function getFeature(state: UnionFindState, nodeKey_: string): Feature | null {
-  const root = ufFind(state, nodeKey_)
+  const root = ufFindReadOnly(state, nodeKey_)
   return state.featureData[root] ?? null
 }
 
@@ -361,7 +401,7 @@ export function getFeature(state: UnionFindState, nodeKey_: string): Feature | n
 export function getAllFeatures(state: UnionFindState): Feature[] {
   const roots = new Set<string>()
   for (const key of Object.keys(state.parent)) {
-    roots.add(ufFind(state, key))
+    roots.add(ufFindReadOnly(state, key))
   }
   return Array.from(roots)
     .map(root => state.featureData[root])
@@ -381,6 +421,20 @@ export function getNodeKey(coord: Coordinate, segmentId: string): string {
 export function featureHasMeeples(state: UnionFindState, nKey: string): boolean {
   const feature = getFeature(state, nKey)
   return (feature?.meeples.length ?? 0) > 0
+}
+
+/**
+ * Find the root node key for a given node key.
+ * Exported for use by GameEngine builder-bonus detection.
+ */
+export function findRoot(state: UnionFindState, key: string): string {
+  // Work on a mutable copy to allow path compression
+  const working = {
+    parent: { ...state.parent },
+    rank: { ...state.rank },
+    featureData: state.featureData,
+  }
+  return ufFind(working, key)
 }
 
 /**

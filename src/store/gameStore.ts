@@ -10,6 +10,7 @@ import {
   drawTile,
   placeTile,
   placeMeeple,
+  placeMeepleOnExistingTile,
   skipMeeple,
   endTurn,
   getAllPotentialPlacements,
@@ -57,7 +58,7 @@ interface GameStore {
   undoTilePlacement: () => void
 
   // Meeple Placement Phase
-  selectMeeplePlacement: (segmentId: string, meepleType?: MeepleType) => void
+  selectMeeplePlacement: (segmentId: string, meepleType?: MeepleType, coord?: Coordinate) => void
   confirmMeeplePlacement: () => void
   cancelMeeplePlacement: () => void
   skipMeeple: () => void
@@ -100,11 +101,9 @@ export const useGameStore = create<GameStore>()(
 
         set((store) => {
           const debugPrioritize = new URLSearchParams(window.location.search).has('prioritizeExpansions')
-          // If debug prioritize is on, auto-enable I&C expansion
-          const expansions = config.expansions ?? []
-          if (debugPrioritize && !expansions.includes('inns-cathedrals')) {
-            expansions.push('inns-cathedrals')
-          }
+          // Clone to avoid mutating the config's original array
+          const expansions = [...(config.expansions ?? [])]
+
           store.gameState = initGame({
             ...config,
             expansions,
@@ -221,10 +220,13 @@ export const useGameStore = create<GameStore>()(
 
       // ── New Meeple Placement Workflow ────────────────────────────────────
 
-      selectMeeplePlacement: (segmentId, meepleType = 'NORMAL') => set((store) => {
+      selectMeeplePlacement: (segmentId, meepleType = 'NORMAL', coord?) => set((store) => {
         store.tentativeMeepleSegment = segmentId
         store.tentativeMeepleType = meepleType
         store.interactionState = 'MEEPLE_SELECTED_TENTATIVELY'
+        if (coord) {
+          store.tentativeTileCoord = coord
+        }
       }),
 
       confirmMeeplePlacement: () => set((store) => {
@@ -232,7 +234,18 @@ export const useGameStore = create<GameStore>()(
 
         // 1. Place or Skip Meeple
         if (store.tentativeMeepleSegment) {
-          store.gameState = placeMeeple(store.gameState, store.tentativeMeepleSegment, store.tentativeMeepleType ?? 'NORMAL')
+          const meepleType = store.tentativeMeepleType ?? 'NORMAL'
+          if ((meepleType === 'BUILDER' || meepleType === 'PIG') && store.tentativeTileCoord) {
+            // Builder/Pig: placed on an EXISTING tile (not the last-placed tile)
+            store.gameState = placeMeepleOnExistingTile(
+              store.gameState,
+              store.tentativeTileCoord,
+              store.tentativeMeepleSegment,
+              meepleType,
+            )
+          } else {
+            store.gameState = placeMeeple(store.gameState, store.tentativeMeepleSegment, meepleType)
+          }
         } else {
           // No selection confirmed = Skip
           store.gameState = skipMeeple(store.gameState)

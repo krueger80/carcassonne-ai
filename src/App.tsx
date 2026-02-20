@@ -33,7 +33,10 @@ function App() {
     return (
       <>
         <GameScreen />
-        <EndGameModal players={gameState.players} />
+        <EndGameModal
+          players={gameState.players}
+          expansions={(gameState.expansionData?.expansions as string[] | undefined) ?? []}
+        />
       </>
     )
   }

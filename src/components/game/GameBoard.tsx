@@ -1,10 +1,11 @@
-import { useRef, useState, useCallback, useEffect } from 'react'
+import { useRef, useState, useCallback, useEffect, useMemo } from 'react'
 import { TileCell } from './TileCell.tsx'
 import { PlaceholderCell } from './PlaceholderCell.tsx'
 import { useGameStore } from '../../store/gameStore.ts'
 import { useUIStore } from '../../store/uiStore.ts'
 // import type { Coordinate } from '../../core/types/board.ts'
 import { GameOverlay } from './GameOverlay.tsx'
+import { getBuilderPigPlaceableSegments } from '../../core/engine/MeeplePlacement.ts'
 
 const CELL_SIZE = 88   // px per tile
 const BOARD_PADDING = 3  // extra cells around the board edge for expansion room
@@ -21,6 +22,7 @@ export function GameBoard({ }: GameBoardProps) {
     placeableSegments,
     tentativeTileCoord,
     tentativeMeepleSegment,
+    tentativeMeepleType,
     interactionState,
     selectTilePlacement,
     selectMeeplePlacement,
@@ -78,6 +80,54 @@ export function GameBoard({ }: GameBoardProps) {
   const onPointerUp = useCallback(() => {
     setIsPanning(false)
   }, [])
+
+  // ── Builder/Pig segment map (computed once per render cycle) ────────────────
+
+  const currentPlayer = gameState?.players[gameState.currentPlayerIndex]
+
+
+  // ── Builder/Pig segment maps (calculated if player has meeples) ─────────────
+
+  const builderSegmentsMap = useMemo<Record<string, string[]>>(() => {
+    if (!gameState || !currentPlayer || !gameState.lastPlacedCoord) return {}
+    if ((currentPlayer.meeples.available['BUILDER'] ?? 0) <= 0) return {}
+    const results = getBuilderPigPlaceableSegments(
+      gameState.featureUnionFind,
+      gameState.staticTileMap,
+      gameState.board,
+      gameState.lastPlacedCoord,
+      currentPlayer,
+      'BUILDER',
+    )
+    const map: Record<string, string[]> = {}
+    for (const { coord, segmentId } of results) {
+      const k = `${coord.x},${coord.y}`
+      if (!map[k]) map[k] = []
+      map[k].push(segmentId)
+    }
+    return map
+  }, [gameState, currentPlayer])
+
+  const pigSegmentsMap = useMemo<Record<string, string[]>>(() => {
+    if (!gameState || !currentPlayer || !gameState.lastPlacedCoord) return {}
+    if ((currentPlayer.meeples.available['PIG'] ?? 0) <= 0) return {}
+    const results = getBuilderPigPlaceableSegments(
+      gameState.featureUnionFind,
+      gameState.staticTileMap,
+      gameState.board,
+      gameState.lastPlacedCoord,
+      currentPlayer,
+      'PIG',
+    )
+    const map: Record<string, string[]> = {}
+    for (const { coord, segmentId } of results) {
+      const k = `${coord.x},${coord.y}`
+      if (!map[k]) map[k] = []
+      map[k].push(segmentId)
+    }
+    return map
+  }, [gameState, currentPlayer])
+
 
   // ── Board bounds ────────────────────────────────────────────────────────────
 
@@ -148,7 +198,7 @@ export function GameBoard({ }: GameBoardProps) {
                 // If there's a tentative tile, show it as if it were placed (but distinct visual?)
                 // Or just render TileCell but pass it special props?
 
-                if (tentative && gameState.currentTile) {
+                if (tentative && gameState.currentTile && gameState.turnPhase === 'PLACE_TILE') {
                   return (
                     // Tentative Tile
                     <div
@@ -178,6 +228,34 @@ export function GameBoard({ }: GameBoardProps) {
                 }
 
                 if (placedTile) {
+                  const lastKey = gameState.lastPlacedCoord
+                    ? `${gameState.lastPlacedCoord.x},${gameState.lastPlacedCoord.y}`
+                    : ''
+                  const tentKey = tentativeTileCoord
+                    ? `${tentativeTileCoord.x},${tentativeTileCoord.y}`
+                    : ''
+                  const inMeeplePhaseBrowsing =
+                    (interactionState === 'IDLE' || interactionState === 'MEEPLE_SELECTED_TENTATIVELY') &&
+                    gameState.turnPhase === 'PLACE_MEEPLE'
+
+                  // Determine which segments to highlight on this tile
+                  const segmentsHere: string[] = (() => {
+                    if (!inMeeplePhaseBrowsing) return []
+                    const fromLast = key === lastKey ? placeableSegments : []
+                    // Merge with builder/pig options
+                    const builderOpts = builderSegmentsMap[key] ?? []
+                    const pigOpts = pigSegmentsMap[key] ?? []
+                    return [...new Set([...fromLast, ...builderOpts, ...pigOpts])]
+                  })()
+
+                  // Show tentative meeple ghost on the correct tile
+                  const tentativeSegHere = (() => {
+                    if (!tentativeMeepleSegment) return undefined
+                    const isBuilderOrPig = tentativeMeepleType === 'BUILDER' || tentativeMeepleType === 'PIG'
+                    const activeKey = isBuilderOrPig ? tentKey : lastKey
+                    return key === activeKey ? tentativeMeepleSegment : undefined
+                  })()
+
                   return (
                     <div key={key} onClick={(e) => e.stopPropagation()}>
                       <TileCell
@@ -185,31 +263,43 @@ export function GameBoard({ }: GameBoardProps) {
                         tile={placedTile}
                         size={CELL_SIZE}
                         players={gameState.players}
-                        placeableSegments={
-                          // Only show placeable segments if this is the TENTATIVELY placed tile (conceptually)
-                          // But wait, the tentative tile is rendered above. 
-                          // Once CONFIRMED, the phase moves to PLACE_MEEPLE.
-                          // In PLACE_MEEPLE, the tile is physically on the board (placedTile).
-                          // So we check if this tile is the one we just placed.
-
-                          (interactionState === 'IDLE' || interactionState === 'MEEPLE_SELECTED_TENTATIVELY') &&
-                            gameState.turnPhase === 'PLACE_MEEPLE' &&
-                            key === (gameState.lastPlacedCoord ? `${gameState.lastPlacedCoord.x},${gameState.lastPlacedCoord.y}` : '')
-                            ? placeableSegments
-                            : []
-                        }
+                        placeableSegments={segmentsHere}
                         onSegmentClick={(segId) => {
                           if (gameState.turnPhase === 'PLACE_MEEPLE') {
-                            selectMeeplePlacement(segId, selectedMeepleType)
+                            const bMap = builderSegmentsMap[key]
+                            const pMap = pigSegmentsMap[key]
+                            const canBuild = bMap?.includes(segId)
+                            const canPig = pMap?.includes(segId)
+                            // Re-derive if normal placement is allowed here
+                            const canNormal = key === lastKey && placeableSegments.includes(segId)
+
+                            let typeToPlace = selectedMeepleType
+                            if (canBuild) {
+                              typeToPlace = 'BUILDER'
+                              if (selectedMeepleType !== 'BUILDER') useUIStore.setState({ selectedMeepleType: 'BUILDER' })
+                            } else if (canPig) {
+                              typeToPlace = 'PIG'
+                              if (selectedMeepleType !== 'PIG') useUIStore.setState({ selectedMeepleType: 'PIG' })
+                            } else if (canNormal) {
+                              // If currently BIG, stay BIG. Else NORMAL.
+                              const isBig = selectedMeepleType === 'BIG'
+                              typeToPlace = isBig ? 'BIG' : 'NORMAL'
+                              // Ensure UI matches (if we were in Builder/Pig mode, switch back)
+                              if (selectedMeepleType === 'BUILDER' || selectedMeepleType === 'PIG') {
+                                useUIStore.setState({ selectedMeepleType: typeToPlace })
+                              }
+                            }
+
+                            if (typeToPlace === 'BUILDER' || typeToPlace === 'PIG') {
+                              selectMeeplePlacement(segId, typeToPlace, { x, y })
+                            } else {
+                              selectMeeplePlacement(segId, typeToPlace)
+                            }
                           }
                         }}
-                        tentativeMeepleSegment={
-                          // If this tile is the active one, show the tentative meeple
-                          tentativeMeepleSegment &&
-                            key === (gameState.lastPlacedCoord ? `${gameState.lastPlacedCoord.x},${gameState.lastPlacedCoord.y}` : '')
-                            ? tentativeMeepleSegment
-                            : undefined
-                        }
+                        tentativeMeepleSegment={tentativeSegHere}
+                        tentativeMeepleType={tentativeSegHere ? tentativeMeepleType : undefined}
+                        currentPlayerColor={currentPlayer?.color}
                       />
                     </div>
                   )

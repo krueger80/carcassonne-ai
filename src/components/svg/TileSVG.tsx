@@ -10,7 +10,7 @@ interface TileSVGProps {
   /** Segment IDs that should be shown as highlighted (meeple placement hints) */
   highlightedSegments?: string[]
   /** Meeples currently on this tile: segmentId → { color } */
-  meeples?: Record<string, { color: string; isBig?: boolean }>
+  meeples?: Record<string, { color: string; isBig?: boolean; isBuilder?: boolean; isPig?: boolean }>
   /** Show a subtle hover glow */
   hovered?: boolean
   /** Show a valid-placement indicator */
@@ -166,6 +166,8 @@ export function TileSVG({
               x={x}
               y={y}
               isBig={meeple.isBig}
+              isBuilder={meeple.isBuilder}
+              isPig={meeple.isPig}
             />
           </g>
         )

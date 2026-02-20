@@ -9,6 +9,12 @@ export interface ScoringRule {
   featureType: Feature['type']
   scoreComplete(feature: Feature): number
   scoreIncomplete(feature: Feature): number
+  /**
+   * Optional override: compute the full per-player score map instead of the
+   * uniform scalar + distributeMajorityScore path. Used by the T&B pig rule
+   * where different majority holders may score different amounts.
+   */
+  distributeScore?(feature: Feature, isComplete: boolean, players: Player[]): Record<string, number>
 }
 
 export const BASE_SCORING_RULES: ScoringRule[] = [
@@ -47,9 +53,10 @@ export function distributeMajorityScore(
 ): Record<string, number> {
   if (feature.meeples.length === 0 || points === 0) return {}
 
-  // Count meeples per player (BIG meeples count as 2)
+  // Count meeples per player (BIG = 2; BUILDER and PIG excluded from majority)
   const counts: Record<string, number> = {}
   for (const meeple of feature.meeples) {
+    if (meeple.meepleType === 'BUILDER' || meeple.meepleType === 'PIG') continue
     const weight = meeple.meepleType === 'BIG' ? 2 : 1
     counts[meeple.playerId] = (counts[meeple.playerId] ?? 0) + weight
   }
@@ -91,7 +98,7 @@ function buildScoreEvent(
 export function scoreCompletedFeatures(
   completedFeatureIds: string[],
   state: UnionFindState,
-  _players: Player[],
+  players: Player[],
   rules: ScoringRule[] = BASE_SCORING_RULES,
 ): ScoreEvent[] {
   const events: ScoreEvent[] = []
@@ -103,8 +110,9 @@ export function scoreCompletedFeatures(
     const rule = rules.find(r => r.featureType === feature.type)
     if (!rule) continue
 
-    const points = rule.scoreComplete(feature)
-    const scores = distributeMajorityScore(feature, points)
+    const scores = rule.distributeScore
+      ? rule.distributeScore(feature, true, players)
+      : distributeMajorityScore(feature, rule.scoreComplete(feature))
 
     if (Object.keys(scores).length > 0) {
       events.push(buildScoreEvent(feature, scores, false))
@@ -139,8 +147,9 @@ export function scoreAllRemainingFeatures(
     const rule = rules.find(r => r.featureType === feature.type)
     if (!rule) continue
 
-    const points = rule.scoreIncomplete(feature)
-    const scores = distributeMajorityScore(feature, points)
+    const scores = rule.distributeScore
+      ? rule.distributeScore(feature, false, players)
+      : distributeMajorityScore(feature, rule.scoreIncomplete(feature))
 
     if (Object.keys(scores).length > 0) {
       events.push(buildScoreEvent(feature, scores, true))
@@ -154,10 +163,13 @@ export function scoreAllRemainingFeatures(
       if (feature.type !== 'FIELD') continue
       if (feature.meeples.length === 0) continue
 
-      const points = fieldRule.scoreIncomplete(feature)
-      if (points === 0) continue
+      const scores = fieldRule.distributeScore
+        ? fieldRule.distributeScore(feature, false, players)
+        : (() => {
+            const points = fieldRule.scoreIncomplete(feature)
+            return points === 0 ? {} : distributeMajorityScore(feature, points)
+          })()
 
-      const scores = distributeMajorityScore(feature, points)
       if (Object.keys(scores).length > 0) {
         events.push(buildScoreEvent(feature, scores, true))
       }
@@ -193,4 +205,75 @@ export function applyScoreEvents(
  */
 export function getFeatureOwnerIds(feature: Feature): Set<string> {
   return new Set(feature.meeples.map(m => m.playerId))
+}
+
+// ─── Traders & Builders: commodity token distribution ─────────────────────────
+
+/**
+ * When a city is completed, distribute its commodity tokens to the majority scorer(s).
+ * BUILDER and PIG meeples are excluded from majority calculation.
+ *
+ * Returns a map of playerId → { CLOTH, WHEAT, WINE } tokens earned.
+ */
+export function distributeCommodityTokens(
+  feature: Feature,
+): Record<string, Record<'CLOTH' | 'WHEAT' | 'WINE', number>> {
+  if (feature.type !== 'CITY' || !feature.isComplete) return {}
+
+  const cloth = (feature.metadata['CLOTH'] as number | undefined) ?? 0
+  const wheat = (feature.metadata['WHEAT'] as number | undefined) ?? 0
+  const wine  = (feature.metadata['WINE']  as number | undefined) ?? 0
+  if (cloth === 0 && wheat === 0 && wine === 0) return {}
+
+  // Determine majority (BUILDER and PIG excluded)
+  const counts: Record<string, number> = {}
+  for (const meeple of feature.meeples) {
+    if (meeple.meepleType === 'BUILDER' || meeple.meepleType === 'PIG') continue
+    const weight = meeple.meepleType === 'BIG' ? 2 : 1
+    counts[meeple.playerId] = (counts[meeple.playerId] ?? 0) + weight
+  }
+
+  if (Object.keys(counts).length === 0) return {}
+  const maxCount = Math.max(...Object.values(counts))
+
+  const result: Record<string, Record<'CLOTH' | 'WHEAT' | 'WINE', number>> = {}
+  for (const [playerId, count] of Object.entries(counts)) {
+    if (count === maxCount) {
+      result[playerId] = { CLOTH: cloth, WHEAT: wheat, WINE: wine }
+    }
+  }
+  return result
+}
+
+/**
+ * End-of-game trader bonus: player(s) with the most of each commodity earn 10 pts.
+ * Ties: all tied players earn 10 pts.
+ */
+export function scoreTradersBonus(players: Player[]): ScoreEvent[] {
+  const commodities = ['CLOTH', 'WHEAT', 'WINE'] as const
+  const events: ScoreEvent[] = []
+
+  for (const commodity of commodities) {
+    const maxTokens = Math.max(...players.map(p => p.traderTokens[commodity]))
+    if (maxTokens === 0) continue
+
+    const scores: Record<string, number> = {}
+    for (const player of players) {
+      if (player.traderTokens[commodity] === maxTokens) {
+        scores[player.id] = 10
+      }
+    }
+
+    if (Object.keys(scores).length > 0) {
+      events.push({
+        featureId: `trader_bonus_${commodity}`,
+        featureType: 'CITY',
+        scores,
+        tiles: [],
+        isEndGame: true,
+      })
+    }
+  }
+
+  return events
 }
