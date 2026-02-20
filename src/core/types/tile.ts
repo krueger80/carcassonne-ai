@@ -46,6 +46,10 @@ export interface TileDefinition {
   startingTile?: boolean
   expansionId?: string  // undefined = base game
   imageUrl?: string     // Optional image asset to render instead of SVG
+  // Dragon & Fairy expansion flags (tile-level)
+  isVolcano?: boolean          // Dragon teleports here; no meeple placement
+  hasDragonHoard?: boolean     // Triggers dragon movement when placed
+  hasMagicPortal?: boolean     // Player can place meeple on any unoccupied feature
 }
 
 // An instance of a tile (either in the bag or placed on the board)

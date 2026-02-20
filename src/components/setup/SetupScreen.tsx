@@ -9,6 +9,7 @@ export function SetupScreen() {
   const [names, setNames] = useState<string[]>(DEFAULT_NAMES.slice(0, 6))
   const [useInnsCathedrals, setUseInnsCathedrals] = useState(false)
   const [useTradersBuilders, setUseTradersBuilders] = useState(false)
+  const [useDragonFairy, setUseDragonFairy] = useState(false)
   const [isStarting, setIsStarting] = useState(false)
   const { newGame } = useGameStore()
 
@@ -18,6 +19,7 @@ export function SetupScreen() {
     const expansions: string[] = []
     if (useInnsCathedrals) expansions.push('inns-cathedrals')
     if (useTradersBuilders) expansions.push('traders-builders')
+    if (useDragonFairy) expansions.push('dragon-fairy')
     try {
       await newGame({
         playerNames: names.slice(0, playerCount),
@@ -158,6 +160,26 @@ export function SetupScreen() {
             />
             <span style={{ fontSize: 14, color: '#f0f0f0' }}>Traders & Builders</span>
             <span style={{ fontSize: 11, color: '#888', marginLeft: 'auto' }}>+24 tiles</span>
+          </label>
+          <label style={{
+            display: 'flex',
+            alignItems: 'center',
+            gap: 8,
+            cursor: 'pointer',
+            padding: '6px 8px',
+            borderRadius: 4,
+            background: useDragonFairy ? 'rgba(180,50,50,0.2)' : 'transparent',
+            border: `1px solid ${useDragonFairy ? '#c0392b' : '#555'}`,
+            marginTop: 4,
+          }}>
+            <input
+              type="checkbox"
+              checked={useDragonFairy}
+              onChange={e => setUseDragonFairy(e.target.checked)}
+              style={{ accentColor: '#e74c3c' }}
+            />
+            <span style={{ fontSize: 14, color: '#f0f0f0' }}>Dragon & Fairy</span>
+            <span style={{ fontSize: 11, color: '#888', marginLeft: 'auto' }}>+26 tiles</span>
           </label>
         </div>
 

@@ -20,6 +20,7 @@ interface TurnState {
         selectMeeple?: (type: MeepleType) => void;
         confirmMeeple?: () => void;
         cancelMeeple?: () => void;
+        skipFairy?: () => void;
     };
     selectedMeepleType?: MeepleType;
     validMeepleTypes?: MeepleType[];
@@ -293,6 +294,9 @@ export function PlayerCard({ player, isCurrentTurn, hasTradersBuilders, turnStat
                                 <Button onClick={turnState.actions.skip!} style={{ flex: 1 }}>Skip Meeple</Button>
                             </>
                         )
+                    )}
+                    {turnState.phase === 'FAIRY_MOVE' && turnState.actions.skipFairy && (
+                        <Button onClick={turnState.actions.skipFairy} style={{ flex: 1 }}>Skip Fairy</Button>
                     )}
                 </div>
             )}

@@ -26,7 +26,9 @@ export function GameBoard({ }: GameBoardProps) {
     interactionState,
     selectTilePlacement,
     selectMeeplePlacement,
-    rotateTentativeTile
+    rotateTentativeTile,
+    fairyMoveTargets,
+    moveFairy,
   } = useGameStore()
 
   const { boardScale, boardOffset, hoveredCoord, setHoveredCoord, setBoardScale, selectedMeepleType } = useUIStore()
@@ -139,7 +141,28 @@ export function GameBoard({ }: GameBoardProps) {
   const minY = board.minY - BOARD_PADDING
   const maxY = board.maxY + BOARD_PADDING
 
+  // Dragon & Fairy positions
+  const dfData = gameState.expansionData?.['dragonFairy'] as {
+    dragonPosition?: { x: number; y: number } | null
+    dragonFacing?: string | null
+    fairyPosition?: { coordinate: { x: number; y: number }; segmentId: string } | null
+    dragonInPlay?: boolean
+  } | undefined
+  const dragonPos = dfData?.dragonPosition ?? null
+  const dragonFacing = dfData?.dragonFacing ?? null
+  const fairyPos = dfData?.fairyPosition?.coordinate ?? null
+
   const validSet = new Set(validPlacements.map(c => `${c.x},${c.y}`))
+
+  // Fairy move targets as a map: "x,y" → segmentId
+  const fairyTargetMap = useMemo<Record<string, string>>(() => {
+    const map: Record<string, string> = {}
+    for (const t of fairyMoveTargets) {
+      map[`${t.coordinate.x},${t.coordinate.y}`] = t.segmentId
+    }
+    return map
+  }, [fairyMoveTargets])
+  const isFairyPhase = gameState.turnPhase === 'FAIRY_MOVE'
 
   // Is this specific cell the tentative one?
   const isTentative = (key: string) => {
@@ -256,8 +279,26 @@ export function GameBoard({ }: GameBoardProps) {
                     return key === activeKey ? tentativeMeepleSegment : undefined
                   })()
 
+                  const hasDragon = dragonPos && dragonPos.x === x && dragonPos.y === y
+                  const hasFairy = fairyPos && fairyPos.x === x && fairyPos.y === y
+                  const isFairyTarget = isFairyPhase && fairyTargetMap[key]
+
                   return (
-                    <div key={key} onClick={(e) => e.stopPropagation()}>
+                    <div
+                      key={key}
+                      onClick={(e) => {
+                        e.stopPropagation()
+                        if (isFairyTarget) {
+                          moveFairy({ x, y }, fairyTargetMap[key])
+                        }
+                      }}
+                      style={{
+                        position: 'relative',
+                        cursor: isFairyTarget ? 'pointer' : undefined,
+                        boxShadow: isFairyTarget ? 'inset 0 0 0 3px #f1c40f, 0 0 12px rgba(241,196,15,0.5)' : undefined,
+                        borderRadius: isFairyTarget ? 2 : undefined,
+                      }}
+                    >
                       <TileCell
                         definition={gameState.staticTileMap[placedTile.definitionId]}
                         tile={placedTile}
@@ -301,6 +342,50 @@ export function GameBoard({ }: GameBoardProps) {
                         tentativeMeepleType={tentativeSegHere ? tentativeMeepleType : undefined}
                         currentPlayerColor={currentPlayer?.color}
                       />
+                      {/* Dragon overlay */}
+                      {hasDragon && (
+                        <div style={{
+                          position: 'absolute',
+                          top: 2,
+                          left: 2,
+                          width: 28,
+                          height: 28,
+                          pointerEvents: 'none',
+                          zIndex: 15,
+                          display: 'flex',
+                          alignItems: 'center',
+                          justifyContent: 'center',
+                        }}>
+                          <svg width="28" height="28" viewBox="0 0 24 24">
+                            <text x="12" y="17" textAnchor="middle" fontSize="16" fill="#e74c3c"
+                              style={{ filter: 'drop-shadow(0 1px 2px rgba(0,0,0,0.8))' }}>
+                              {dragonFacing === 'N' ? '\u25B2' : dragonFacing === 'S' ? '\u25BC' : dragonFacing === 'E' ? '\u25B6' : dragonFacing === 'W' ? '\u25C0' : '\u2666'}
+                            </text>
+                          </svg>
+                        </div>
+                      )}
+                      {/* Fairy overlay */}
+                      {hasFairy && (
+                        <div style={{
+                          position: 'absolute',
+                          top: 2,
+                          right: 2,
+                          width: 28,
+                          height: 28,
+                          pointerEvents: 'none',
+                          zIndex: 15,
+                          display: 'flex',
+                          alignItems: 'center',
+                          justifyContent: 'center',
+                        }}>
+                          <svg width="28" height="28" viewBox="0 0 24 24">
+                            <text x="12" y="17" textAnchor="middle" fontSize="16" fill="#f1c40f"
+                              style={{ filter: 'drop-shadow(0 1px 2px rgba(0,0,0,0.8))' }}>
+                              {'\u2605'}
+                            </text>
+                          </svg>
+                        </div>
+                      )}
                     </div>
                   )
                 }

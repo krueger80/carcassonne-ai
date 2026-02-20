@@ -16,6 +16,13 @@ import {
   getAllPotentialPlacements,
   getAvailableSegmentsForMeeple,
   isValidPlacement,
+  executeDragonMovement,
+  moveFairy as engineMoveFairy,
+  skipFairyMove as engineSkipFairy,
+  getFairyMoveTargets,
+  getMagicPortalPlacements,
+  placeMeepleViaPortal,
+  isMagicPortalTile,
 } from '../core/engine/GameEngine.ts'
 import type { GameConfig } from '../core/engine/GameEngine.ts'
 import { loadAllTiles, loadTileMap, invalidateCache } from '../services/tileRegistry.ts'
@@ -46,6 +53,10 @@ interface GameStore {
   // Meeple placement
   placeableSegments: string[]
 
+  // Dragon & Fairy state
+  fairyMoveTargets: { coordinate: Coordinate; segmentId: string }[]
+  magicPortalTargets: { coordinate: Coordinate; segmentId: string }[]
+
   // ── Actions ──────────────────────────────────────────────────────────────
   newGame: (config: GameConfig) => Promise<void>
   drawTile: () => void
@@ -67,6 +78,10 @@ interface GameStore {
   resetGame: () => void
   refreshDefinitions: () => Promise<void>
 
+  // Dragon & Fairy actions
+  moveFairy: (coord: Coordinate, segmentId: string) => void
+  skipFairyMove: () => void
+
   // Old actions kept for compatibility if needed, but likely to be replaced
   rotateTile: () => void
 }
@@ -82,6 +97,8 @@ export const useGameStore = create<GameStore>()(
       tentativeMeepleSegment: null,
       tentativeMeepleType: null,
       placeableSegments: [],
+      fairyMoveTargets: [],
+      magicPortalTargets: [],
 
       newGame: async (config) => {
         let baseDefinitions = config.baseDefinitions
@@ -191,8 +208,44 @@ export const useGameStore = create<GameStore>()(
         store.tentativeTileCoord = null
         store.validPlacements = []
 
+        // ── Dragon & Fairy: handle dragon movement and volcano ──────────
+        if (store.gameState.turnPhase === 'DRAGON_MOVEMENT') {
+          // Auto-execute dragon straight-line movement
+          store.gameState = executeDragonMovement(store.gameState)
+          // After dragon movement, game transitions to PLACE_MEEPLE
+        }
+
+        if (store.gameState.turnPhase === 'SCORE') {
+          // Volcano tile: skip meeple, go straight to scoring
+          store.gameState = endTurn(store.gameState)
+
+          // Check for fairy move opportunity
+          if (store.gameState.turnPhase === 'FAIRY_MOVE') {
+            store.fairyMoveTargets = getFairyMoveTargets(store.gameState)
+            store.placeableSegments = []
+            return
+          }
+
+          // Auto-draw next tile
+          if (store.gameState.tileBag.length > 0) {
+            store.gameState = drawTile(store.gameState)
+            store.validPlacements = store.gameState.currentTile
+              ? getAllPotentialPlacements(store.gameState.board, store.gameState.staticTileMap, store.gameState.currentTile)
+              : []
+          }
+          store.placeableSegments = []
+          return
+        }
+
         // Calculate placeable segments for the newly placed tile
         store.placeableSegments = getAvailableSegmentsForMeeple(store.gameState)
+
+        // Magic portal: also compute expanded placement targets
+        if (isMagicPortalTile(store.gameState)) {
+          store.magicPortalTargets = getMagicPortalPlacements(store.gameState)
+        } else {
+          store.magicPortalTargets = []
+        }
       }),
 
       cancelTilePlacement: () => set((store) => {
@@ -243,6 +296,14 @@ export const useGameStore = create<GameStore>()(
               store.tentativeMeepleSegment,
               meepleType,
             )
+          } else if (store.tentativeTileCoord && store.magicPortalTargets.length > 0) {
+            // Magic portal: place on any tile via portal
+            store.gameState = placeMeepleViaPortal(
+              store.gameState,
+              store.tentativeTileCoord,
+              store.tentativeMeepleSegment,
+              meepleType,
+            )
           } else {
             store.gameState = placeMeeple(store.gameState, store.tentativeMeepleSegment, meepleType)
           }
@@ -253,6 +314,18 @@ export const useGameStore = create<GameStore>()(
 
         // 2. Auto-End Turn & Draw Next
         store.gameState = endTurn(store.gameState)
+
+        // Check for fairy move opportunity
+        if (store.gameState.turnPhase === 'FAIRY_MOVE') {
+          store.fairyMoveTargets = getFairyMoveTargets(store.gameState)
+          store.interactionState = 'IDLE'
+          store.tentativeMeepleSegment = null
+          store.tentativeMeepleType = null
+          store.placeableSegments = []
+          store.magicPortalTargets = []
+          store.tentativeTileCoord = null
+          return
+        }
 
         if (store.gameState.tileBag.length > 0) {
           // Auto-draw next
@@ -268,6 +341,7 @@ export const useGameStore = create<GameStore>()(
         store.tentativeMeepleSegment = null
         store.tentativeMeepleType = null
         store.placeableSegments = []
+        store.magicPortalTargets = []
         store.tentativeTileCoord = null
       }),
 
@@ -288,6 +362,18 @@ export const useGameStore = create<GameStore>()(
         // 2. Score and Advance Turn (now valid because we are in SCORE phase)
         store.gameState = endTurn(store.gameState)
 
+        // Check for fairy move opportunity
+        if (store.gameState.turnPhase === 'FAIRY_MOVE') {
+          store.fairyMoveTargets = getFairyMoveTargets(store.gameState)
+          store.placeableSegments = []
+          store.magicPortalTargets = []
+          store.interactionState = 'IDLE'
+          store.tentativeTileCoord = null
+          store.tentativeMeepleSegment = null
+          store.tentativeMeepleType = null
+          return
+        }
+
         // 3. Auto-Draw Next
         if (store.gameState.tileBag.length > 0) {
           store.gameState = drawTile(store.gameState)
@@ -299,6 +385,7 @@ export const useGameStore = create<GameStore>()(
         }
 
         store.placeableSegments = []
+        store.magicPortalTargets = []
         store.interactionState = 'IDLE'
         store.tentativeTileCoord = null
         store.tentativeMeepleSegment = null
@@ -337,6 +424,40 @@ export const useGameStore = create<GameStore>()(
         }
       },
 
+      // ── Dragon & Fairy actions ───────────────────────────────────────────
+
+      moveFairy: (coord, segmentId) => set((store) => {
+        if (!store.gameState || store.gameState.turnPhase !== 'FAIRY_MOVE') return
+
+        store.gameState = engineMoveFairy(store.gameState, coord, segmentId)
+        store.fairyMoveTargets = []
+
+        // Auto-draw after fairy move
+        if (store.gameState.turnPhase === 'DRAW_TILE' && store.gameState.tileBag.length > 0) {
+          store.gameState = drawTile(store.gameState)
+          store.validPlacements = store.gameState.currentTile
+            ? getAllPotentialPlacements(store.gameState.board, store.gameState.staticTileMap, store.gameState.currentTile)
+            : []
+        }
+        store.interactionState = 'IDLE'
+      }),
+
+      skipFairyMove: () => set((store) => {
+        if (!store.gameState || store.gameState.turnPhase !== 'FAIRY_MOVE') return
+
+        store.gameState = engineSkipFairy(store.gameState)
+        store.fairyMoveTargets = []
+
+        // Auto-draw after fairy skip
+        if (store.gameState.turnPhase === 'DRAW_TILE' && store.gameState.tileBag.length > 0) {
+          store.gameState = drawTile(store.gameState)
+          store.validPlacements = store.gameState.currentTile
+            ? getAllPotentialPlacements(store.gameState.board, store.gameState.staticTileMap, store.gameState.currentTile)
+            : []
+        }
+        store.interactionState = 'IDLE'
+      }),
+
       // Keeping for keyboard shortcut 'R' compatibility if valid
       rotateTile: () => set((store) => {
         // Only useful if we have a tentative placement
@@ -373,6 +494,8 @@ export const useGameStore = create<GameStore>()(
         tentativeMeepleSegment: s.tentativeMeepleSegment,
         tentativeMeepleType: s.tentativeMeepleType,
         placeableSegments: s.placeableSegments,
+        fairyMoveTargets: s.fairyMoveTargets,
+        magicPortalTargets: s.magicPortalTargets,
         // prevGameState: s.prevGameState, // Exclude to reduce size/complexity
       }),
     }

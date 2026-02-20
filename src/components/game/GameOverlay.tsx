@@ -18,6 +18,7 @@ export function GameOverlay() {
         skipMeeple,
         undoTilePlacement,
         drawTile,
+        skipFairyMove,
     } = useGameStore()
 
     const { selectedMeepleType, setSelectedMeepleType } = useUIStore()
@@ -91,8 +92,10 @@ export function GameOverlay() {
     const currentPlayer = players[currentPlayerIndex]
     const expansionList = (gameState.expansionData?.expansions as string[] | undefined) ?? []
     const hasTradersBuilders = expansionList.includes('traders-builders')
+    const hasDragonFairy = expansionList.includes('dragon-fairy')
     const tbData = gameState.expansionData?.['tradersBuilders'] as { isBuilderBonusTurn?: boolean } | undefined
     const isBuilderBonusTurn = tbData?.isBuilderBonusTurn ?? false
+    const dfData = gameState.expansionData?.['dragonFairy'] as { dragonPosition?: { x: number; y: number } | null; dragonInPlay?: boolean; fairyPosition?: { coordinate: { x: number; y: number }; segmentId: string } | null } | undefined
 
     // Determine status text
     let statusText = isBuilderBonusTurn
@@ -114,6 +117,10 @@ export function GameOverlay() {
         } else {
             instructionText = 'Place Meeple or Skip'
         }
+    } else if (turnPhase === 'DRAGON_MOVEMENT') {
+        instructionText = 'Dragon is moving...'
+    } else if (turnPhase === 'FAIRY_MOVE') {
+        instructionText = 'Move Fairy or Skip'
     } else if (turnPhase === 'SCORE') {
         instructionText = 'Turn ending...'
     }
@@ -172,6 +179,13 @@ export function GameOverlay() {
                 zIndex: 40,
             }}>
                 Tiles: {tileBag.length}
+                {hasDragonFairy && (
+                    <div style={{ marginTop: 4, fontSize: 12 }}>
+                        <span style={{ color: '#e74c3c' }}>{dfData?.dragonInPlay ? '\u25C6 Dragon' : '\u25C7 No Dragon'}</span>
+                        {' '}
+                        <span style={{ color: '#f1c40f' }}>{dfData?.fairyPosition ? '\u2605 Fairy' : '\u2606 No Fairy'}</span>
+                    </div>
+                )}
             </div>
 
             {/* ── Left Sidebar: Players & Menu ──────────────────────────────── */}
@@ -306,6 +320,7 @@ export function GameOverlay() {
                                         selectMeeple: setSelectedMeepleType,
                                         confirmMeeple: confirmMeeplePlacement,
                                         cancelMeeple: cancelMeeplePlacement,
+                                        skipFairy: skipFairyMove,
                                     },
                                     selectedMeepleType: selectedMeepleType,
                                     validMeepleTypes,
