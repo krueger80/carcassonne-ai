@@ -632,13 +632,7 @@ export function getAvailableSegmentsForMeeple(state: GameState): string[] {
 
 // ─── Private helpers ──────────────────────────────────────────────────────────
 
-/**
- * Find the coordinate of the tile placed this turn.
- * Heuristic: find the tile on the board that matches currentTile.definitionId
- * and has no meeples (freshly placed).
- *
- * TODO: replace with explicit lastPlacedCoord field on GameState.
- */
+// ... (existing helper)
 function findLastPlacedCoord(state: GameState): Coordinate | null {
   if (!state.currentTile) return null
 
@@ -659,4 +653,47 @@ function findLastPlacedCoord(state: GameState): Coordinate | null {
     }
   }
   return null
+}
+
+export function getValidMeepleTypes(state: GameState): MeepleType[] {
+  if (state.turnPhase !== 'PLACE_MEEPLE' || !state.currentTile) return []
+
+  const lastCoord = state.lastPlacedCoord ?? findLastPlacedCoord(state)
+  if (!lastCoord) return []
+
+  const player = state.players[state.currentPlayerIndex]
+  const validTypes: MeepleType[] = []
+
+  // Get all segments from the tile definition
+  const def = state.staticTileMap[state.currentTile.definitionId]
+  if (!def) return []
+
+  // Distinct segment IDs on this tile
+  const segments = Array.from(new Set(def.segments.map(n => n.id)))
+
+  // Check NORMAL
+  if (player.meeples.available.NORMAL > 0) {
+    const canPlace = segments.some(segId => canPlaceMeeple(state.featureUnionFind, player, lastCoord, segId, 'NORMAL'))
+    if (canPlace) validTypes.push('NORMAL')
+  }
+
+  // Check BIG
+  if ((player.meeples.available.BIG ?? 0) > 0) {
+    const canPlace = segments.some(segId => canPlaceMeeple(state.featureUnionFind, player, lastCoord, segId, 'BIG'))
+    if (canPlace) validTypes.push('BIG')
+  }
+
+  // Check BUILDER
+  if ((player.meeples.available.BUILDER ?? 0) > 0) {
+    const canPlace = segments.some(segId => canPlaceBuilderOrPig(state.featureUnionFind, player, lastCoord, segId, 'BUILDER'))
+    if (canPlace) validTypes.push('BUILDER')
+  }
+
+  // Check PIG
+  if ((player.meeples.available.PIG ?? 0) > 0) {
+    const canPlace = segments.some(segId => canPlaceBuilderOrPig(state.featureUnionFind, player, lastCoord, segId, 'PIG'))
+    if (canPlace) validTypes.push('PIG')
+  }
+
+  return validTypes
 }

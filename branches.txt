@@ -1,0 +1,22 @@
+  claude/inns-cathedrals-extension-eb7nl
+* feature/new-game-screen
+  master
+  remotes/origin/HEAD -> origin/master
+  remotes/origin/add-game-engine-tests-9161669636938815460
+  remotes/origin/claude/add-traders-builders-extension-6SINR
+  remotes/origin/claude/inns-cathedrals-extension-eb7nl
+  remotes/origin/feature/new-game-screen
+  remotes/origin/jules-test-improvement-meeple-placement-5084391587676550685
+  remotes/origin/master
+  remotes/origin/palette-setup-a11y-fix-17227882643789137373
+  remotes/origin/palette-setup-screen-a11y-9572987952961218043
+  remotes/origin/palette-ux-improvements-9013837617068850525
+  remotes/origin/perf/optimize-gameboard-rendering-6433175550587394692
+  remotes/origin/perf/optimize-get-all-features-6353837116756744875
+  remotes/origin/refactor/game-store-naming-3593313623169649832
+  remotes/origin/refactor/remove-unused-players-param-5774948319858021222
+  remotes/origin/refactor/remove-unused-players-param-8615163634696027485
+  remotes/origin/security-fix-csp-index-html-18244674831983756264
+  remotes/origin/security-fix-tilebag-rng-12514389370096555722
+  remotes/origin/test-initGame-player-count-validation-7864034463319295945
+  remotes/origin/test/tile-bag-coverage-13857304638779231653

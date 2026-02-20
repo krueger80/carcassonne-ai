@@ -15,7 +15,13 @@ export function EndGameModal({ players, expansions = [] }: EndGameModalProps) {
 
   // Trader token summaries (if T&B active)
   const commodities = ['CLOTH', 'WHEAT', 'WINE'] as const
-  const commodityLabels: Record<string, string> = { CLOTH: '🧵 Cloth', WHEAT: '🌾 Wheat', WINE: '🍷 Wine' }
+  const COMMODITY_IMAGES = {
+    CLOTH: '/images/TradersAndBuilders_Shared/Good_Cloth.png',
+    WHEAT: '/images/TradersAndBuilders_Shared/Good_Grain.png',
+    WINE: '/images/TradersAndBuilders_Shared/Good_Wine.png',
+  }
+  const commodityLabels: Record<string, string> = { CLOTH: 'Cloth', WHEAT: 'Wheat', WINE: 'Wine' }
+
   const traderBonuses = hasTradersBuilders ? commodities.map(c => {
     const max = Math.max(...players.map(p => p.traderTokens?.[c] ?? 0))
     if (max === 0) return null
@@ -38,8 +44,8 @@ export function EndGameModal({ players, expansions = [] }: EndGameModalProps) {
         border: '1px solid #555',
         borderRadius: 16,
         padding: 40,
-        minWidth: 360,
-        maxWidth: 480,
+        minWidth: 400,
+        maxWidth: 550,
         textAlign: 'center',
         color: '#f0f0f0',
       }}>
@@ -67,9 +73,14 @@ export function EndGameModal({ players, expansions = [] }: EndGameModalProps) {
               </div>
               <div style={{ display: 'flex', gap: 16, alignItems: 'center' }}>
                 {hasTradersBuilders && (
-                  <span style={{ fontSize: 12, color: '#aaa' }}>
-                    🧵{player.traderTokens?.CLOTH ?? 0} 🌾{player.traderTokens?.WHEAT ?? 0} 🍷{player.traderTokens?.WINE ?? 0}
-                  </span>
+                  <div style={{ display: 'flex', gap: 8 }}>
+                    {commodities.map(c => (
+                      <div key={c} style={{ display: 'flex', alignItems: 'center', gap: 2, fontSize: 12, color: '#aaa', background: 'rgba(0,0,0,0.2)', padding: '2px 6px', borderRadius: 4 }}>
+                        <img src={COMMODITY_IMAGES[c]} alt={c} style={{ width: 16, height: 16, objectFit: 'contain' }} />
+                        <span>{player.traderTokens?.[c] ?? 0}</span>
+                      </div>
+                    ))}
+                  </div>
                 )}
                 <span style={{ fontWeight: 'bold', fontSize: 20 }}>{player.score}</span>
               </div>
@@ -88,7 +99,8 @@ export function EndGameModal({ players, expansions = [] }: EndGameModalProps) {
           }}>
             <div style={{ fontSize: 12, fontWeight: 'bold', color: '#c8a46e', marginBottom: 8 }}>Trader Bonuses</div>
             {traderBonuses.map(b => b && (
-              <div key={b.commodity} style={{ fontSize: 12, color: '#ccc', marginBottom: 4 }}>
+              <div key={b.commodity} style={{ fontSize: 12, color: '#ccc', marginBottom: 4, display: 'flex', alignItems: 'center', gap: 6 }}>
+                <img src={COMMODITY_IMAGES[b.commodity]} alt={b.commodity} style={{ width: 16, height: 16, objectFit: 'contain' }} />
                 <span>{commodityLabels[b.commodity]}</span>
                 <span style={{ color: '#888' }}> — {b.winners.map(w => w.name).join(' & ')} ({b.max} tokens → +10 pts)</span>
               </div>

@@ -1,0 +1,12 @@
+c7ff521 merge: integrate master's NewGameScreen modal with T&B expansion
+2b257c0 feat: implement Traders & Builders expansion
+348c89d Merge pull request #16 from krueger80/feature/new-game-screen
+c3ca5c7 style: adjust menu position to align with button and dropdown
+fab941a feat: add NewGameScreen modal and improve menu behavior
+c792530 Merge pull request #15 from krueger80/claude/inns-cathedrals-extension-eb7nl
+578634c fix: correct tile definitions and tile loading architecture
+3127a37 merge: Integrate master's GameOverlay UI refactor with I&C expansion
+2922b2c chore: Include updated package-lock.json and build info
+6b5c4ea feat: Implement Inns and Cathedrals expansion
+117aea2 Refactor GameOverlay UI: left sidebar, bottom controls, and dynamic new game dialog
+b1dd638 Initial commit: Carcassonne AI implementation

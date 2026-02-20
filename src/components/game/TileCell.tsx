@@ -16,6 +16,7 @@ function rotateCentroid(
   }
 }
 
+// Update interface
 interface TileCellProps {
   tile: PlacedTile
   definition: TileDefinition
@@ -28,6 +29,10 @@ interface TileCellProps {
   isTentative?: boolean
   /** ID of segment where meeple is tentatively placed */
   tentativeMeepleSegment?: string
+  /** Type of the tentative meeple (for rendering correct shape) */
+  tentativeMeepleType?: 'NORMAL' | 'BIG' | 'FARMER' | 'BUILDER' | 'PIG' | null
+  /** Color of the current player (for tentative meeple rendering) */
+  currentPlayerColor?: string
 }
 
 export function TileCell({
@@ -39,36 +44,38 @@ export function TileCell({
   onSegmentClick,
   isTentative = false,
   tentativeMeepleSegment,
+  tentativeMeepleType,
+  currentPlayerColor = '#ffffff',
 }: TileCellProps) {
   const def = definition
   if (!def) return null
 
   // Build meeple color map for this tile
-  const meepleColors: Record<string, { color: string; isBig?: boolean; isTentative?: boolean }> = {}
+  const meepleColors: Record<string, { color: string; isBig?: boolean; isTentative?: boolean; isBuilder?: boolean; isPig?: boolean }> = {}
 
   // 1. Existing meeples
   for (const [segId, meeple] of Object.entries(tile.meeples)) {
     const player = players.find(p => p.id === meeple.playerId)
     if (player) {
-      meepleColors[segId] = { color: player.color, isBig: meeple.meepleType === 'BIG' }
+      meepleColors[segId] = {
+        color: player.color,
+        isBig: meeple.meepleType === 'BIG',
+        isBuilder: meeple.meepleType === 'BUILDER',
+        isPig: meeple.meepleType === 'PIG',
+      }
     }
   }
 
   // 2. Tentative meeple
   if (tentativeMeepleSegment && !meepleColors[tentativeMeepleSegment]) {
-    // Find current player color
-    // We don't have current player explicitly, but can guess/pass it.
-    // Or just use a generic 'white' or specific color for tentative.
-    // Better: use the first player from players list who is active? 
-    // Actually we don't know who is active here easily without prop.
-    // Let's use a distinct color (e.g. bright white/yellow) or just standard player color if possible.
-    // For now, let's use a nice placeholder color or just re-use specific logic if we had currentPlayer.
-    // Let's assume the component handling this knows.
-
-    // Hack: we'll use a specific color or just render it specially in SVG if possible.
-    // But TileSVG takes { color: string }. 
-    // Let's use a high-contrast color.
-    meepleColors[tentativeMeepleSegment] = { color: '#ffffff', isTentative: true }
+    // Determine visuals based on type
+    meepleColors[tentativeMeepleSegment] = {
+      color: currentPlayerColor,
+      isTentative: true,
+      isBig: tentativeMeepleType === 'BIG',
+      isBuilder: tentativeMeepleType === 'BUILDER',
+      isPig: tentativeMeepleType === 'PIG',
+    }
   }
 
   const isInMeeplePlacementMode = placeableSegments.length > 0
@@ -145,9 +152,10 @@ export function TileCell({
               width: 24, // Smaller touch target
               height: 24,
               borderRadius: '50%',
-              background: isSelected ? 'rgba(255,255,255,0.8)' : 'rgba(255,255,100,0.4)',
-              border: isSelected ? '3px solid #fff' : '2px dashed rgba(255,255,0,0.8)',
-              boxShadow: isSelected ? '0 0 15px rgba(0,0,0,0.6)' : 'none',
+              // Hide visual overlay if selected (meeple shown instead), but keep hit area
+              background: isSelected ? 'transparent' : 'rgba(255,255,100,0.4)',
+              border: isSelected ? 'none' : '2px dashed rgba(255,255,0,0.8)',
+              boxShadow: isSelected ? 'none' : 'none',
               cursor: 'pointer',
               zIndex: 20,
               transition: 'all 0.2s'

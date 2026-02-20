@@ -198,7 +198,7 @@ export function GameBoard({ }: GameBoardProps) {
                 // If there's a tentative tile, show it as if it were placed (but distinct visual?)
                 // Or just render TileCell but pass it special props?
 
-                if (tentative && gameState.currentTile) {
+                if (tentative && gameState.currentTile && gameState.turnPhase === 'PLACE_TILE') {
                   return (
                     // Tentative Tile
                     <div
@@ -270,6 +270,7 @@ export function GameBoard({ }: GameBoardProps) {
                             const pMap = pigSegmentsMap[key]
                             const canBuild = bMap?.includes(segId)
                             const canPig = pMap?.includes(segId)
+                            // Re-derive if normal placement is allowed here
                             const canNormal = key === lastKey && placeableSegments.includes(segId)
 
                             let typeToPlace = selectedMeepleType
@@ -297,6 +298,8 @@ export function GameBoard({ }: GameBoardProps) {
                           }
                         }}
                         tentativeMeepleSegment={tentativeSegHere}
+                        tentativeMeepleType={tentativeSegHere ? tentativeMeepleType : undefined}
+                        currentPlayerColor={currentPlayer?.color}
                       />
                     </div>
                   )
