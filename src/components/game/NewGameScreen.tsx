@@ -137,6 +137,27 @@ export function NewGameScreen({ currentConfig, onStart, onCancel }: NewGameScree
                                 <span style={{ display: 'block', fontSize: 12, color: '#888', marginTop: 2 }}>+24 tiles · Builder & Pig meeples</span>
                             </div>
                         </label>
+                        <label style={{
+                            display: 'flex',
+                            alignItems: 'center',
+                            gap: 12,
+                            padding: 16,
+                            background: '#333',
+                            borderRadius: 12,
+                            cursor: 'pointer',
+                            border: expansions.includes('dragon-fairy') ? '1px solid #e74c3c' : '1px solid transparent',
+                        }}>
+                            <input
+                                type="checkbox"
+                                checked={expansions.includes('dragon-fairy')}
+                                onChange={() => toggleExpansion('dragon-fairy')}
+                                style={{ width: 20, height: 20, accentColor: '#e74c3c' }}
+                            />
+                            <div>
+                                <span style={{ color: 'white', fontWeight: 500 }}>Dragon & Fairy</span>
+                                <span style={{ display: 'block', fontSize: 12, color: '#888', marginTop: 2 }}>+30 tiles · Dragon & Fairy figures</span>
+                            </div>
+                        </label>
                     </div>
                 </div>
 
