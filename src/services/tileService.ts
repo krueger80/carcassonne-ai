@@ -4,6 +4,8 @@ import type { TileDefinition } from '../core/types/tile'
 
 export const tileService = {
     async fetchAll(): Promise<TileDefinition[]> {
+        if (!supabase) throw new Error('Supabase not configured')
+
         const { data, error } = await supabase
             .from('carcassonne_tiles')
             .select('*')
@@ -27,6 +29,8 @@ export const tileService = {
     },
 
     async update(id: string, def: TileDefinition): Promise<void> {
+        if (!supabase) throw new Error('Supabase not configured')
+
         const payload = {
             count: def.count,
             image_url: def.imageUrl,
