@@ -1,3 +1,4 @@
+import { motion } from "framer-motion";
 import { Player, MeepleType } from "../../core/types/player";
 import { MeepleSVG } from "../svg/MeepleSVG";
 import { TileSVG } from "../svg/TileSVG";
@@ -53,23 +54,28 @@ const MeepleIcon = ({ type, count, label, color, onClick, isSelected, disabled }
     const isAvailable = count > 0;
     const isInteractive = !!onClick;
 
-    return (
-        <div
-            onClick={!disabled && onClick ? onClick : undefined}
-            style={{
-                display: 'flex',
-                flexDirection: 'column',
-                alignItems: 'center',
-                opacity: isAvailable ? (isInteractive && disabled ? 0.4 : 1) : 0.3,
-                cursor: isInteractive && !disabled ? 'pointer' : 'default',
-                background: isSelected ? 'rgba(255,255,255,0.1)' : 'transparent',
-                padding: 4,
-                borderRadius: 6,
-                border: isSelected ? `1px solid ${color}` : '1px solid transparent',
-                transition: 'all 0.2s'
-            }}
-            title={label}
-        >
+    const commonStyle: React.CSSProperties = {
+        display: 'flex',
+        flexDirection: 'column',
+        alignItems: 'center',
+        opacity: isAvailable ? (isInteractive && disabled ? 0.4 : 1) : 0.3,
+        cursor: isInteractive && !disabled ? 'pointer' : 'default',
+        background: isSelected ? 'rgba(255,255,255,0.1)' : 'transparent',
+        padding: 4,
+        borderRadius: 6,
+        border: isSelected ? `1px solid ${color}` : '1px solid transparent',
+        transition: 'all 0.2s',
+        // Button resets
+        appearance: 'none',
+        fontFamily: 'inherit',
+        fontSize: 'inherit',
+        lineHeight: 'inherit',
+        color: 'inherit',
+        margin: 0,
+    };
+
+    const content = (
+        <>
             <div style={{ width: 24, height: 24, position: 'relative' }}>
                 <svg width="24" height="24" viewBox="0 0 24 24" style={{ filter: 'drop-shadow(0 1px 2px rgba(0,0,0,0.5))' }}>
                     <MeepleSVG
@@ -93,6 +99,30 @@ const MeepleIcon = ({ type, count, label, color, onClick, isSelected, disabled }
                 </div>
             </div>
             {label && <div style={{ fontSize: 9, color: isSelected ? color : '#aaa', marginTop: 2, fontWeight: isSelected ? 'bold' : 'normal' }}>{label}</div>}
+        </>
+    );
+
+    if (isInteractive) {
+        return (
+            <motion.button
+                onClick={!disabled ? onClick : undefined}
+                type="button"
+                disabled={disabled}
+                aria-label={`Select ${label || type} meeple`}
+                aria-pressed={isSelected}
+                style={commonStyle}
+                title={label}
+                whileHover={!disabled ? { scale: 1.1, backgroundColor: 'rgba(255,255,255,0.15)' } : undefined}
+                whileTap={!disabled ? { scale: 0.95 } : undefined}
+            >
+                {content}
+            </motion.button>
+        );
+    }
+
+    return (
+        <div style={commonStyle} title={label} role="img" aria-label={`${label || type} meeple count: ${count}`}>
+            {content}
         </div>
     );
 };
