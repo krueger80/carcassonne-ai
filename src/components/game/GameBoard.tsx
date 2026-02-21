@@ -29,6 +29,7 @@ export function GameBoard({ }: GameBoardProps) {
     rotateTentativeTile,
     fairyMoveTargets,
     moveFairy,
+    magicPortalTargets,
   } = useGameStore()
 
   const { boardScale, boardOffset, hoveredCoord, setHoveredCoord, setBoardScale, selectedMeepleType } = useUIStore()
@@ -164,6 +165,18 @@ export function GameBoard({ }: GameBoardProps) {
   }, [fairyMoveTargets])
   const isFairyPhase = gameState.turnPhase === 'FAIRY_MOVE'
 
+  // Magic portal targets as a map: "x,y" → segmentId[]
+  const portalTargetsMap = useMemo<Record<string, string[]>>(() => {
+    const map: Record<string, string[]> = {}
+    for (const t of magicPortalTargets) {
+      const k = `${t.coordinate.x},${t.coordinate.y}`
+      if (!map[k]) map[k] = []
+      map[k].push(t.segmentId)
+    }
+    return map
+  }, [magicPortalTargets])
+  const hasPortalTargets = magicPortalTargets.length > 0
+
   // Is this specific cell the tentative one?
   const isTentative = (key: string) => {
     return tentativeTileCoord && `${tentativeTileCoord.x},${tentativeTileCoord.y}` === key
@@ -268,20 +281,25 @@ export function GameBoard({ }: GameBoardProps) {
                     // Merge with builder/pig options
                     const builderOpts = builderSegmentsMap[key] ?? []
                     const pigOpts = pigSegmentsMap[key] ?? []
-                    return [...new Set([...fromLast, ...builderOpts, ...pigOpts])]
+                    // Merge with magic portal targets
+                    const portalOpts = portalTargetsMap[key] ?? []
+                    return [...new Set([...fromLast, ...builderOpts, ...pigOpts, ...portalOpts])]
                   })()
 
                   // Show tentative meeple ghost on the correct tile
                   const tentativeSegHere = (() => {
                     if (!tentativeMeepleSegment) return undefined
                     const isBuilderOrPig = tentativeMeepleType === 'BUILDER' || tentativeMeepleType === 'PIG'
-                    const activeKey = isBuilderOrPig ? tentKey : lastKey
+                    // Portal placements also use tentativeTileCoord (like builder/pig)
+                    const isPortalPlacement = hasPortalTargets && tentKey && tentKey !== lastKey
+                    const activeKey = (isBuilderOrPig || isPortalPlacement) ? tentKey : lastKey
                     return key === activeKey ? tentativeMeepleSegment : undefined
                   })()
 
                   const hasDragon = dragonPos && dragonPos.x === x && dragonPos.y === y
                   const hasFairy = fairyPos && fairyPos.x === x && fairyPos.y === y
                   const isFairyTarget = isFairyPhase && fairyTargetMap[key]
+                  const isPortalTarget = inMeeplePhaseBrowsing && portalTargetsMap[key]
 
                   return (
                     <div
@@ -295,8 +313,12 @@ export function GameBoard({ }: GameBoardProps) {
                       style={{
                         position: 'relative',
                         cursor: isFairyTarget ? 'pointer' : undefined,
-                        boxShadow: isFairyTarget ? 'inset 0 0 0 3px #f1c40f, 0 0 12px rgba(241,196,15,0.5)' : undefined,
-                        borderRadius: isFairyTarget ? 2 : undefined,
+                        boxShadow: isFairyTarget
+                          ? 'inset 0 0 0 3px #f1c40f, 0 0 12px rgba(241,196,15,0.5)'
+                          : isPortalTarget
+                            ? 'inset 0 0 0 2px #9955cc, 0 0 10px rgba(153,85,204,0.4)'
+                            : undefined,
+                        borderRadius: (isFairyTarget || isPortalTarget) ? 2 : undefined,
                       }}
                     >
                       <TileCell
@@ -309,8 +331,10 @@ export function GameBoard({ }: GameBoardProps) {
                           if (gameState.turnPhase === 'PLACE_MEEPLE') {
                             const bMap = builderSegmentsMap[key]
                             const pMap = pigSegmentsMap[key]
+                            const portalMap = portalTargetsMap[key]
                             const canBuild = bMap?.includes(segId)
                             const canPig = pMap?.includes(segId)
+                            const canPortal = portalMap?.includes(segId)
                             // Re-derive if normal placement is allowed here
                             const canNormal = key === lastKey && placeableSegments.includes(segId)
 
@@ -329,9 +353,14 @@ export function GameBoard({ }: GameBoardProps) {
                               if (selectedMeepleType === 'BUILDER' || selectedMeepleType === 'PIG') {
                                 useUIStore.setState({ selectedMeepleType: typeToPlace })
                               }
+                            } else if (canPortal) {
+                              // Magic portal: use selected type (NORMAL or BIG)
+                              const isBig = selectedMeepleType === 'BIG'
+                              typeToPlace = isBig ? 'BIG' : 'NORMAL'
                             }
 
-                            if (typeToPlace === 'BUILDER' || typeToPlace === 'PIG') {
+                            // Portal and builder/pig placements need coordinate
+                            if (typeToPlace === 'BUILDER' || typeToPlace === 'PIG' || canPortal) {
                               selectMeeplePlacement(segId, typeToPlace, { x, y })
                             } else {
                               selectMeeplePlacement(segId, typeToPlace)

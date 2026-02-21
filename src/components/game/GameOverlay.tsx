@@ -19,6 +19,7 @@ export function GameOverlay() {
         undoTilePlacement,
         drawTile,
         skipFairyMove,
+        executeDragon,
     } = useGameStore()
 
     const { selectedMeepleType, setSelectedMeepleType } = useUIStore()
@@ -112,13 +113,17 @@ export function GameOverlay() {
             instructionText = 'Place your tile'
         }
     } else if (turnPhase === 'PLACE_MEEPLE') {
+        const { magicPortalTargets } = useGameStore.getState()
+        const hasPortal = magicPortalTargets.length > 0
         if (interactionState === 'MEEPLE_SELECTED_TENTATIVELY') {
             instructionText = 'Confirm Meeple'
+        } else if (hasPortal) {
+            instructionText = '🌀 Portal: Place Meeple Anywhere!'
         } else {
             instructionText = 'Place Meeple or Skip'
         }
     } else if (turnPhase === 'DRAGON_MOVEMENT') {
-        instructionText = 'Dragon is moving...'
+        instructionText = '🐉 Dragon Hoard! Move the Dragon'
     } else if (turnPhase === 'FAIRY_MOVE') {
         instructionText = 'Move Fairy or Skip'
     } else if (turnPhase === 'SCORE') {
@@ -321,6 +326,7 @@ export function GameOverlay() {
                                         confirmMeeple: confirmMeeplePlacement,
                                         cancelMeeple: cancelMeeplePlacement,
                                         skipFairy: skipFairyMove,
+                                        executeDragon: executeDragon,
                                     },
                                     selectedMeepleType: selectedMeepleType,
                                     validMeepleTypes,

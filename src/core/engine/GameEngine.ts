@@ -829,8 +829,26 @@ function findNearestMeepleDirection(
  */
 export function executeDragonMovement(state: GameState): GameState {
   const dfData = getDfState(state)
-  if (!dfData?.dragonPosition || !dfData.dragonFacing) {
+  if (!dfData?.dragonPosition) {
     return { ...state, turnPhase: 'PLACE_MEEPLE' }
+  }
+
+  // If dragon has no facing (e.g. no meeples on board), pick a default direction
+  // toward the nearest occupied tile, or fall back to NORTH
+  if (!dfData.dragonFacing) {
+    const pos = dfData.dragonPosition
+    let defaultDir: Direction = 'NORTH'
+    for (const dir of ['NORTH', 'EAST', 'SOUTH', 'WEST'] as Direction[]) {
+      const { dx, dy } = DIRECTION_DELTAS[dir]
+      if (state.board.tiles[coordKey({ x: pos.x + dx, y: pos.y + dy })]) {
+        defaultDir = dir
+        break
+      }
+    }
+    const updatedDf: DragonFairyState = { ...dfData, dragonFacing: defaultDir }
+    state = { ...state, expansionData: { ...state.expansionData, dragonFairy: updatedDf } }
+    // Re-read dfData won't work since it's a const — but we updated state, so proceed with the new facing
+    return executeDragonMovement(state)
   }
 
   let current = { ...state }

@@ -258,6 +258,15 @@ export function TileDebugger() {
                                             const color = commodity === 'CLOTH' ? '#5588cc' : commodity === 'WHEAT' ? '#ccaa33' : '#cc4466'
                                             return <span title={commodity} style={{ fontSize: 11, background: color, borderRadius: 3, padding: '0 3px', lineHeight: '16px' }}>{icon}</span>
                                         })()}
+                                        {t.isVolcano && (
+                                            <span title="Volcano" style={{ fontSize: 11, background: '#ff6b35', borderRadius: 3, padding: '0 3px', lineHeight: '16px' }}>🌋</span>
+                                        )}
+                                        {t.hasDragonHoard && (
+                                            <span title="Dragon Hoard" style={{ fontSize: 11, background: '#22aa44', borderRadius: 3, padding: '0 3px', lineHeight: '16px' }}>🐉</span>
+                                        )}
+                                        {t.hasMagicPortal && (
+                                            <span title="Magic Portal" style={{ fontSize: 11, background: '#9955cc', borderRadius: 3, padding: '0 3px', lineHeight: '16px' }}>🌀</span>
+                                        )}
                                         <span>x{t.count}</span>
                                     </span>
                                 </div>
@@ -435,6 +444,54 @@ function PropertiesPanel({
                             style={{ width: '100%', background: '#333', border: '1px solid #555', color: 'white', padding: 5 }}
                         />
                     </label>
+
+                    {/* Dragon & Fairy tile-level flags */}
+                    {(tile.expansionId === 'dragon-fairy' || tile.isVolcano || tile.hasDragonHoard || tile.hasMagicPortal) && (
+                        <div style={{ display: 'flex', gap: 12, flexWrap: 'wrap', marginTop: 5 }}>
+                            <label
+                                onClick={e => e.stopPropagation()}
+                                style={{
+                                    display: 'flex', alignItems: 'center', gap: 4, fontSize: 12,
+                                    color: tile.isVolcano ? '#ff6b35' : '#aaa'
+                                }}
+                            >
+                                <input
+                                    type="checkbox"
+                                    checked={tile.isVolcano || false}
+                                    onChange={e => onUpdate({ isVolcano: e.target.checked || undefined })}
+                                />
+                                <span>🌋 Volcano</span>
+                            </label>
+                            <label
+                                onClick={e => e.stopPropagation()}
+                                style={{
+                                    display: 'flex', alignItems: 'center', gap: 4, fontSize: 12,
+                                    color: tile.hasDragonHoard ? '#22aa44' : '#aaa'
+                                }}
+                            >
+                                <input
+                                    type="checkbox"
+                                    checked={tile.hasDragonHoard || false}
+                                    onChange={e => onUpdate({ hasDragonHoard: e.target.checked || undefined })}
+                                />
+                                <span>🐉 Dragon Hoard</span>
+                            </label>
+                            <label
+                                onClick={e => e.stopPropagation()}
+                                style={{
+                                    display: 'flex', alignItems: 'center', gap: 4, fontSize: 12,
+                                    color: tile.hasMagicPortal ? '#9955cc' : '#aaa'
+                                }}
+                            >
+                                <input
+                                    type="checkbox"
+                                    checked={tile.hasMagicPortal || false}
+                                    onChange={e => onUpdate({ hasMagicPortal: e.target.checked || undefined })}
+                                />
+                                <span>🌀 Magic Portal</span>
+                            </label>
+                        </div>
+                    )}
 
                 </div>
             </div>

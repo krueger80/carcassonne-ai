@@ -21,6 +21,7 @@ interface TurnState {
         confirmMeeple?: () => void;
         cancelMeeple?: () => void;
         skipFairy?: () => void;
+        executeDragon?: () => void;
     };
     selectedMeepleType?: MeepleType;
     validMeepleTypes?: MeepleType[];
@@ -294,6 +295,9 @@ export function PlayerCard({ player, isCurrentTurn, hasTradersBuilders, turnStat
                                 <Button onClick={turnState.actions.skip!} style={{ flex: 1 }}>Skip Meeple</Button>
                             </>
                         )
+                    )}
+                    {turnState.phase === 'DRAGON_MOVEMENT' && turnState.actions.executeDragon && (
+                        <Button onClick={turnState.actions.executeDragon} primary style={{ flex: 1 }}>🐉 Move Dragon</Button>
                     )}
                     {turnState.phase === 'FAIRY_MOVE' && turnState.actions.skipFairy && (
                         <Button onClick={turnState.actions.skipFairy} style={{ flex: 1 }}>Skip Fairy</Button>

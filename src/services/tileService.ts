@@ -24,7 +24,10 @@ export const tileService = {
             // config merges in
             segments: row.config?.segments || [],
             edgePositionToSegment: row.config?.edgePositionToSegment || {},
-            startingTile: row.config?.startingTile
+            startingTile: row.config?.startingTile,
+            isVolcano: row.config?.isVolcano,
+            hasDragonHoard: row.config?.hasDragonHoard,
+            hasMagicPortal: row.config?.hasMagicPortal,
         }))
     },
 
@@ -38,7 +41,10 @@ export const tileService = {
             config: {
                 segments: def.segments,
                 edgePositionToSegment: def.edgePositionToSegment,
-                startingTile: def.startingTile
+                ...(def.startingTile != null && { startingTile: def.startingTile }),
+                ...(def.isVolcano != null && { isVolcano: def.isVolcano }),
+                ...(def.hasDragonHoard != null && { hasDragonHoard: def.hasDragonHoard }),
+                ...(def.hasMagicPortal != null && { hasMagicPortal: def.hasMagicPortal }),
             }
         }
 

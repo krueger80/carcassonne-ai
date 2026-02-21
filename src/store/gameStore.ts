@@ -79,6 +79,7 @@ interface GameStore {
   refreshDefinitions: () => Promise<void>
 
   // Dragon & Fairy actions
+  executeDragon: () => void
   moveFairy: (coord: Coordinate, segmentId: string) => void
   skipFairyMove: () => void
 
@@ -208,11 +209,12 @@ export const useGameStore = create<GameStore>()(
         store.tentativeTileCoord = null
         store.validPlacements = []
 
-        // ── Dragon & Fairy: handle dragon movement and volcano ──────────
+        // ── Dragon & Fairy: dragon movement phase ──────────
         if (store.gameState.turnPhase === 'DRAGON_MOVEMENT') {
-          // Auto-execute dragon straight-line movement
-          store.gameState = executeDragonMovement(store.gameState)
-          // After dragon movement, game transitions to PLACE_MEEPLE
+          // Don't auto-execute — let the UI show the phase and trigger it
+          store.placeableSegments = []
+          store.magicPortalTargets = []
+          return
         }
 
         if (store.gameState.turnPhase === 'SCORE') {
@@ -426,6 +428,27 @@ export const useGameStore = create<GameStore>()(
 
       // ── Dragon & Fairy actions ───────────────────────────────────────────
 
+      executeDragon: () => set((store) => {
+        if (!store.gameState || store.gameState.turnPhase !== 'DRAGON_MOVEMENT') return
+
+        store.gameState = executeDragonMovement(store.gameState)
+
+        // After dragon movement → PLACE_MEEPLE
+        if (store.gameState.turnPhase === 'PLACE_MEEPLE') {
+          const currentTile = store.gameState.currentTile
+          if (currentTile) {
+            store.placeableSegments = getAvailableSegmentsForMeeple(store.gameState)
+
+            // Magic portal targets
+            if (isMagicPortalTile(store.gameState)) {
+              store.magicPortalTargets = getMagicPortalPlacements(store.gameState)
+            }
+          }
+        }
+
+        store.interactionState = 'IDLE'
+      }),
+
       moveFairy: (coord, segmentId) => set((store) => {
         if (!store.gameState || store.gameState.turnPhase !== 'FAIRY_MOVE') return
 
@@ -501,6 +524,11 @@ export const useGameStore = create<GameStore>()(
     }
   )
 )
+
+// Expose store for browser console inspection (dev only)
+if (typeof window !== 'undefined') {
+  ;(window as any).__gameStore = useGameStore
+}
 
 export const selectCurrentPlayer = (s: { gameState: GameState | null }) => {
   if (!s.gameState) return null
