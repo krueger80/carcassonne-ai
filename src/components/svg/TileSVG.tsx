@@ -1,3 +1,4 @@
+import { memo } from 'react'
 import type { TileDefinition, Rotation } from '../../core/types/tile.ts'
 import { SegmentPath, TERRAIN_COLORS } from './SegmentPath.tsx'
 import { MeepleSVG } from './MeepleSVG.tsx'
@@ -34,7 +35,7 @@ interface TileSVGProps {
  *  6. Meeple overlay
  *  7. Highlight overlay (for valid placement targets)
  */
-export function TileSVG({
+export const TileSVG = memo(({
   definition,
   rotation = 0,
   size = 80,
@@ -43,7 +44,7 @@ export function TileSVG({
   hovered = false,
   isValidTarget = false,
   showSchematic = false,
-}: TileSVGProps) {
+}: TileSVGProps) => {
   // Sort segments: FIELD first (background), then CITY, ROAD, CLOISTER
   const renderOrder: Record<string, number> = { FIELD: 0, CITY: 1, ROAD: 2, CLOISTER: 3 }
   const sortedSegments = [...definition.segments].sort(
@@ -60,6 +61,7 @@ export function TileSVG({
         transformOrigin: 'center',
         display: 'block',
         flexShrink: 0,
+        overflow: 'visible', // Allow meeples to extend beyond tile borders
       }}
     >
       {/* Layer 1: Image Background */}
@@ -209,4 +211,4 @@ export function TileSVG({
       })}
     </svg>
   )
-}
+})

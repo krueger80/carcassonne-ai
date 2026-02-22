@@ -10,12 +10,14 @@ export function GameOverlay() {
     const {
         gameState,
         interactionState,
+        tentativeMeepleType,
         rotateTentativeTile,
         confirmTilePlacement,
         cancelTilePlacement,
         confirmMeeplePlacement,
         cancelMeeplePlacement,
         skipMeeple,
+        setTentativeMeepleType,
         undoTilePlacement,
         drawTile,
         skipFairyMove,
@@ -312,7 +314,8 @@ export function GameOverlay() {
                 <div style={{
                     display: 'flex',
                     flexDirection: 'column',
-                    gap: 12,
+                    alignItems: 'flex-start', // Don't stretch cards to sidebar width
+                    gap: 8,
                     width: '100%',
                     pointerEvents: 'auto',
                     marginTop: 'auto', // Keep players at bottom of sidebar
@@ -340,7 +343,12 @@ export function GameOverlay() {
                                         cancel: cancelTilePlacement,
                                         skip: skipMeeple,
                                         undo: undoTilePlacement,
-                                        selectMeeple: setSelectedMeepleType,
+                                        selectMeeple: (type) => {
+                                            setSelectedMeepleType(type)
+                                            if (interactionState === 'MEEPLE_SELECTED_TENTATIVELY') {
+                                                setTentativeMeepleType(type)
+                                            }
+                                        },
                                         confirmMeeple: confirmMeeplePlacement,
                                         cancelMeeple: turnPhase === 'FAIRY_MOVE' ? cancelFairyMove : cancelMeeplePlacement,
                                         skipFairy: skipFairyMove,
@@ -351,6 +359,7 @@ export function GameOverlay() {
                                         placeDragonOnHoard: placeDragonOnHoard,
                                     },
                                     selectedMeepleType: selectedMeepleType,
+                                    tentativeMeepleType: tentativeMeepleType,
                                     validMeepleTypes,
                                     dragonOrientations,
                                     tentativeDragonFacing,

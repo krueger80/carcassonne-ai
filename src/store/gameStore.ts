@@ -17,6 +17,8 @@ import {
   getAvailableSegmentsForMeeple,
   isValidPlacement,
   executeDragonMovement,
+  executeDragonTileStep,
+  finishDragonMovementStep,
   orientDragon as engineOrientDragon,
   getValidDragonOrientations,
   getDragonHoardTilesOnBoard,
@@ -81,6 +83,7 @@ interface GameStore {
   confirmMeeplePlacement: () => void
   cancelMeeplePlacement: () => void
   skipMeeple: () => void
+  setTentativeMeepleType: (type: MeepleType) => void
 
   endTurn: () => void
   resetGame: () => void
@@ -397,6 +400,12 @@ export const useGameStore = create<GameStore>()(
         store.interactionState = 'IDLE'
       }),
 
+      setTentativeMeepleType: (type) => set((store) => {
+        if (store.interactionState === 'MEEPLE_SELECTED_TENTATIVELY') {
+          store.tentativeMeepleType = type
+        }
+      }),
+
       // ── Legacy / Shared ──────────────────────────────────────────────────
 
       skipMeeple: () => set((store) => {
@@ -573,44 +582,82 @@ export const useGameStore = create<GameStore>()(
         store.interactionState = 'IDLE'
       }),
 
-      executeDragon: () => set((store) => {
-        if (!store.gameState || store.gameState.turnPhase !== 'DRAGON_MOVEMENT') return
+      executeDragon: () => {
+        const { gameState } = get()
+        if (!gameState || gameState.turnPhase !== 'DRAGON_MOVEMENT') return
 
-        store.gameState = executeDragonMovement(store.gameState)
+        const animateStep = () => {
+          const currentStore = get()
+          if (!currentStore.gameState || currentStore.gameState.turnPhase !== 'DRAGON_MOVEMENT') return
 
-        // After dragon movement (automated) → SCORE phase or PLACE_TILE phase
-        if (store.gameState.turnPhase === 'SCORE') {
-          store.gameState = endTurn(store.gameState)
+          // Try to move one tile
+          const nextStepState = executeDragonTileStep(currentStore.gameState)
+          
+          if (nextStepState) {
+            // Moved successfully: update state and wait for next step
+            set((store) => { store.gameState = nextStepState })
+            
+            // Check if movement sequence was aborted (e.g. hit fairy)
+            const df = (nextStepState.expansionData.dragonFairy as any)
+            if (!df?.dragonMovement) {
+              // Sequence aborted: finish turn/phase
+              set((store) => { store.gameState = finishDragonMovementStep(nextStepState) })
+              const finalState = get().gameState
+              if (finalState) processPhaseTransition(finalState)
+              return
+            }
 
-          if (store.gameState.turnPhase === 'DRAGON_PLACE') {
-            store.dragonPlaceTargets = getDragonHoardTilesOnBoard(store.gameState)
-          } else if (store.gameState.turnPhase === 'FAIRY_MOVE') {
-            store.fairyMoveTargets = getFairyMoveTargets(store.gameState)
-          } else if (store.gameState.tileBag.length > 0) {
-            // Auto-draw next
-            store.gameState = drawTile(store.gameState)
-            store.validPlacements = store.gameState.currentTile
-              ? getAllPotentialPlacements(store.gameState.board, store.gameState.staticTileMap, store.gameState.currentTile)
-              : []
+            setTimeout(animateStep, 350)
+          } else {
+            // Hit edge or no more tiles in this direction: finish this step and check reorientation
+            const finishedState = finishDragonMovementStep(currentStore.gameState)
+            set((store) => { store.gameState = finishedState })
+            
+            // If still in movement phase (auto-reoriented), continue automatically?
+            // Actually, let's stop to allow user to see the reorientation OR if manual orientation needed
+            processPhaseTransition(finishedState)
           }
-        } else if (store.gameState.turnPhase === 'PLACE_TILE') {
-          // Came from a Dragon card (moves BEFORE placement)
-          if (store.gameState.currentTile) {
-            store.validPlacements = getAllPotentialPlacements(
-              store.gameState.board,
-              store.gameState.staticTileMap,
-              store.gameState.currentTile
-            )
-          }
-        } else if (store.gameState.turnPhase === 'DRAGON_ORIENT') {
-          // Intermediate or final orientation choice
-          store.dragonOrientations = getValidDragonOrientations(store.gameState)
-          store.tentativeDragonFacing = store.dragonOrientations.length > 0
-            ? store.dragonOrientations[0] : null
         }
 
-        store.interactionState = 'IDLE'
-      }),
+        const processPhaseTransition = (newState: GameState) => {
+          if (newState.turnPhase === 'SCORE') {
+            set((store) => { store.gameState = endTurn(newState) })
+            const finalState = get().gameState
+            if (!finalState) return
+
+            if (finalState.turnPhase === 'DRAGON_PLACE') {
+              set((store) => { store.dragonPlaceTargets = getDragonHoardTilesOnBoard(finalState) })
+            } else if (finalState.turnPhase === 'FAIRY_MOVE') {
+              set((store) => { store.fairyMoveTargets = getFairyMoveTargets(finalState) })
+            } else if (finalState.tileBag.length > 0) {
+              set((store) => { 
+                store.gameState = drawTile(finalState)
+                store.validPlacements = store.gameState.currentTile
+                  ? getAllPotentialPlacements(store.gameState.board, store.gameState.staticTileMap, store.gameState.currentTile)
+                  : []
+              })
+            }
+          } else if (newState.turnPhase === 'PLACE_TILE') {
+            if (newState.currentTile) {
+              set((store) => {
+                store.validPlacements = getAllPotentialPlacements(
+                  newState.board,
+                  newState.staticTileMap,
+                  newState.currentTile!
+                )
+              })
+            }
+          } else if (newState.turnPhase === 'DRAGON_ORIENT') {
+            set((store) => {
+              store.dragonOrientations = getValidDragonOrientations(newState)
+              store.tentativeDragonFacing = store.dragonOrientations.length > 0
+                ? store.dragonOrientations[0] : null
+            })
+          }
+        }
+
+        animateStep()
+      },
 
       moveFairy: (coord, segmentId) => set((store) => {
         if (!store.gameState || store.gameState.turnPhase !== 'FAIRY_MOVE') return

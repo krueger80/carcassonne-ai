@@ -73,7 +73,7 @@ export function initGame(config: GameConfig): GameState {
   const hasIc = expansions.includes('inns-cathedrals')
   const hasTb = expansions.includes('traders-builders')
   const hasDf = expansions.includes('dragon-fairy')
-  const enableBigMeeple = hasIc || hasTb
+  const enableBigMeeple = hasIc
   const enableBuilderAndPig = hasTb
 
   // Filter extra tiles to only include tiles from enabled expansions
@@ -193,6 +193,7 @@ export function drawTile(state: GameState): GameState {
   }
 
   // ── Dragon & Fairy: Dragon tile movement (C3.1: moves BEFORE placement) ──
+  const dfData = getDfState(newState)
   const tileDef = newState.staticTileMap[result.tile.definitionId]
   if (dfData && dfData.dragonInPlay && dfData.dragonPosition && tileDef?.hasDragon) {
     return {
@@ -681,19 +682,25 @@ export function endTurn(state: GameState): GameState {
   // Determine next turn phase:
   // 1. If current player qualified for fairy move (scored 0 on road/city)
   if (dfUpdated?.canMoveFairy) {
-    return {
-      ...state,
-      board: { ...state.board, tiles: updatedBoardTiles },
-      players: updatedPlayers,
-      currentPlayerIndex: state.currentPlayerIndex, // Stay as current player to move fairy
-      featureUnionFind: updatedUfState,
-      boardMeeples: updatedBoardMeeples,
-      currentTile: state.currentTile, // Keep current tile until turn fully ends
-      lastPlacedCoord: null,
-      completedFeatureIds: [],
-      lastScoreEvents: scoreEvents,
-      turnPhase: 'FAIRY_MOVE',
-      expansionData: nextExpansionData,
+    const targets = getFairyMoveTargets(state);
+    if (targets.length > 0) {
+      return {
+        ...state,
+        board: { ...state.board, tiles: updatedBoardTiles },
+        players: updatedPlayers,
+        currentPlayerIndex: state.currentPlayerIndex, // Stay as current player to move fairy
+        featureUnionFind: updatedUfState,
+        boardMeeples: updatedBoardMeeples,
+        currentTile: state.currentTile, // Keep current tile until turn fully ends
+        lastPlacedCoord: null,
+        completedFeatureIds: [],
+        lastScoreEvents: scoreEvents,
+        turnPhase: 'FAIRY_MOVE',
+        expansionData: nextExpansionData,
+      }
+    } else {
+      // No meeples to place fairy on -> reset the flag and proceed to next player
+      if (dfUpdated) dfUpdated.canMoveFairy = false;
     }
   }
 
@@ -993,6 +1000,118 @@ export function placeDragonOnHoard(state: GameState, coord: Coordinate): GameSta
     ...state,
     turnPhase: 'DRAGON_ORIENT',
     expansionData: { ...state.expansionData, dragonFairy: updatedDf },
+  }
+}
+
+/**
+ * Execute a SINGLE TILE step of the dragon's movement.
+ * Used for animating the path tile-by-tile.
+ * Returns null if the dragon cannot move forward (hit edge or fairy).
+ */
+export function executeDragonTileStep(state: GameState): GameState | null {
+  const dfData = getDfState(state)
+  if (!dfData?.dragonPosition || !dfData.dragonMovement || !dfData.dragonFacing) return null
+
+  const { dx, dy } = DIRECTION_DELTAS[dfData.dragonFacing]
+  const nextX = dfData.dragonPosition.x + dx
+  const nextY = dfData.dragonPosition.y + dy
+  const nextKey = coordKey({ x: nextX, y: nextY })
+  const nextTile = state.board.tiles[nextKey]
+
+  if (!nextTile) return null // Edge of board
+
+  // Fairy contact
+  if (dfData.fairyPosition && coordKey(dfData.fairyPosition.coordinate) === nextKey) {
+    // Handle fairy contact: remove dragon from board
+    let dragonHeldBy: string | null = dfData.dragonHeldBy
+    const fairyKey = `${coordKey(dfData.fairyPosition.coordinate)}:${dfData.fairyPosition.segmentId}`
+    const fairyMeeple = state.boardMeeples[fairyKey]
+    if (fairyMeeple) dragonHeldBy = fairyMeeple.playerId
+
+    const updatedDf: DragonFairyState = {
+      ...dfData,
+      dragonPosition: null,
+      dragonFacing: null,
+      dragonHeldBy,
+      dragonMovement: null, // Stop movement sequence
+    }
+    return {
+      ...state,
+      turnPhase: 'PLACE_MEEPLE', // Fallback, Store will handle transition
+      expansionData: { ...state.expansionData, dragonFairy: updatedDf }
+    }
+  }
+
+  // Move to next tile and eat meeples
+  const result = eatMeeplesOnTile(
+    { x: nextX, y: nextY },
+    [...state.players],
+    { ...state.boardMeeples },
+    { ...state.featureUnionFind },
+    { ...state.board.tiles },
+  )
+
+  const updatedDf: DragonFairyState = {
+    ...dfData,
+    dragonPosition: { x: nextX, y: nextY },
+  }
+
+  return {
+    ...state,
+    board: { ...state.board, tiles: result.boardTiles },
+    players: result.players,
+    boardMeeples: result.boardMeeples,
+    featureUnionFind: result.ufState,
+    expansionData: { ...state.expansionData, dragonFairy: updatedDf },
+  }
+}
+
+/**
+ * Perform reorientation logic after a straight-line movement step is finished.
+ */
+export function finishDragonMovementStep(state: GameState): GameState {
+  const dfData = getDfState(state)
+  if (!dfData || !dfData.dragonMovement) return state
+
+  const remaining = dfData.dragonMovement.movesRemaining - 1
+  const dragonRemoved = dfData.dragonPosition === null
+
+  const baseNextDf: DragonFairyState = {
+    ...dfData,
+    dragonMovement: dragonRemoved || remaining <= 0 ? null : { ...dfData.dragonMovement, movesRemaining: remaining },
+  }
+
+  const nextState: GameState = {
+    ...state,
+    expansionData: { ...state.expansionData, dragonFairy: baseNextDf },
+  }
+
+  if (dragonRemoved || (remaining <= 0)) {
+    // Movement sequence finished
+    const opts = dragonRemoved ? [] : getValidDragonOrientations(nextState)
+    if (opts.length > 1) {
+      return { ...nextState, turnPhase: 'DRAGON_ORIENT' }
+    } else {
+      const finalDf = { ...baseNextDf, dragonFacing: opts.length === 1 ? opts[0] : baseNextDf.dragonFacing }
+      return {
+        ...nextState,
+        turnPhase: dfData.dragonMovement.nextPhase,
+        expansionData: { ...nextState.expansionData, dragonFairy: finalDf }
+      }
+    }
+  } else {
+    // Intermediate step: Check orientations for next move
+    const opts = getValidDragonOrientations(nextState)
+    if (opts.length > 1) {
+      return { ...nextState, turnPhase: 'DRAGON_ORIENT' }
+    } else {
+      const finalDf = { ...baseNextDf, dragonFacing: opts.length === 1 ? opts[0] : baseNextDf.dragonFacing }
+      return {
+        ...nextState,
+        turnPhase: 'DRAGON_MOVEMENT',
+        expansionData: { ...nextState.expansionData, dragonFairy: finalDf }
+      }
+    }
   }
 }
 

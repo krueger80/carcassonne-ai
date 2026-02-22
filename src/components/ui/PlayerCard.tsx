@@ -29,6 +29,7 @@ interface TurnState {
         placeDragonOnHoard?: (coord: Coordinate) => void;
     };
     selectedMeepleType?: MeepleType;
+    tentativeMeepleType?: MeepleType | null;
     validMeepleTypes?: MeepleType[];
     dragonOrientations?: Direction[];
     tentativeDragonFacing?: Direction | null;
@@ -62,11 +63,13 @@ interface MeepleIconProps {
     onClick?: () => void;
     isSelected?: boolean;
     disabled?: boolean;
+    isCompact?: boolean;
 }
 
-const MeepleIcon = ({ type, count, label, color, onClick, isSelected, disabled }: MeepleIconProps) => {
+const MeepleIcon = ({ type, count, label, color, onClick, isSelected, disabled, isCompact }: MeepleIconProps) => {
     const isAvailable = count > 0;
     const isInteractive = !!onClick;
+    const size = isCompact ? 20 : 24;
 
     return (
         <div
@@ -78,15 +81,15 @@ const MeepleIcon = ({ type, count, label, color, onClick, isSelected, disabled }
                 opacity: isAvailable ? (isInteractive && disabled ? 0.4 : 1) : 0.3,
                 cursor: isInteractive && !disabled ? 'pointer' : 'default',
                 background: isSelected ? 'rgba(255,255,255,0.1)' : 'transparent',
-                padding: 4,
+                padding: isCompact ? 2 : 4,
                 borderRadius: 6,
                 border: isSelected ? `1px solid ${color}` : '1px solid transparent',
                 transition: 'all 0.2s'
             }}
             title={label}
         >
-            <div style={{ width: 24, height: 24, position: 'relative' }}>
-                <svg width="24" height="24" viewBox="0 0 24 24" style={{ filter: 'drop-shadow(0 1px 2px rgba(0,0,0,0.5))' }}>
+            <div style={{ width: size, height: size, position: 'relative' }}>
+                <svg width={size} height={size} viewBox="0 0 24 24" style={{ filter: 'drop-shadow(0 1px 2px rgba(0,0,0,0.5))' }}>
                     <MeepleSVG
                         color={color}
                         x={12} y={12}
@@ -97,9 +100,9 @@ const MeepleIcon = ({ type, count, label, color, onClick, isSelected, disabled }
                     />
                 </svg>
                 <div style={{
-                    position: 'absolute', bottom: -2, right: -4,
+                    position: 'absolute', bottom: isCompact ? -4 : -2, right: isCompact ? -6 : -4,
                     background: '#222', color: '#fff',
-                    fontSize: 9, fontWeight: 'bold',
+                    fontSize: isCompact ? 8 : 9, fontWeight: 'bold',
                     padding: '1px 3px', borderRadius: 4,
                     border: '1px solid #555',
                     pointerEvents: 'none',
@@ -115,21 +118,23 @@ const MeepleIcon = ({ type, count, label, color, onClick, isSelected, disabled }
 interface GoodIconProps {
     type: 'WINE' | 'WHEAT' | 'CLOTH';
     count: number;
+    isCompact?: boolean;
 }
 
-const GoodIcon = ({ type, count }: GoodIconProps) => {
+const GoodIcon = ({ type, count, isCompact }: GoodIconProps) => {
+    const size = isCompact ? 20 : 24;
     return (
-        <div style={{ position: 'relative', width: 24, height: 24, opacity: count > 0 ? 1 : 0.3 }} title={type}>
+        <div style={{ position: 'relative', width: size, height: size, opacity: count > 0 ? 1 : 0.3 }} title={type}>
             <img
                 src={COMMODITY_IMAGES[type]}
-                width={24} height={24}
+                width={size} height={size}
                 alt={type}
                 style={{ filter: 'drop-shadow(0 1px 2px rgba(0,0,0,0.5))' }}
             />
             <div style={{
-                position: 'absolute', bottom: -2, right: -4,
+                position: 'absolute', bottom: isCompact ? -4 : -2, right: isCompact ? -6 : -4,
                 background: '#222', color: '#fff',
-                fontSize: 9, fontWeight: 'bold',
+                fontSize: isCompact ? 8 : 9, fontWeight: 'bold',
                 padding: '1px 3px', borderRadius: 4,
                 border: '1px solid #555',
                 pointerEvents: 'none',
@@ -149,16 +154,17 @@ export function PlayerCard({ player, isCurrentTurn, hasTradersBuilders, hasInnsC
     return (
         <div style={{
             background: isCurrentTurn ? 'rgba(35, 40, 50, 0.95)' : 'rgba(30, 30, 40, 0.85)',
-            borderLeft: `4px solid ${color}`,
+            borderLeft: `${isCurrentTurn ? 4 : 3}px solid ${color}`,
             borderRadius: 12,
-            padding: 12,
-            marginBottom: 12,
+            padding: isCurrentTurn ? 12 : 6,
+            marginBottom: 8,
             boxShadow: isCurrentTurn ? `0 4px 20px rgba(0,0,0,0.4)` : '0 2px 4px rgba(0,0,0,0.3)',
             transition: 'all 0.3s ease',
             display: 'flex',
             flexDirection: 'column',
-            gap: 12,
-            minWidth: isCurrentTurn ? 280 : 220, // Expanded width for active player
+            gap: isCurrentTurn ? 12 : 2,
+            width: isCurrentTurn ? 280 : 'fit-content',
+            minWidth: isCurrentTurn ? 280 : 100,
             transform: isCurrentTurn ? 'scale(1.02) translateX(10px)' : 'none',
             zIndex: isCurrentTurn ? 10 : 1,
             ...style
@@ -166,16 +172,24 @@ export function PlayerCard({ player, isCurrentTurn, hasTradersBuilders, hasInnsC
             {/* 1. Header: Status (Active) or Name (Inactive) */}
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                 <div style={{ display: 'flex', flexDirection: 'column' }}>
-                    <div style={{ fontWeight: 'bold', color: '#f0f0f0', fontSize: 15 }}>
+                    <div style={{ 
+                        fontWeight: 'bold', 
+                        color: '#f0f0f0', 
+                        fontSize: isCurrentTurn ? 15 : 12,
+                        whiteSpace: 'nowrap',
+                        overflow: 'hidden',
+                        textOverflow: 'ellipsis',
+                        maxWidth: isCurrentTurn ? 'none' : '80px'
+                    }}>
                         {name}
                     </div>
                 </div>
                 <div style={{
-                    background: isCurrentTurn ? color : '#444',
-                    color: isCurrentTurn ? '#111' : '#ccc',
-                    fontWeight: 'bold', fontSize: 14,
-                    padding: '2px 8px', borderRadius: 12,
-                    minWidth: 24, textAlign: 'center'
+                    background: isCurrentTurn ? color : 'rgba(255,255,255,0.1)',
+                    color: isCurrentTurn ? '#111' : '#eee',
+                    fontWeight: 'bold', fontSize: isCurrentTurn ? 14 : 11,
+                    padding: isCurrentTurn ? '1px 8px' : '0px 6px', borderRadius: 12,
+                    minWidth: isCurrentTurn ? 20 : 16, textAlign: 'center'
                 }}>
                     {score}
                 </div>
@@ -194,75 +208,93 @@ export function PlayerCard({ player, isCurrentTurn, hasTradersBuilders, hasInnsC
             )}
 
             {/* 3. Main Content: Split columns if we have a tile preview */}
-            <div style={{ display: 'flex', gap: 16 }}>
+            <div style={{ display: 'flex', gap: isCurrentTurn ? 16 : 4, alignItems: 'center' }}>
 
                 {/* Left Col: Inventory */}
-                <div style={{ display: 'flex', flexDirection: 'column', gap: 8, flex: 1 }}>
-                    {/* Meeple Grid */}
-                    <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap' }}>
-                        <MeepleIcon
-                            type="NORMAL"
-                            count={meeples.available.NORMAL}
-                            label="Nrm"
-                            color={color}
-                            onClick={isCurrentTurn && isMeeplePhase && turnState?.actions.selectMeeple ? () => turnState.actions.selectMeeple?.('NORMAL') : undefined}
-                            isSelected={isMeeplePhase && turnState?.selectedMeepleType === 'NORMAL'}
-                            disabled={!isCurrentTurn || !isMeeplePhase || meeples.available.NORMAL <= 0 || (turnState?.validMeepleTypes && !turnState.validMeepleTypes.includes('NORMAL'))}
-                        />
-                        {(hasInnsCathedrals || hasTradersBuilders) && (
-                            <MeepleIcon
-                                type="BIG"
-                                count={meeples.available.BIG ?? 0}
-                                label="Big"
-                                color={color}
-                                onClick={isCurrentTurn && isMeeplePhase && turnState?.actions.selectMeeple ? () => turnState.actions.selectMeeple?.('BIG') : undefined}
-                                isSelected={isMeeplePhase && turnState?.selectedMeepleType === 'BIG'}
-                                disabled={!isCurrentTurn || !isMeeplePhase || (meeples.available.BIG ?? 0) <= 0 || (turnState?.validMeepleTypes && !turnState.validMeepleTypes.includes('BIG'))}
-                            />
-                        )}
-                        {hasTradersBuilders && (
-                            <>
-                                <MeepleIcon
-                                    type="BUILDER"
-                                    count={meeples.available.BUILDER ?? 0}
-                                    label="Bld"
-                                    color={color}
-                                    onClick={isCurrentTurn && isMeeplePhase && turnState?.actions.selectMeeple ? () => turnState.actions.selectMeeple?.('BUILDER') : undefined}
-                                    isSelected={isMeeplePhase && turnState?.selectedMeepleType === 'BUILDER'}
-                                    disabled={!isCurrentTurn || !isMeeplePhase || (meeples.available.BUILDER ?? 0) <= 0 || (turnState?.validMeepleTypes && !turnState.validMeepleTypes.includes('BUILDER'))}
-                                />
-                                <MeepleIcon
-                                    type="PIG"
-                                    count={meeples.available.PIG ?? 0}
-                                    label="Pig"
-                                    color={color}
-                                    onClick={isCurrentTurn && isMeeplePhase && turnState?.actions.selectMeeple ? () => turnState.actions.selectMeeple?.('PIG') : undefined}
-                                    isSelected={isMeeplePhase && turnState?.selectedMeepleType === 'PIG'}
-                                    disabled={!isCurrentTurn || !isMeeplePhase || (meeples.available.PIG ?? 0) <= 0 || (turnState?.validMeepleTypes && !turnState.validMeepleTypes.includes('PIG'))}
-                                />
-                            </>
-                        )}
+                <div style={{ display: 'flex', flexDirection: isCurrentTurn ? 'column' : 'row', gap: isCurrentTurn ? 8 : 2, flex: isCurrentTurn ? 1 : '0 1 auto', flexWrap: 'wrap', alignItems: isCurrentTurn ? 'flex-start' : 'center' }}>
+                    {/* Meeple Row/Grid */}
+                    <div style={{ display: 'flex', gap: isCurrentTurn ? 6 : 2, flexWrap: 'wrap' }}>
+                        {(() => {
+                            const getAdjustedCount = (type: MeepleType) => {
+                                let count = meeples.available[type] || 0;
+                                if (isCurrentTurn && turnState?.interactionState === 'MEEPLE_SELECTED_TENTATIVELY' && turnState.tentativeMeepleType === type) {
+                                    count = Math.max(0, count - 1);
+                                }
+                                return count;
+                            };
+
+                            return (
+                                <>
+                                    <MeepleIcon
+                                        type="NORMAL"
+                                        count={getAdjustedCount('NORMAL')}
+                                        label={isCurrentTurn ? "Nrm" : ""}
+                                        color={color}
+                                        onClick={isCurrentTurn && isMeeplePhase && turnState?.actions.selectMeeple ? () => turnState.actions.selectMeeple?.('NORMAL') : undefined}
+                                        isSelected={isMeeplePhase && turnState?.selectedMeepleType === 'NORMAL'}
+                                        disabled={!isCurrentTurn || !isMeeplePhase || meeples.available.NORMAL <= 0 || (turnState?.validMeepleTypes && !turnState.validMeepleTypes.includes('NORMAL'))}
+                                        isCompact={!isCurrentTurn}
+                                    />
+                                    {hasInnsCathedrals && (
+                                        <MeepleIcon
+                                            type="BIG"
+                                            count={getAdjustedCount('BIG')}
+                                            label={isCurrentTurn ? "Big" : ""}
+                                            color={color}
+                                            onClick={isCurrentTurn && isMeeplePhase && turnState?.actions.selectMeeple ? () => turnState.actions.selectMeeple?.('BIG') : undefined}
+                                            isSelected={isMeeplePhase && turnState?.selectedMeepleType === 'BIG'}
+                                            disabled={!isCurrentTurn || !isMeeplePhase || (meeples.available.BIG ?? 0) <= 0 || (turnState?.validMeepleTypes && !turnState.validMeepleTypes.includes('BIG'))}
+                                            isCompact={!isCurrentTurn}
+                                        />
+                                    )}
+                                    {hasTradersBuilders && (
+                                        <>
+                                            <MeepleIcon
+                                                type="BUILDER"
+                                                count={getAdjustedCount('BUILDER')}
+                                                label={isCurrentTurn ? "Bld" : ""}
+                                                color={color}
+                                                onClick={isCurrentTurn && isMeeplePhase && turnState?.actions.selectMeeple ? () => turnState.actions.selectMeeple?.('BUILDER') : undefined}
+                                                isSelected={isMeeplePhase && turnState?.selectedMeepleType === 'BUILDER'}
+                                                disabled={!isCurrentTurn || !isMeeplePhase || (meeples.available.BUILDER ?? 0) <= 0 || (turnState?.validMeepleTypes && !turnState.validMeepleTypes.includes('BUILDER'))}
+                                                isCompact={!isCurrentTurn}
+                                            />
+                                            <MeepleIcon
+                                                type="PIG"
+                                                count={getAdjustedCount('PIG')}
+                                                label={isCurrentTurn ? "Pig" : ""}
+                                                color={color}
+                                                onClick={isCurrentTurn && isMeeplePhase && turnState?.actions.selectMeeple ? () => turnState.actions.selectMeeple?.('PIG') : undefined}
+                                                isSelected={isMeeplePhase && turnState?.selectedMeepleType === 'PIG'}
+                                                disabled={!isCurrentTurn || !isMeeplePhase || (meeples.available.PIG ?? 0) <= 0 || (turnState?.validMeepleTypes && !turnState.validMeepleTypes.includes('PIG'))}
+                                                isCompact={!isCurrentTurn}
+                                            />
+                                        </>
+                                    )}
+                                </>
+                            );
+                        })()}
                         {/* Dragon held by this player */}
                         {hasDragonHeldBy === player.id && (
                             <div style={{
                                 display: 'flex',
                                 flexDirection: 'column',
                                 alignItems: 'center',
-                                padding: 4,
+                                padding: isCurrentTurn ? 4 : 2,
                                 borderRadius: 6,
                                 border: `1px solid ${isCurrentTurn && (turnState?.phase === 'DRAGON_ORIENT' || turnState?.phase === 'DRAGON_PLACE') ? '#e74c3c' : '#666'}`,
                                 background: isCurrentTurn && (turnState?.phase === 'DRAGON_ORIENT' || turnState?.phase === 'DRAGON_PLACE')
                                     ? 'rgba(231, 76, 60, 0.15)' : 'transparent',
                             }} title="Dragon">
-                                <div style={{ width: 24, height: 24 }}>
-                                    <svg width="24" height="24" viewBox="0 0 24 24"
+                                <div style={{ width: isCurrentTurn ? 24 : 20, height: isCurrentTurn ? 24 : 20 }}>
+                                    <svg width={isCurrentTurn ? 24 : 20} height={isCurrentTurn ? 24 : 20} viewBox="0 0 24 24"
                                         style={{ filter: 'drop-shadow(0 1px 2px rgba(0,0,0,0.5))' }}>
-                                        <text x="12" y="18" textAnchor="middle" fontSize="16" fill="#e74c3c">
+                                        <text x="12" y="18" textAnchor="middle" fontSize={isCurrentTurn ? 16 : 14} fill="#e74c3c">
                                             🐉
                                         </text>
                                     </svg>
                                 </div>
-                                <div style={{ fontSize: 9, color: '#e74c3c', marginTop: 2, fontWeight: 'bold' }}>Dragon</div>
+                                {isCurrentTurn && <div style={{ fontSize: 9, color: '#e74c3c', marginTop: 2, fontWeight: 'bold' }}>Dragon</div>}
                             </div>
                         )}
                     </div>
@@ -270,13 +302,16 @@ export function PlayerCard({ player, isCurrentTurn, hasTradersBuilders, hasInnsC
                     {/* Goods Collection (Traders) */}
                     {hasTradersBuilders && (
                         <div style={{
-                            display: 'flex', gap: 10,
-                            paddingTop: 8, marginTop: 4,
-                            borderTop: '1px solid rgba(255,255,255,0.1)'
+                            display: 'flex', gap: isCurrentTurn ? 10 : 6,
+                            paddingTop: isCurrentTurn ? 8 : 0, 
+                            marginTop: isCurrentTurn ? 4 : 0,
+                            borderTop: isCurrentTurn ? '1px solid rgba(255,255,255,0.1)' : 'none',
+                            paddingLeft: !isCurrentTurn ? 4 : 0,
+                            borderLeft: !isCurrentTurn ? '1px solid rgba(255,255,255,0.1)' : 'none',
                         }}>
-                            <GoodIcon type="WINE" count={traderTokens?.WINE ?? 0} />
-                            <GoodIcon type="WHEAT" count={traderTokens?.WHEAT ?? 0} />
-                            <GoodIcon type="CLOTH" count={traderTokens?.CLOTH ?? 0} />
+                            <GoodIcon type="WINE" count={traderTokens?.WINE ?? 0} isCompact={!isCurrentTurn} />
+                            <GoodIcon type="WHEAT" count={traderTokens?.WHEAT ?? 0} isCompact={!isCurrentTurn} />
+                            <GoodIcon type="CLOTH" count={traderTokens?.CLOTH ?? 0} isCompact={!isCurrentTurn} />
                         </div>
                     )}
                 </div>
@@ -367,12 +402,7 @@ export function PlayerCard({ player, isCurrentTurn, hasTradersBuilders, hasInnsC
                         ) : (
                             <>
                                 <Button onClick={turnState.actions.undo!} danger style={{ flex: 1 }}>Undo Tile</Button>
-                                <div style={{ display: 'flex', flex: 2, gap: 8 }}>
-                                    <Button onClick={turnState.actions.skip!} style={{ flex: 1 }}>Skip</Button>
-                                    {hasDragonFairy && turnState.actions.startFairyMove && (
-                                        <Button onClick={turnState.actions.startFairyMove} style={{ flex: 1, background: '#f1c40f', color: '#000' }}>Fairy</Button>
-                                    )}
-                                </div>
+                                <Button onClick={turnState.actions.skip!} style={{ flex: 1 }}>Skip Meeple</Button>
                             </>
                         )
                     )}
