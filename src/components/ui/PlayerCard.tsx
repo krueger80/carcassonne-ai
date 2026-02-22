@@ -52,16 +52,30 @@ interface MeepleIconProps {
 const MeepleIcon = ({ type, count, label, color, onClick, isSelected, disabled }: MeepleIconProps) => {
     const isAvailable = count > 0;
     const isInteractive = !!onClick;
+    const isDisabled = isInteractive && disabled;
+    const Component = isInteractive ? 'button' : 'div';
 
     return (
-        <div
-            onClick={!disabled && onClick ? onClick : undefined}
+        <Component
+            onClick={!isDisabled && onClick ? onClick : undefined}
+            disabled={isDisabled ? true : undefined}
+            aria-label={isInteractive ? `${label} meeple, ${count} available` : undefined}
+            aria-pressed={isInteractive ? isSelected : undefined}
+            role={!isInteractive ? 'img' : undefined}
             style={{
+                // Reset button styles
+                appearance: 'none',
+                fontFamily: 'inherit',
+                fontSize: 'inherit',
+                color: 'inherit',
+                textAlign: 'inherit',
+                margin: 0,
+
                 display: 'flex',
                 flexDirection: 'column',
                 alignItems: 'center',
-                opacity: isAvailable ? (isInteractive && disabled ? 0.4 : 1) : 0.3,
-                cursor: isInteractive && !disabled ? 'pointer' : 'default',
+                opacity: isAvailable ? (isDisabled ? 0.4 : 1) : 0.3,
+                cursor: isInteractive && !isDisabled ? 'pointer' : 'default',
                 background: isSelected ? 'rgba(255,255,255,0.1)' : 'transparent',
                 padding: 4,
                 borderRadius: 6,
@@ -93,7 +107,7 @@ const MeepleIcon = ({ type, count, label, color, onClick, isSelected, disabled }
                 </div>
             </div>
             {label && <div style={{ fontSize: 9, color: isSelected ? color : '#aaa', marginTop: 2, fontWeight: isSelected ? 'bold' : 'normal' }}>{label}</div>}
-        </div>
+        </Component>
     );
 };
 
