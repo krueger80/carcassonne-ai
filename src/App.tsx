@@ -2,6 +2,7 @@ import { useGameStore } from './store/gameStore.ts'
 import { useState, useEffect } from 'react'
 import { SetupScreen } from './components/setup/SetupScreen.tsx'
 import { GameBoard } from './components/game/GameBoard.tsx'
+import { AnimationLayer } from './components/game/AnimationLayer.tsx'
 import { EndGameModal } from './components/ui/EndGameModal.tsx'
 import { TileDebugger } from './components/debug/TileDebugger.tsx'
 
@@ -9,8 +10,16 @@ import { CarcassonneGallery } from './components/CarcassonneGallery.tsx'
 
 function App() {
   const { gameState, refreshDefinitions } = useGameStore()
-  const [showDebug] = useState(window.location.hash === '#debug')
-  const [showGallery] = useState(window.location.hash === '#gallery')
+  const [currentHash, setCurrentHash] = useState(window.location.hash)
+
+  useEffect(() => {
+    const handleHashChange = () => setCurrentHash(window.location.hash)
+    window.addEventListener('hashchange', handleHashChange)
+    return () => window.removeEventListener('hashchange', handleHashChange)
+  }, [])
+
+  const showDebug = currentHash === '#debug' || currentHash === '#config'
+  const showGallery = currentHash === '#gallery' || currentHash === '#catalog'
 
   useEffect(() => {
     // Refresh definitions from DB on mount so that persisted games get logic updates
@@ -50,13 +59,7 @@ function GameScreen() {
   return (
     <div style={{ width: '100vw', height: '100vh', overflow: 'hidden', position: 'relative' }}>
       <GameBoard />
-
-      {/* 
-        GameOverlay is rendered INSIDE GameBoard now to sit on top of the board 
-        but share the relative container? 
-        Actually, GameBoard renders GameOverlay at the end.
-        So here we just render GameBoard.
-      */}
+      <AnimationLayer />
     </div>
   )
 }

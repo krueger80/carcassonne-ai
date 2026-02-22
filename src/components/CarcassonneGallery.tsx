@@ -46,7 +46,22 @@ export const CarcassonneGallery: React.FC = () => {
 
     return (
         <div className="gallery-container" style={{ padding: '20px', background: '#1a1a2e', minHeight: '100vh', color: '#eee', fontFamily: 'sans-serif' }}>
-            <h2 style={{ color: '#e8d8a0', borderBottom: '1px solid #444', paddingBottom: '10px' }}>Carcassonne Tile Gallery</h2>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', borderBottom: '1px solid #444', marginBottom: '20px', paddingBottom: '10px' }}>
+                <h2 style={{ color: '#e8d8a0', margin: 0 }}>Carcassonne Tile Gallery</h2>
+                <button
+                    onClick={() => window.location.hash = ''}
+                    style={{
+                        padding: '8px 16px',
+                        background: '#3a3a4a',
+                        border: '1px solid #555',
+                        color: 'white',
+                        borderRadius: 6,
+                        cursor: 'pointer'
+                    }}
+                >
+                    ← Back to App
+                </button>
+            </div>
 
             <div className="filters-container" style={{ display: 'flex', gap: '15px', flexWrap: 'wrap', justifyContent: 'center', marginBottom: '1rem' }}>
                 <div className="filter-group">

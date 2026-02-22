@@ -9,11 +9,23 @@ interface ScorePopup {
   color: string
 }
 
+export interface FlyingElement {
+  id: string
+  type: 'MEEPLE' | 'POINTS'
+  startBoardCoord: { x: number; y: number } // board coords (x,y)
+  startBoardNode?: { x: number; y: number } // segment centroid in 0-100 units on tile
+  targetPlayerId: string
+  color: string
+  amount?: number
+  meepleType?: MeepleType
+}
+
 interface UIStore {
   boardScale: number
   boardOffset: { x: number; y: number }
   hoveredCoord: { x: number; y: number } | null
   activeScorePopups: ScorePopup[]
+  flyingElements: FlyingElement[]
   showDevGallery: boolean
   selectedMeepleType: MeepleType
 
@@ -22,6 +34,8 @@ interface UIStore {
   setHoveredCoord: (coord: { x: number; y: number } | null) => void
   addScorePopup: (popup: ScorePopup) => void
   dismissScorePopup: (id: string) => void
+  addFlyingElement: (element: FlyingElement) => void
+  removeFlyingElement: (id: string) => void
   toggleDevGallery: () => void
   resetView: () => void
   setSelectedMeepleType: (type: MeepleType) => void
@@ -32,6 +46,7 @@ export const useUIStore = create<UIStore>((set) => ({
   boardOffset: { x: 0, y: 0 },
   hoveredCoord: null,
   activeScorePopups: [],
+  flyingElements: [],
   showDevGallery: false,
   selectedMeepleType: 'NORMAL' as MeepleType,
 
@@ -49,6 +64,14 @@ export const useUIStore = create<UIStore>((set) => ({
 
   dismissScorePopup: (id) => set((s) => ({
     activeScorePopups: s.activeScorePopups.filter(p => p.id !== id),
+  })),
+
+  addFlyingElement: (element) => set((s) => ({
+    flyingElements: [...s.flyingElements, element],
+  })),
+
+  removeFlyingElement: (id) => set((s) => ({
+    flyingElements: s.flyingElements.filter(e => e.id !== id),
   })),
 
   toggleDevGallery: () => set((s) => ({ showDevGallery: !s.showDevGallery })),

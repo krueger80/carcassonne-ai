@@ -8,8 +8,8 @@
  *  - All other features score per base rules.
  */
 
-import type { ScoringRule } from '../engine/ScoreCalculator.ts'
-import type { Feature } from '../types/feature.ts'
+import { ScoringRule, countAdjacentCompletedCities } from '../engine/ScoreCalculator.ts'
+import type { Feature, UnionFindState } from '../types/feature.ts'
 import type { Player } from '../types/player.ts'
 import { TB_TILES } from '../data/tradersBuildersTiles.ts'
 
@@ -24,6 +24,7 @@ function farmDistributeScore(
   feature: Feature,
   _isComplete: boolean,
   _players: Player[],
+  state: UnionFindState,
 ): Record<string, number> {
   if (feature.meeples.length === 0) return {}
 
@@ -45,10 +46,12 @@ function farmDistributeScore(
   const maxCount = Math.max(...Object.values(counts))
   const result: Record<string, number> = {}
 
+  const cityCount = countAdjacentCompletedCities(feature, state)
+
   for (const [playerId, count] of Object.entries(counts)) {
     if (count === maxCount) {
       const ptsPerCity = pigOwners.has(playerId) ? 4 : 3
-      result[playerId] = feature.adjacentCompletedCities * ptsPerCity
+      result[playerId] = cityCount * ptsPerCity
     }
   }
 
@@ -75,8 +78,8 @@ export const TB_SCORING_RULES: ScoringRule[] = [
   },
   {
     featureType: 'FIELD',
-    scoreComplete: (f) => f.adjacentCompletedCities * 3,
-    scoreIncomplete: (f) => f.adjacentCompletedCities * 3,
+    scoreComplete: (f, state) => countAdjacentCompletedCities(f, state) * 3,
+    scoreIncomplete: (f, state) => countAdjacentCompletedCities(f, state) * 3,
     distributeScore: farmDistributeScore,
   },
 ]

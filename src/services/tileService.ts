@@ -21,6 +21,7 @@ export const tileService = {
             imageUrl: row.image_url,
             count: row.count,
             expansionId: row.expansion,
+            version: row.version,
             // config merges in
             segments: row.config?.segments || [],
             edgePositionToSegment: row.config?.edgePositionToSegment || {},
@@ -28,6 +29,7 @@ export const tileService = {
             isDragonHoard: row.config?.isDragonHoard || row.config?.isVolcano || row.config?.hasDragonHoard,
             hasDragon: row.config?.hasDragon,
             hasMagicPortal: row.config?.hasMagicPortal,
+            adjacencies: row.config?.adjacencies,
         }))
     },
 
@@ -45,6 +47,7 @@ export const tileService = {
                 ...(def.isDragonHoard != null && { isDragonHoard: def.isDragonHoard }),
                 ...(def.hasDragon != null && { hasDragon: def.hasDragon }),
                 ...(def.hasMagicPortal != null && { hasMagicPortal: def.hasMagicPortal }),
+                ...(def.adjacencies != null && { adjacencies: def.adjacencies }),
             }
         }
 

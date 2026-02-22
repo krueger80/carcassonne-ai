@@ -6,7 +6,7 @@
  * Dragon/Fairy mechanics are handled in GameEngine turn flow.
  */
 
-import type { ScoringRule } from '../engine/ScoreCalculator.ts'
+import { ScoringRule, countAdjacentCompletedCities } from '../engine/ScoreCalculator.ts'
 import type { Coordinate } from '../types/board.ts'
 import type { Direction } from '../types/tile.ts'
 import { DF_TILES } from '../data/dragonFairyTiles.ts'
@@ -69,8 +69,8 @@ export const DF_SCORING_RULES: ScoringRule[] = [
   },
   {
     featureType: 'FIELD',
-    scoreComplete: (f) => f.adjacentCompletedCities * 3,
-    scoreIncomplete: (f) => f.adjacentCompletedCities * 3,
+    scoreComplete: (f, state) => countAdjacentCompletedCities(f, state) * 3,
+    scoreIncomplete: (f, state) => countAdjacentCompletedCities(f, state) * 3,
   },
 ]
 

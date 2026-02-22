@@ -127,7 +127,7 @@ export function GameOverlay() {
         const { magicPortalTargets } = useGameStore.getState()
         const hasPortal = magicPortalTargets.length > 0
         if (interactionState === 'MEEPLE_SELECTED_TENTATIVELY') {
-            instructionText = 'Confirm Meeple'
+            instructionText = 'Confirm or click meeple to remove'
         } else if (hasPortal) {
             instructionText = '🌀 Portal: Place Meeple Anywhere!'
         } else {
@@ -143,7 +143,7 @@ export function GameOverlay() {
     } else if (turnPhase === 'DRAGON_MOVEMENT') {
         instructionText = '🐉 Dragon Moving...'
     } else if (turnPhase === 'FAIRY_MOVE') {
-        instructionText = 'Move Fairy or Skip'
+        instructionText = '✨ Place Fairy on a Meeple'
     } else if (turnPhase === 'SCORE') {
         instructionText = 'Turn ending...'
     }
@@ -304,6 +304,56 @@ export function GameOverlay() {
                                     onMouseLeave={(e) => (e.currentTarget.style.background = '#3a3a4a')}
                                 >
                                     <span>🔄</span> New Game
+                                </button>
+
+                                <button
+                                    onClick={(e) => {
+                                        e.stopPropagation()
+                                        window.location.hash = '#catalog'
+                                        setIsMenuOpen(false)
+                                    }}
+                                    style={{
+                                        background: '#3a3a4a',
+                                        border: 'none',
+                                        borderRadius: 6,
+                                        color: 'white',
+                                        padding: '10px',
+                                        cursor: 'pointer',
+                                        textAlign: 'left',
+                                        transition: 'background 0.2s',
+                                        display: 'flex',
+                                        alignItems: 'center',
+                                        gap: 8,
+                                    }}
+                                    onMouseEnter={(e) => (e.currentTarget.style.background = '#4a4a5a')}
+                                    onMouseLeave={(e) => (e.currentTarget.style.background = '#3a3a4a')}
+                                >
+                                    <span>📚</span> Extension Catalog
+                                </button>
+
+                                <button
+                                    onClick={(e) => {
+                                        e.stopPropagation()
+                                        window.location.hash = '#debug'
+                                        setIsMenuOpen(false)
+                                    }}
+                                    style={{
+                                        background: '#3a4a3a',
+                                        border: 'none',
+                                        borderRadius: 6,
+                                        color: '#cfc',
+                                        padding: '10px',
+                                        cursor: 'pointer',
+                                        textAlign: 'left',
+                                        transition: 'background 0.2s',
+                                        display: 'flex',
+                                        alignItems: 'center',
+                                        gap: 8,
+                                    }}
+                                    onMouseEnter={(e) => (e.currentTarget.style.background = '#4a5a4a')}
+                                    onMouseLeave={(e) => (e.currentTarget.style.background = '#3a4a3a')}
+                                >
+                                    <span>🔧</span> Debug Configurator
                                 </button>
                             </motion.div>
                         )}

@@ -19,7 +19,7 @@ export const PLAYER_COLORS = [
   '#2ecc71',  // green
   '#f39c12',  // yellow
   '#9b59b6',  // purple
-  '#1abc9c',  // teal
+  '#ff69b4',  // pink
 ] as const
 
 export interface Player {

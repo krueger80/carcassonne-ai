@@ -216,6 +216,7 @@ const BoardGrid = memo(({
                         tentativeMeepleType={tentativeSegHere ? tentativeMeepleType : undefined}
                         currentPlayerColor={currentPlayer?.color}
                         fairySegmentId={fairySegmentMap[key]}
+                        isFairyMovePhase={isFairyPhase}
                       />
                       {isDragonPlaceTarget && !hasDragon && (
                         <div style={{ position: 'absolute', inset: 0, zIndex: 15, display: 'flex', alignItems: 'center', justifyContent: 'center', background: 'rgba(231, 76, 60, 0.08)' }}>
@@ -445,9 +446,8 @@ export function GameBoard() {
     return new Set(dragonPlaceTargets.map(c => `${c.x},${c.y}`))
   }, [isDragonPlacePhase, dragonPlaceTargets])
 
-  const validSet = new Set(validPlacements.map(c => `${c.x},${c.y}`))
+  const validSet = useMemo(() => new Set(validPlacements.map(c => `${c.x},${c.y}`)), [validPlacements])
 
-  // Fairy segment map: "x,y" -> segmentId
   const fairySegmentMap = useMemo<Record<string, string>>(() => {
     if (!dfData?.fairyPosition) return {}
     const { coordinate, segmentId } = dfData.fairyPosition
@@ -478,6 +478,15 @@ export function GameBoard() {
 
   const boardWidth = (maxX - minX + 1) * CELL_SIZE
   const boardHeight = (maxY - minY + 1) * CELL_SIZE
+
+  // Stable callback wrappers
+  const handleRotateTentativeTile = useCallback(() => rotateTentativeTile(), [rotateTentativeTile])
+  const handleSelectTilePlacement = useCallback((coord: any) => selectTilePlacement(coord), [selectTilePlacement])
+  const handleSelectMeeplePlacement = useCallback((segId: string, type: any, coord?: any) => selectMeeplePlacement(segId, type, coord), [selectMeeplePlacement])
+  const handleCycleDragonFacing = useCallback(() => cycleDragonFacing(), [cycleDragonFacing])
+  const handlePlaceDragonOnHoard = useCallback((coord: any) => placeDragonOnHoard(coord), [placeDragonOnHoard])
+  const handleMoveFairy = useCallback((coord: any, segId: string) => moveFairy(coord, segId), [moveFairy])
+  const handleSetHoveredCoord = useCallback((coord: any) => setHoveredCoord(coord), [setHoveredCoord])
 
   return (
     <div
@@ -535,13 +544,13 @@ export function GameBoard() {
           isDragonPlacePhase={isDragonPlacePhase}
           isFairyPhase={isFairyPhase}
           hasPortalTargets={hasPortalTargets}
-          rotateTentativeTile={rotateTentativeTile}
-          selectTilePlacement={selectTilePlacement}
-          selectMeeplePlacement={selectMeeplePlacement}
-          cycleDragonFacing={cycleDragonFacing}
-          placeDragonOnHoard={placeDragonOnHoard}
-          moveFairy={moveFairy}
-          setHoveredCoord={setHoveredCoord}
+          rotateTentativeTile={handleRotateTentativeTile}
+          selectTilePlacement={handleSelectTilePlacement}
+          selectMeeplePlacement={handleSelectMeeplePlacement}
+          cycleDragonFacing={handleCycleDragonFacing}
+          placeDragonOnHoard={handlePlaceDragonOnHoard}
+          moveFairy={handleMoveFairy}
+          setHoveredCoord={handleSetHoveredCoord}
           selectedMeepleType={selectedMeepleType}
           currentPlayer={currentPlayer}
         />

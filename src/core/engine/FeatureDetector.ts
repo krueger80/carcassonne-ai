@@ -136,7 +136,7 @@ function ufUnion(state: UnionFindState, keyA: string, keyB: string): string {
     pennantCount: featureA_data.pennantCount + featureB_data.pennantCount,
     // -2 per ufUnion call: each call represents exactly one connection (2 ends) being closed.
     openEdgeCount: featureA_data.openEdgeCount + featureB_data.openEdgeCount - 2,
-    adjacentCompletedCities: featureA_data.adjacentCompletedCities + featureB_data.adjacentCompletedCities,
+    touchingCityIds: [...new Set([...featureA_data.touchingCityIds, ...featureB_data.touchingCityIds])],
     isComplete: false,  // recalculated below
     metadata: mergeMetadata(featureA_data.metadata, featureB_data.metadata),
   }
@@ -155,7 +155,7 @@ function createEmptyFeature(id: string, type: Feature['type']): Feature {
   return {
     id, type, nodes: [], meeples: [],
     isComplete: false, tileCount: 0, pennantCount: 0,
-    openEdgeCount: 0, adjacentCompletedCities: 0, metadata: {},
+    openEdgeCount: 0, touchingCityIds: [], metadata: {},
   }
 }
 
@@ -215,6 +215,11 @@ export function addTileToUnionFind(
 
     const openEdges = countOpenEdgePositions(physicalEdgePositions)
 
+    // Initial adjacencies from tile definition
+    const initialTouchIds = (def.adjacencies ?? [])
+      .filter(([a, b]) => a === seg.id || b === seg.id)
+      .map(([a, b]) => nodeKey(coord, a === seg.id ? b : a))
+
     const feature: Feature = {
       id: key,
       type: seg.type,
@@ -224,7 +229,7 @@ export function addTileToUnionFind(
       tileCount: 1,
       pennantCount: seg.hasPennant ? 1 : 0,
       openEdgeCount: openEdges,
-      adjacentCompletedCities: 0,
+      touchingCityIds: initialTouchIds,
       metadata: {
         ...(seg.hasInn ? { hasInn: true } : {}),
         ...(seg.hasCathedral ? { hasCathedral: true } : {}),
@@ -341,7 +346,7 @@ export function addTileToUnionFind(
           tileCount: surroundCount + 1,  // including the cloister tile itself
           pennantCount: 0,
           openEdgeCount: 8 - surroundCount,
-          adjacentCompletedCities: 0,
+          touchingCityIds: [],
           metadata: {},
         }
         ufMakeSet(working, cloisterNodeKey, feature)
@@ -421,6 +426,13 @@ export function getNodeKey(coord: Coordinate, segmentId: string): string {
 export function featureHasMeeples(state: UnionFindState, nKey: string): boolean {
   const feature = getFeature(state, nKey)
   return (feature?.meeples.length ?? 0) > 0
+}
+
+/**
+ * Resolve the root ID for a node key.
+ */
+export function getFeatureRoot(state: UnionFindState, key: string): string {
+  return ufFindReadOnly(state, key)
 }
 
 /**

@@ -67,7 +67,7 @@ export function NewGameScreen({ currentConfig, onStart, onCancel }: NewGameScree
                 <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
                     <label style={{ color: '#aaa', fontSize: 14 }}>Number of Players</label>
                     <div style={{ display: 'flex', gap: 12 }}>
-                        {[2, 3, 4, 5].map(count => (
+                        {[2, 3, 4, 5, 6].map(count => (
                             <button
                                 key={count}
                                 onClick={() => setPlayerCount(count)}

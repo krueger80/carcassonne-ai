@@ -58,7 +58,7 @@ const COMMODITY_IMAGES = {
 interface MeepleIconProps {
     type: MeepleType;
     count: number;
-    label: string;
+    tooltip: string;
     color: string;
     onClick?: () => void;
     isSelected?: boolean;
@@ -66,7 +66,7 @@ interface MeepleIconProps {
     isCompact?: boolean;
 }
 
-const MeepleIcon = ({ type, count, label, color, onClick, isSelected, disabled, isCompact }: MeepleIconProps) => {
+const MeepleIcon = ({ type, count, tooltip, color, onClick, isSelected, disabled, isCompact }: MeepleIconProps) => {
     const isAvailable = count > 0;
     const isInteractive = !!onClick;
     const size = isCompact ? 20 : 24;
@@ -86,13 +86,13 @@ const MeepleIcon = ({ type, count, label, color, onClick, isSelected, disabled, 
                 border: isSelected ? `1px solid ${color}` : '1px solid transparent',
                 transition: 'all 0.2s'
             }}
-            title={label}
+            title={tooltip}
         >
             <div style={{ width: size, height: size, position: 'relative' }}>
-                <svg width={size} height={size} viewBox="0 0 24 24" style={{ filter: 'drop-shadow(0 1px 2px rgba(0,0,0,0.5))' }}>
+                <svg width={size} height={size} viewBox="0 0 24 24" style={{ filter: 'drop-shadow(0 1px 2px rgba(0,0,0,0.5))', overflow: 'visible' }}>
                     <MeepleSVG
                         color={color}
-                        x={12} y={12}
+                        x={12} y={20}
                         size={type === 'BIG' ? 9 : 8}
                         isBig={type === 'BIG'}
                         isBuilder={type === 'BUILDER'}
@@ -110,7 +110,6 @@ const MeepleIcon = ({ type, count, label, color, onClick, isSelected, disabled, 
                     {count}
                 </div>
             </div>
-            {label && <div style={{ fontSize: 9, color: isSelected ? color : '#aaa', marginTop: 2, fontWeight: isSelected ? 'bold' : 'normal' }}>{label}</div>}
         </div>
     );
 };
@@ -152,8 +151,10 @@ export function PlayerCard({ player, isCurrentTurn, hasTradersBuilders, hasInnsC
     const isMeeplePhase = turnState?.phase === 'PLACE_MEEPLE';
 
     return (
-        <div style={{
-            background: isCurrentTurn ? 'rgba(35, 40, 50, 0.95)' : 'rgba(30, 30, 40, 0.85)',
+        <div 
+            id={`player-card-${player.id}`}
+            style={{
+                background: isCurrentTurn ? 'rgba(35, 40, 50, 0.95)' : 'rgba(30, 30, 40, 0.85)',
             borderLeft: `${isCurrentTurn ? 4 : 3}px solid ${color}`,
             borderRadius: 12,
             padding: isCurrentTurn ? 12 : 6,
@@ -228,7 +229,7 @@ export function PlayerCard({ player, isCurrentTurn, hasTradersBuilders, hasInnsC
                                     <MeepleIcon
                                         type="NORMAL"
                                         count={getAdjustedCount('NORMAL')}
-                                        label={isCurrentTurn ? "Nrm" : ""}
+                                        tooltip="Meeple"
                                         color={color}
                                         onClick={isCurrentTurn && isMeeplePhase && turnState?.actions.selectMeeple ? () => turnState.actions.selectMeeple?.('NORMAL') : undefined}
                                         isSelected={isMeeplePhase && turnState?.selectedMeepleType === 'NORMAL'}
@@ -239,7 +240,7 @@ export function PlayerCard({ player, isCurrentTurn, hasTradersBuilders, hasInnsC
                                         <MeepleIcon
                                             type="BIG"
                                             count={getAdjustedCount('BIG')}
-                                            label={isCurrentTurn ? "Big" : ""}
+                                            tooltip="Big Meeple"
                                             color={color}
                                             onClick={isCurrentTurn && isMeeplePhase && turnState?.actions.selectMeeple ? () => turnState.actions.selectMeeple?.('BIG') : undefined}
                                             isSelected={isMeeplePhase && turnState?.selectedMeepleType === 'BIG'}
@@ -252,7 +253,7 @@ export function PlayerCard({ player, isCurrentTurn, hasTradersBuilders, hasInnsC
                                             <MeepleIcon
                                                 type="BUILDER"
                                                 count={getAdjustedCount('BUILDER')}
-                                                label={isCurrentTurn ? "Bld" : ""}
+                                                tooltip="Builder"
                                                 color={color}
                                                 onClick={isCurrentTurn && isMeeplePhase && turnState?.actions.selectMeeple ? () => turnState.actions.selectMeeple?.('BUILDER') : undefined}
                                                 isSelected={isMeeplePhase && turnState?.selectedMeepleType === 'BUILDER'}
@@ -262,7 +263,7 @@ export function PlayerCard({ player, isCurrentTurn, hasTradersBuilders, hasInnsC
                                             <MeepleIcon
                                                 type="PIG"
                                                 count={getAdjustedCount('PIG')}
-                                                label={isCurrentTurn ? "Pig" : ""}
+                                                tooltip="Pig"
                                                 color={color}
                                                 onClick={isCurrentTurn && isMeeplePhase && turnState?.actions.selectMeeple ? () => turnState.actions.selectMeeple?.('PIG') : undefined}
                                                 isSelected={isMeeplePhase && turnState?.selectedMeepleType === 'PIG'}

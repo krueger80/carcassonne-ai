@@ -26,7 +26,7 @@ function makeFeature(overrides: Partial<Feature>): Feature {
     tileCount: 1,
     pennantCount: 0,
     openEdgeCount: 0,
-    adjacentCompletedCities: 0,
+    touchingCityIds: [],
     metadata: {},
     ...overrides,
   }
@@ -125,7 +125,7 @@ describe('IC scoring rules', () => {
         meeples: [{ playerId: 'p1', meepleType: 'NORMAL', segmentId: 'road0' }],
       })
       const rule = IC_SCORING_RULES.find(r => r.featureType === 'ROAD')!
-      expect(rule.scoreComplete(feature)).toBe(6) // 3 * 2
+      expect(rule.scoreComplete(feature, emptyUnionFindState())).toBe(6) // 3 * 2
     })
 
     it('incomplete road with inn scores 0', () => {
@@ -137,7 +137,7 @@ describe('IC scoring rules', () => {
         meeples: [{ playerId: 'p1', meepleType: 'NORMAL', segmentId: 'road0' }],
       })
       const rule = IC_SCORING_RULES.find(r => r.featureType === 'ROAD')!
-      expect(rule.scoreIncomplete(feature)).toBe(0)
+      expect(rule.scoreIncomplete(feature, emptyUnionFindState())).toBe(0)
     })
 
     it('road without inn scores normally', () => {
@@ -148,8 +148,9 @@ describe('IC scoring rules', () => {
         metadata: {},
         meeples: [{ playerId: 'p1', meepleType: 'NORMAL', segmentId: 'road0' }],
       })
-      const rule = IC_SCORING_RULES.find(r => r.featureType === 'ROAD')!
-      expect(rule.scoreComplete(feature)).toBe(4) // 4 * 1
+            const rule = IC_SCORING_RULES.find(r => r.featureType === 'ROAD')!
+            expect(rule.scoreComplete(feature, emptyUnionFindState())).toBe(4)
+       // 4 * 1
       expect(rule.scoreIncomplete(feature)).toBe(4)
     })
   })
@@ -165,7 +166,7 @@ describe('IC scoring rules', () => {
         meeples: [{ playerId: 'p1', meepleType: 'NORMAL', segmentId: 'city0' }],
       })
       const rule = IC_SCORING_RULES.find(r => r.featureType === 'CITY')!
-      expect(rule.scoreComplete(feature)).toBe(12) // (3 + 1) * 3
+      expect(rule.scoreComplete(feature, emptyUnionFindState())).toBe(12) // (3 + 1) * 3
     })
 
     it('incomplete city with cathedral scores 0', () => {
@@ -178,7 +179,7 @@ describe('IC scoring rules', () => {
         meeples: [{ playerId: 'p1', meepleType: 'NORMAL', segmentId: 'city0' }],
       })
       const rule = IC_SCORING_RULES.find(r => r.featureType === 'CITY')!
-      expect(rule.scoreIncomplete(feature)).toBe(0)
+      expect(rule.scoreIncomplete(feature, emptyUnionFindState())).toBe(0)
     })
 
     it('city without cathedral scores normally', () => {
@@ -191,7 +192,7 @@ describe('IC scoring rules', () => {
         meeples: [{ playerId: 'p1', meepleType: 'NORMAL', segmentId: 'city0' }],
       })
       const rule = IC_SCORING_RULES.find(r => r.featureType === 'CITY')!
-      expect(rule.scoreComplete(feature)).toBe(6) // (2 + 1) * 2
+      expect(rule.scoreComplete(feature, emptyUnionFindState())).toBe(6) // (2 + 1) * 2
       expect(rule.scoreIncomplete(feature)).toBe(3) // 2 + 1
     })
   })

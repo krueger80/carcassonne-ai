@@ -1,20 +1,33 @@
 import type { Feature, UnionFindState } from '../types/feature.ts'
 import type { Player } from '../types/player.ts'
 import type { ScoreEvent } from '../types/game.ts'
-import { getAllFeatures } from './FeatureDetector.ts'
+import { getAllFeatures, getFeatureRoot } from './FeatureDetector.ts'
 
 // ─── Scoring rules ────────────────────────────────────────────────────────────
 
 export interface ScoringRule {
   featureType: Feature['type']
-  scoreComplete(feature: Feature): number
-  scoreIncomplete(feature: Feature): number
+  scoreComplete(feature: Feature, state: UnionFindState): number
+  scoreIncomplete(feature: Feature, state: UnionFindState): number
   /**
    * Optional override: compute the full per-player score map instead of the
    * uniform scalar + distributeMajorityScore path. Used by the T&B pig rule
    * where different majority holders may score different amounts.
    */
-  distributeScore?(feature: Feature, isComplete: boolean, players: Player[]): Record<string, number>
+  distributeScore?(feature: Feature, isComplete: boolean, players: Player[], state: UnionFindState): Record<string, number>
+}
+
+/**
+ * Count unique completed cities adjacent to a field feature.
+ */
+export function countAdjacentCompletedCities(feature: Feature, state: UnionFindState): number {
+  if (feature.type !== 'FIELD') return 0
+  const cityRoots = new Set(
+    feature.touchingCityIds
+      .map(key => getFeatureRoot(state, key))
+      .filter(root => state.featureData[root]?.isComplete)
+  )
+  return cityRoots.size
 }
 
 export const BASE_SCORING_RULES: ScoringRule[] = [
@@ -35,8 +48,8 @@ export const BASE_SCORING_RULES: ScoringRule[] = [
   },
   {
     featureType: 'FIELD',
-    scoreComplete: (f) => f.adjacentCompletedCities * 3,
-    scoreIncomplete: (f) => f.adjacentCompletedCities * 3,
+    scoreComplete: (f, state) => countAdjacentCompletedCities(f, state) * 3,
+    scoreIncomplete: (f, state) => countAdjacentCompletedCities(f, state) * 3,
   },
 ]
 
@@ -111,10 +124,12 @@ export function scoreCompletedFeatures(
     if (!rule) continue
 
     const scores = rule.distributeScore
-      ? rule.distributeScore(feature, true, players)
-      : distributeMajorityScore(feature, rule.scoreComplete(feature))
+      ? rule.distributeScore(feature, true, players, state)
+      : distributeMajorityScore(feature, rule.scoreComplete(feature, state))
 
-    events.push(buildScoreEvent(feature, scores, false))
+    if (feature.meeples.length > 0) {
+      events.push(buildScoreEvent(feature, scores, false))
+    }
   }
 
   return events
@@ -146,8 +161,8 @@ export function scoreAllRemainingFeatures(
     if (!rule) continue
 
     const scores = rule.distributeScore
-      ? rule.distributeScore(feature, false, players)
-      : distributeMajorityScore(feature, rule.scoreIncomplete(feature))
+      ? rule.distributeScore(feature, false, players, state)
+      : distributeMajorityScore(feature, rule.scoreIncomplete(feature, state))
 
     if (Object.keys(scores).length > 0) {
       events.push(buildScoreEvent(feature, scores, true))
@@ -162,9 +177,9 @@ export function scoreAllRemainingFeatures(
       if (feature.meeples.length === 0) continue
 
       const scores = fieldRule.distributeScore
-        ? fieldRule.distributeScore(feature, false, players)
+        ? fieldRule.distributeScore(feature, false, players, state)
         : (() => {
-            const points = fieldRule.scoreIncomplete(feature)
+            const points = fieldRule.scoreIncomplete(feature, state)
             return points === 0 ? {} : distributeMajorityScore(feature, points)
           })()
 

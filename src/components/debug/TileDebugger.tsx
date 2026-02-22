@@ -74,9 +74,22 @@ export function TileDebugger() {
     }
 
     const handleSegmentUpdate = (segId: string, updates: Partial<Segment>) => {
-        const newSegments = activeTile.segments.map(s =>
-            s.id === segId ? { ...s, ...updates } : s
-        )
+        const newSegments = activeTile.segments.map(s => {
+            if (s.id !== segId) return s
+
+            const next = { ...s, ...updates }
+
+            // Cleanup flags incompatible with new type
+            if (next.type !== 'CITY') {
+                delete next.hasPennant
+                delete next.hasCathedral
+                delete next.commodity
+            }
+            if (next.type !== 'ROAD') {
+                delete next.hasInn
+            }
+            return next
+        })
         handleUpdate({ segments: newSegments })
     }
 
@@ -197,6 +210,21 @@ export function TileDebugger() {
                     </div>
 
                     <div style={{ display: 'flex', gap: 10 }}>
+                        <button
+                            onClick={() => window.location.hash = ''}
+                            style={{
+                                padding: '10px 20px',
+                                background: '#3a3a4a',
+                                color: 'white',
+                                border: '1px solid #555',
+                                borderRadius: 4,
+                                cursor: 'pointer',
+                                fontSize: 14,
+                            }}
+                        >
+                            Close
+                        </button>
+
                         <button
                             onClick={handleSaveAll}
                             disabled={changesCount === 0}
@@ -329,6 +357,8 @@ export function TileDebugger() {
             <EditorArea
                 tile={activeTile}
                 activeSegmentId={selectedSegmentId}
+                onUpdate={handleUpdate}
+                onSelectSegment={setSelectedSegmentId}
                 onSegmentUpdate={handleSegmentUpdate}
                 onEdgeUpdate={handleEdgeUpdate}
             />
@@ -344,6 +374,7 @@ export function TileDebugger() {
                 onAddSegment={handleAddSegment}
                 onDeleteSegment={handleDeleteSegment}
                 onSave={handleSave}
+                onSetToast={setToast}
             />
             {toast && (
                 <div style={{
@@ -362,10 +393,12 @@ export function TileDebugger() {
 // ------------------------------------------------------------------
 
 function EditorArea({
-    tile, activeSegmentId, onSegmentUpdate, onEdgeUpdate
+    tile, activeSegmentId, onUpdate, onSelectSegment, onSegmentUpdate, onEdgeUpdate
 }: {
     tile: TileDefinition,
     activeSegmentId: string | null,
+    onUpdate: (u: Partial<TileDefinition>) => void,
+    onSelectSegment: (id: string | null) => void,
     onSegmentUpdate: (id: string, u: Partial<Segment>) => void,
     onEdgeUpdate: (pos: EdgePosition, segId: string) => void
 }) {
@@ -394,6 +427,8 @@ function EditorArea({
                 <EditorCanvas
                     tile={tile}
                     activeSegmentId={activeSegmentId}
+                    onUpdate={onUpdate}
+                    onSelectSegment={onSelectSegment}
                     onSegmentUpdate={onSegmentUpdate}
                     onEdgeUpdate={onEdgeUpdate}
                     showSchematic={showSchematic}
@@ -409,7 +444,7 @@ function EditorArea({
 
 function PropertiesPanel({
     tile, editedTiles, selectedSegmentId, onSelectSegment,
-    onUpdate, onSegmentUpdate, onAddSegment, onDeleteSegment, onSave
+    onUpdate, onSegmentUpdate, onAddSegment, onDeleteSegment, onSave, onSetToast
 }: {
     tile: TileDefinition,
     editedTiles: any,
@@ -419,7 +454,8 @@ function PropertiesPanel({
     onSegmentUpdate: (id: string, u: Partial<Segment>) => void,
     onAddSegment: (type?: FeatureType) => void,
     onDeleteSegment: (id: string) => void,
-    onSave: () => void
+    onSave: () => void,
+    onSetToast: (t: { message: string, type: 'success' | 'error' } | null) => void
 }) {
 
 
@@ -507,6 +543,49 @@ function PropertiesPanel({
             </div>
 
             <div style={{ flex: 1, overflowY: 'auto' }}>
+                <h4 style={{ margin: '15px 0 5px 0' }}>Adjacencies (Touching Segments)</h4>
+                <div style={{ background: '#333', padding: 10, borderRadius: 4, marginBottom: 20 }}>
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: 5 }}>
+                        {(tile.adjacencies || []).map(([id1, id2], idx) => (
+                            <div key={idx} style={{ display: 'flex', gap: 10, alignItems: 'center', background: '#222', padding: '4px 8px', borderRadius: 4 }}>
+                                <span style={{ fontSize: 12, flex: 1 }}>{id1} ↔ {id2}</span>
+                                <button
+                                    onClick={() => {
+                                        const newAdj = (tile.adjacencies || []).filter((_, i) => i !== idx)
+                                        onUpdate({ adjacencies: newAdj.length > 0 ? newAdj : undefined })
+                                    }}
+                                    style={{ background: '#600', color: '#fff', border: 'none', borderRadius: 3, padding: '2px 6px', cursor: 'pointer', fontSize: 10 }}
+                                >Remove</button>
+                            </div>
+                        ))}
+                    </div>
+                    <div style={{ marginTop: 10, display: 'flex', gap: 5 }}>
+                        <select id="adj-source" style={{ flex: 1, fontSize: 11 }}>
+                            <option value="">Source...</option>
+                            {tile.segments.map(s => <option key={s.id} value={s.id}>{s.id}</option>)}
+                        </select>
+                        <span style={{ fontSize: 12 }}>↔</span>
+                        <select id="adj-target" style={{ flex: 1, fontSize: 11 }}>
+                            <option value="">Target...</option>
+                            {tile.segments.map(s => <option key={s.id} value={s.id}>{s.id}</option>)}
+                        </select>
+                        <button
+                            onClick={() => {
+                                const s = (document.getElementById('adj-source') as HTMLSelectElement).value
+                                const t = (document.getElementById('adj-target') as HTMLSelectElement).value
+                                if (!s || !t || s === t) return
+                                const current = tile.adjacencies || []
+                                if (current.some(([a, b]) => (a === s && b === t) || (a === t && b === s))) {
+                                    onSetToast({ message: 'Adjacency already exists!', type: 'error' })
+                                    return
+                                }
+                                onUpdate({ adjacencies: [...current, [s, t]] })
+                            }}
+                            style={{ background: '#0066cc', color: '#fff', border: 'none', borderRadius: 3, padding: '2px 10px', cursor: 'pointer', fontSize: 11 }}
+                        >Add</button>
+                    </div>
+                </div>
+
                 {tile.segments.map(seg => {
                     const isSelected = selectedSegmentId === seg.id
                     return (
@@ -559,9 +638,15 @@ function PropertiesPanel({
                             </div>
 
                             <div style={{ display: 'flex', gap: 10, marginBottom: 5, fontSize: 12, flexWrap: 'wrap', alignItems: 'center' }}>
-                                <label onClick={e => e.stopPropagation()}><input type="checkbox" checked={seg.hasPennant || false} onChange={e => onSegmentUpdate(seg.id, { hasPennant: e.target.checked })} /> Penn</label>
-                                <label onClick={e => e.stopPropagation()}><input type="checkbox" checked={seg.hasInn || false} onChange={e => onSegmentUpdate(seg.id, { hasInn: e.target.checked })} /> Inn</label>
-                                <label onClick={e => e.stopPropagation()}><input type="checkbox" checked={seg.hasCathedral || false} onChange={e => onSegmentUpdate(seg.id, { hasCathedral: e.target.checked })} /> Cath</label>
+                                {seg.type === 'CITY' && (
+                                    <>
+                                        <label onClick={e => e.stopPropagation()}><input type="checkbox" checked={seg.hasPennant || false} onChange={e => onSegmentUpdate(seg.id, { hasPennant: e.target.checked })} /> Penn</label>
+                                        <label onClick={e => e.stopPropagation()}><input type="checkbox" checked={seg.hasCathedral || false} onChange={e => onSegmentUpdate(seg.id, { hasCathedral: e.target.checked })} /> Cath</label>
+                                    </>
+                                )}
+                                {seg.type === 'ROAD' && (
+                                    <label onClick={e => e.stopPropagation()}><input type="checkbox" checked={seg.hasInn || false} onChange={e => onSegmentUpdate(seg.id, { hasInn: e.target.checked })} /> Inn</label>
+                                )}
                                 {seg.type === 'CITY' && (
                                     <label onClick={e => e.stopPropagation()} style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
                                         <span style={{ color: '#aaa' }}>Commodity:</span>
@@ -635,10 +720,12 @@ function getColorForType(type: string) {
 }
 
 function EditorCanvas({
-    tile, activeSegmentId, onSegmentUpdate, onEdgeUpdate, showSchematic
+    tile, activeSegmentId, onUpdate, onSelectSegment, onSegmentUpdate, onEdgeUpdate, showSchematic
 }: {
     tile: TileDefinition,
     activeSegmentId: string | null,
+    onUpdate: (u: Partial<TileDefinition>) => void,
+    onSelectSegment: (id: string | null) => void,
     onSegmentUpdate: (id: string, u: Partial<Segment>) => void,
     onEdgeUpdate: (pos: EdgePosition, segId: string) => void,
     showSchematic: boolean
@@ -711,6 +798,19 @@ function EditorCanvas({
         e.currentTarget.releasePointerCapture(e.pointerId)
     }
 
+    const toggleAdjacency = (id1: string, id2: string) => {
+        if (id1 === id2) return
+        const current = tile.adjacencies || []
+        const exists = current.some(([a, b]) => (a === id1 && b === id2) || (a === id2 && b === id1))
+
+        if (exists) {
+            const next = current.filter(([a, b]) => !((a === id1 && b === id2) || (a === id2 && b === id1)))
+            onUpdate({ adjacencies: next.length > 0 ? next : undefined })
+        } else {
+            onUpdate({ adjacencies: [...current, [id1, id2]] })
+        }
+    }
+
     // Helper to get coordinates for edge markers
     const getMarkerCoords = (pos: EdgePosition) => {
         const [dir, sub] = pos.split('_')
@@ -732,6 +832,10 @@ function EditorCanvas({
             style={{ width: size, height: size, position: 'relative' }}
             onPointerMove={handlePointerMove}
             onPointerUp={handlePointerUp}
+            onPointerDown={(e) => {
+                // Unselect if clicking the background area
+                if (e.target === e.currentTarget) onSelectSegment(null)
+            }}
         >
             <TileSVG definition={tile} size={size} showSchematic={showSchematic} />
 
@@ -740,6 +844,29 @@ function EditorCanvas({
                 style={{ position: 'absolute', top: 0, left: 0, width: '100%', height: '100%', overflow: 'visible' }}
                 viewBox="0 0 100 100"
             >
+                {/* 0. Adjacency Lines */}
+                <g opacity="0.6">
+                    {(tile.adjacencies || []).map(([id1, id2], idx) => {
+                        const s1 = tile.segments.find(s => s.id === id1)
+                        const s2 = tile.segments.find(s => s.id === id2)
+                        if (!s1 || !s2) return null
+
+                        const isActive = id1 === activeSegmentId || id2 === activeSegmentId
+
+                        return (
+                            <line
+                                key={`adj-line-${idx}`}
+                                x1={s1.meepleCentroid.x} y1={s1.meepleCentroid.y}
+                                x2={s2.meepleCentroid.x} y2={s2.meepleCentroid.y}
+                                stroke={isActive ? "#FFD700" : "#fff"}
+                                strokeWidth={isActive ? 1.5 : 0.8}
+                                strokeDasharray={isActive ? "none" : "2 1"}
+                                style={{ pointerEvents: 'none', transition: 'all 0.2s' }}
+                            />
+                        )
+                    })}
+                </g>
+
                 {/* 1. Edge Markers */}
                 {Object.values(EDGE_POSITIONS).flat().map((pos) => {
                     const { x, y } = getMarkerCoords(pos)
@@ -775,23 +902,48 @@ function EditorCanvas({
                 })}
 
                 {/* 2. Pebbles */}
-                {tile.segments.map(seg => (
-                    <g
-                        key={seg.id}
-                        transform={`translate(${seg.meepleCentroid.x}, ${seg.meepleCentroid.y})`}
-                        style={{ cursor: 'grab' }}
-                        onPointerDown={(e) => handlePointerDown(e, seg.id)}
-                    >
-                        <circle r="6" fill="transparent" />
-                        <circle r="3" fill="#00BFFF" stroke="white" strokeWidth="1" />
-                        {draggingId === seg.id && (
-                            <circle r="5" fill="none" stroke="#00BFFF" strokeWidth="0.5" strokeDasharray="1 1" />
-                        )}
-                        <text y="-5" fontSize="3" textAnchor="middle" fill="white" style={{ textShadow: '0 0 2px black', pointerEvents: 'none', fontWeight: 'bold' }}>
-                            {seg.id}
-                        </text>
-                    </g>
-                ))}
+                {tile.segments.map(seg => {
+                    const isSelected = seg.id === activeSegmentId
+                    return (
+                        <g
+                            key={seg.id}
+                            transform={`translate(${seg.meepleCentroid.x}, ${seg.meepleCentroid.y})`}
+                            style={{ cursor: 'pointer' }}
+                            onPointerDown={(e) => {
+                                e.stopPropagation()
+
+                                // 1. Toggle Link if another is already selected
+                                if (activeSegmentId && activeSegmentId !== seg.id) {
+                                    toggleAdjacency(activeSegmentId, seg.id)
+                                    return
+                                }
+
+                                // 2. Toggle selection
+                                onSelectSegment(isSelected ? null : seg.id)
+
+                                // 3. Start drag
+                                handlePointerDown(e, seg.id)
+                            }}
+                        >
+                            <circle r="6" fill="transparent" />
+                            <circle
+                                r={isSelected ? "4" : "3"}
+                                fill={isSelected ? "#FFD700" : "#00BFFF"}
+                                stroke="white"
+                                strokeWidth={isSelected ? "1.5" : "1"}
+                            />
+                            {isSelected && (
+                                <circle r="6" fill="none" stroke="#FFD700" strokeWidth="0.5">
+                                    <animate attributeName="r" from="4" to="8" dur="1.5s" repeatCount="indefinite" />
+                                    <animate attributeName="opacity" from="1" to="0" dur="1.5s" repeatCount="indefinite" />
+                                </circle>
+                            )}
+                            <text y="-6" fontSize="3.5" textAnchor="middle" fill="white" style={{ textShadow: '0 0 3px black', pointerEvents: 'none', fontWeight: 'bold' }}>
+                                {seg.id}
+                            </text>
+                        </g>
+                    )
+                })}
 
                 {/* 3. Shape Editor Handles (Active Segment Only) - Skip for Cloisters */}
                 {activeSegment && activeSegment.type !== 'CLOISTER' && parsePath(activeSegment.svgPath).map((p, i) => (

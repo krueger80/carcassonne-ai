@@ -13,9 +13,12 @@ import {
   placeMeepleOnExistingTile,
   skipMeeple,
   endTurn,
+  scoreFeatureCompletion,
   getAllPotentialPlacements,
   getAvailableSegmentsForMeeple,
   isValidPlacement,
+  canPlaceMeeple,
+  canPlaceBuilderOrPig,
   executeDragonMovement,
   executeDragonTileStep,
   finishDragonMovementStep,
@@ -33,6 +36,8 @@ import {
 } from '../core/engine/GameEngine.ts'
 import type { GameConfig } from '../core/engine/GameEngine.ts'
 import { loadAllTiles, loadTileMap, invalidateCache } from '../services/tileRegistry.ts'
+import { nodeKey } from '../core/types/feature.ts'
+import { useUIStore } from './uiStore.ts'
 
 // Re-export Rotation for convenience
 export type { Rotation }
@@ -84,6 +89,7 @@ interface GameStore {
   cancelMeeplePlacement: () => void
   skipMeeple: () => void
   setTentativeMeepleType: (type: MeepleType) => void
+  processScoringSequence: () => Promise<void>
 
   endTurn: () => void
   resetGame: () => void
@@ -216,66 +222,56 @@ export const useGameStore = create<GameStore>()(
         }
       }),
 
-      confirmTilePlacement: () => set((store) => {
-        if (!store.gameState || !store.tentativeTileCoord) return
+      confirmTilePlacement: () => {
+        set((store) => {
+          if (!store.gameState || !store.tentativeTileCoord) return
 
-        // Save state for undo
-        store.prevGameState = store.gameState
+          // Save state for undo
+          store.prevGameState = store.gameState
 
-        // Commit the tile
-        store.gameState = placeTile(store.gameState, store.tentativeTileCoord)
+          // Commit the tile
+          store.gameState = placeTile(store.gameState, store.tentativeTileCoord)
 
-        // Move to Meeple phase
-        store.interactionState = 'IDLE'
-        store.tentativeTileCoord = null
-        store.validPlacements = []
+          // Move to Meeple phase
+          store.interactionState = 'IDLE'
+          store.tentativeTileCoord = null
+          store.tentativeMeepleSegment = null
+          store.tentativeMeepleType = null
+          store.validPlacements = []
+        })
+
+        const { gameState } = get()
+        if (!gameState) return
 
         // ── Dragon & Fairy: dragon orientation phase ──────────
-        if (store.gameState.turnPhase === 'DRAGON_ORIENT') {
-          store.dragonOrientations = getValidDragonOrientations(store.gameState)
-          store.tentativeDragonFacing = store.dragonOrientations.length > 0
-            ? store.dragonOrientations[0] : null
-          store.placeableSegments = []
-          store.magicPortalTargets = []
+        if (gameState.turnPhase === 'DRAGON_ORIENT') {
+          set(store => {
+            store.dragonOrientations = getValidDragonOrientations(gameState)
+            store.tentativeDragonFacing = store.dragonOrientations.length > 0
+              ? store.dragonOrientations[0] : null
+            store.placeableSegments = []
+            store.magicPortalTargets = []
+          })
           return
         }
 
-        if (store.gameState.turnPhase === 'SCORE') {
-          // Dragon Hoard tile: skip meeple, go straight to scoring
-          store.gameState = endTurn(store.gameState)
-
-          if (store.gameState.turnPhase === 'DRAGON_PLACE') {
-            store.dragonPlaceTargets = getDragonHoardTilesOnBoard(store.gameState)
-            store.placeableSegments = []
-            return
-          }
-          if (store.gameState.turnPhase === 'FAIRY_MOVE') {
-            store.fairyMoveTargets = getFairyMoveTargets(store.gameState)
-            store.placeableSegments = []
-            return
-          }
-
-          // Auto-draw next tile
-          if (store.gameState.tileBag.length > 0) {
-            store.gameState = drawTile(store.gameState)
-            store.validPlacements = store.gameState.currentTile
-              ? getAllPotentialPlacements(store.gameState.board, store.gameState.staticTileMap, store.gameState.currentTile)
-              : []
-          }
-          store.placeableSegments = []
+        if (gameState.turnPhase === 'SCORE') {
+          get().processScoringSequence()
           return
         }
 
         // Calculate placeable segments for the newly placed tile
-        store.placeableSegments = getAvailableSegmentsForMeeple(store.gameState)
+        set(store => {
+          store.placeableSegments = getAvailableSegmentsForMeeple(gameState)
 
-        // Magic portal: also compute expanded placement targets
-        if (isMagicPortalTile(store.gameState)) {
-          store.magicPortalTargets = getMagicPortalPlacements(store.gameState)
-        } else {
-          store.magicPortalTargets = []
-        }
-      }),
+          // Magic portal: also compute expanded placement targets
+          if (isMagicPortalTile(gameState)) {
+            store.magicPortalTargets = getMagicPortalPlacements(gameState)
+          } else {
+            store.magicPortalTargets = []
+          }
+        })
+      },
 
       cancelTilePlacement: () => set((store) => {
         store.tentativeTileCoord = null
@@ -303,6 +299,14 @@ export const useGameStore = create<GameStore>()(
       // ── New Meeple Placement Workflow ────────────────────────────────────
 
       selectMeeplePlacement: (segmentId, meepleType = 'NORMAL', coord?) => set((store) => {
+        // Toggle off if clicking the same segment again
+        if (store.tentativeMeepleSegment === segmentId && (!coord || (store.tentativeTileCoord?.x === coord.x && store.tentativeTileCoord?.y === coord.y))) {
+          store.tentativeMeepleSegment = null
+          store.tentativeMeepleType = null
+          store.interactionState = 'IDLE'
+          return
+        }
+
         store.tentativeMeepleSegment = segmentId
         store.tentativeMeepleType = meepleType
         store.interactionState = 'MEEPLE_SELECTED_TENTATIVELY'
@@ -311,88 +315,45 @@ export const useGameStore = create<GameStore>()(
         }
       }),
 
-      confirmMeeplePlacement: () => set((store) => {
-        if (!store.gameState) return
+      confirmMeeplePlacement: () => {
+        set((store) => {
+          if (!store.gameState) return
 
-        // 1. Place or Skip Meeple
-        if (store.tentativeMeepleSegment) {
-          const meepleType = store.tentativeMeepleType ?? 'NORMAL'
-          if ((meepleType === 'BUILDER' || meepleType === 'PIG') && store.tentativeTileCoord) {
-            // Builder/Pig: placed on an EXISTING tile (not the last-placed tile)
-            store.gameState = placeMeepleOnExistingTile(
-              store.gameState,
-              store.tentativeTileCoord,
-              store.tentativeMeepleSegment,
-              meepleType,
-            )
-          } else if (store.tentativeTileCoord && store.magicPortalTargets.length > 0) {
-            // Magic portal: place on any tile via portal
-            store.gameState = placeMeepleViaPortal(
-              store.gameState,
-              store.tentativeTileCoord,
-              store.tentativeMeepleSegment,
-              meepleType,
-            )
+          // 1. Place or Skip Meeple
+          if (store.tentativeMeepleSegment) {
+            const meepleType = store.tentativeMeepleType ?? 'NORMAL'
+            if ((meepleType === 'BUILDER' || meepleType === 'PIG') && store.tentativeTileCoord) {
+              store.gameState = placeMeepleOnExistingTile(
+                store.gameState,
+                store.tentativeTileCoord,
+                store.tentativeMeepleSegment,
+                meepleType,
+              )
+            } else if (store.tentativeTileCoord && store.magicPortalTargets.length > 0) {
+              store.gameState = placeMeepleViaPortal(
+                store.gameState,
+                store.tentativeTileCoord,
+                store.tentativeMeepleSegment,
+                meepleType,
+              )
+            } else {
+              store.gameState = placeMeeple(store.gameState, store.tentativeMeepleSegment, meepleType)
+            }
           } else {
-            store.gameState = placeMeeple(store.gameState, store.tentativeMeepleSegment, meepleType)
+            store.gameState = skipMeeple(store.gameState)
           }
-        } else {
-          // No selection confirmed = Skip
-          store.gameState = skipMeeple(store.gameState)
-        }
+        })
 
-        // 2. Auto-End Turn & Draw Next (only if we reached SCORE phase)
-        if (store.gameState.turnPhase === 'SCORE') {
-          store.gameState = endTurn(store.gameState)
-        } else if (store.gameState.turnPhase === 'DRAGON_MOVEMENT') {
-          // Stay in DRAGON_MOVEMENT, do not draw yet
-          store.interactionState = 'IDLE'
-          store.tentativeMeepleSegment = null
-          store.tentativeMeepleType = null
-          store.placeableSegments = []
-          store.magicPortalTargets = []
-          store.tentativeTileCoord = null
+        const { gameState } = get()
+        if (!gameState) return
+
+        if (gameState.turnPhase === 'SCORE') {
+          get().processScoringSequence()
           return
         }
 
-        if (store.gameState.turnPhase === 'DRAGON_PLACE') {
-          store.dragonPlaceTargets = getDragonHoardTilesOnBoard(store.gameState)
-          store.interactionState = 'IDLE'
-          store.tentativeMeepleSegment = null
-          store.tentativeMeepleType = null
-          store.placeableSegments = []
-          store.magicPortalTargets = []
-          store.tentativeTileCoord = null
-          return
-        }
-        if (store.gameState.turnPhase === 'FAIRY_MOVE') {
-          store.fairyMoveTargets = getFairyMoveTargets(store.gameState)
-          store.interactionState = 'IDLE'
-          store.tentativeMeepleSegment = null
-          store.tentativeMeepleType = null
-          store.placeableSegments = []
-          store.magicPortalTargets = []
-          store.tentativeTileCoord = null
-          return
-        }
-
-        if (store.gameState.tileBag.length > 0) {
-          // Auto-draw next
-          store.gameState = drawTile(store.gameState)
-          store.validPlacements = store.gameState.currentTile
-            ? getAllPotentialPlacements(store.gameState.board, store.gameState.staticTileMap, store.gameState.currentTile)
-            : []
-        } else {
-          store.validPlacements = []
-        }
-
-        store.interactionState = 'IDLE'
-        store.tentativeMeepleSegment = null
-        store.tentativeMeepleType = null
-        store.placeableSegments = []
-        store.magicPortalTargets = []
-        store.tentativeTileCoord = null
-      }),
+        get().endTurn()
+      },
 
       cancelMeeplePlacement: () => set((store) => {
         store.tentativeMeepleSegment = null
@@ -402,75 +363,147 @@ export const useGameStore = create<GameStore>()(
 
       setTentativeMeepleType: (type) => set((store) => {
         if (store.interactionState === 'MEEPLE_SELECTED_TENTATIVELY') {
-          store.tentativeMeepleType = type
+          const { gameState, tentativeMeepleSegment } = store
+          if (!gameState || !tentativeMeepleSegment) return
+
+          const player = gameState.players[gameState.currentPlayerIndex]
+          const coord = store.tentativeTileCoord ?? gameState.lastPlacedCoord
+          if (!coord) return
+
+          const dfData = (gameState.expansionData['dragonFairy'] as any)
+          const dragonPos = dfData?.dragonPosition
+
+          let isValid = false
+          if (type === 'BUILDER' || type === 'PIG') {
+            isValid = canPlaceBuilderOrPig(
+              gameState.featureUnionFind,
+              player,
+              coord,
+              tentativeMeepleSegment,
+              type,
+              dragonPos
+            )
+          } else {
+            isValid = canPlaceMeeple(
+              gameState.featureUnionFind,
+              player,
+              coord,
+              tentativeMeepleSegment,
+              type,
+              dragonPos
+            )
+          }
+
+          if (isValid) {
+            store.tentativeMeepleType = type
+          } else {
+            // New type is invalid here: clear the tentative selection
+            store.tentativeMeepleSegment = null
+            store.tentativeMeepleType = null
+            store.interactionState = 'IDLE'
+            // Keep the coord if it was a magic portal / builder target? 
+            // Actually, if it's invalid, it's safer to clear everything but the last tile
+          }
         }
       }),
+
+      processScoringSequence: async () => {
+        const { gameState } = get()
+        if (!gameState || gameState.completedFeatureIds.length === 0) {
+          get().endTurn()
+          return
+        }
+
+        // Clear tentative state before starting animation sequence
+        set(store => {
+          store.tentativeMeepleSegment = null
+          store.tentativeMeepleType = null
+          store.interactionState = 'IDLE'
+        })
+
+        const featureIds = [...gameState.completedFeatureIds]
+        const staticTileMap = gameState.staticTileMap
+
+        for (const id of featureIds) {
+          const feature = gameState.featureUnionFind.featureData[id]
+          if (!feature) continue
+
+          const { state: nextState, event } = scoreFeatureCompletion(get().gameState!, id)
+          if (!event) continue
+
+          // Trigger animations for each meeple in this feature
+          for (const meeple of feature.meeples) {
+            const node = feature.nodes.find(n => {
+              const k = nodeKey(n.coordinate, n.segmentId)
+              const boardMeeple = gameState.boardMeeples[k]
+              return boardMeeple && boardMeeple.playerId === meeple.playerId && boardMeeple.meepleType === meeple.meepleType
+            })
+
+            if (node) {
+              const tile = gameState.board.tiles[`${node.coordinate.x},${node.coordinate.y}`]
+              const tileDef = staticTileMap[tile?.definitionId || '']
+              const segment = tileDef?.segments.find(s => s.id === node.segmentId)
+              
+              if (segment?.meepleCentroid) {
+                useUIStore.getState().addFlyingElement({
+                  id: `meeple-${id}-${meeple.playerId}-${Math.random()}`,
+                  type: 'MEEPLE',
+                  startBoardCoord: node.coordinate,
+                  startBoardNode: segment.meepleCentroid,
+                  targetPlayerId: meeple.playerId,
+                  color: gameState.players.find(p => p.id === meeple.playerId)?.color || '#fff',
+                  meepleType: meeple.meepleType as MeepleType
+                })
+              }
+            }
+          }
+
+          for (const [playerId, amount] of Object.entries(event.scores)) {
+            if (amount <= 0) continue
+            const firstNode = feature.nodes[0]
+            useUIStore.getState().addFlyingElement({
+              id: `points-${id}-${playerId}-${Math.random()}`,
+              type: 'POINTS',
+              startBoardCoord: firstNode.coordinate,
+              targetPlayerId: playerId,
+              color: gameState.players.find(p => p.id === playerId)?.color || '#fff',
+              amount: amount
+            })
+          }
+
+          await new Promise(resolve => setTimeout(resolve, 1800))
+          set(store => { store.gameState = nextState })
+        }
+
+        get().endTurn()
+      },
 
       // ── Legacy / Shared ──────────────────────────────────────────────────
 
-      skipMeeple: () => set((store) => {
-        if (!store.gameState) return
+      skipMeeple: () => {
+        set((store) => {
+          if (!store.gameState) return
+          store.gameState = skipMeeple(store.gameState)
+        })
 
-        // 1. Advance to next phase (DRAGON_MOVEMENT or SCORE)
-        store.gameState = skipMeeple(store.gameState)
+        const { gameState } = get()
+        if (!gameState) return
 
-        // 2. Score and Advance Turn (if we reached SCORE phase)
-        if (store.gameState.turnPhase === 'SCORE') {
-          store.gameState = endTurn(store.gameState)
-        } else if (store.gameState.turnPhase === 'DRAGON_MOVEMENT') {
-          store.placeableSegments = []
-          store.magicPortalTargets = []
-          store.interactionState = 'IDLE'
-          store.tentativeTileCoord = null
-          store.tentativeMeepleSegment = null
-          store.tentativeMeepleType = null
+        if (gameState.turnPhase === 'SCORE') {
+          get().processScoringSequence()
           return
         }
 
-        if (store.gameState.turnPhase === 'DRAGON_PLACE') {
-          store.dragonPlaceTargets = getDragonHoardTilesOnBoard(store.gameState)
-          store.placeableSegments = []
-          store.magicPortalTargets = []
-          store.interactionState = 'IDLE'
-          store.tentativeTileCoord = null
-          store.tentativeMeepleSegment = null
-          store.tentativeMeepleType = null
-          return
-        }
-        if (store.gameState.turnPhase === 'FAIRY_MOVE') {
-          store.fairyMoveTargets = getFairyMoveTargets(store.gameState)
-          store.placeableSegments = []
-          store.magicPortalTargets = []
-          store.interactionState = 'IDLE'
-          store.tentativeTileCoord = null
-          store.tentativeMeepleSegment = null
-          store.tentativeMeepleType = null
-          return
-        }
-
-        // 3. Auto-Draw Next
-        if (store.gameState.tileBag.length > 0) {
-          store.gameState = drawTile(store.gameState)
-          store.validPlacements = store.gameState.currentTile
-            ? getAllPotentialPlacements(store.gameState.board, store.gameState.staticTileMap, store.gameState.currentTile)
-            : []
-        } else {
-          store.validPlacements = []
-        }
-
-        store.placeableSegments = []
-        store.magicPortalTargets = []
-        store.interactionState = 'IDLE'
-        store.tentativeTileCoord = null
-        store.tentativeMeepleSegment = null
-        store.tentativeMeepleType = null
-      }),
+        get().endTurn()
+      },
 
       endTurn: () => set((store) => {
         // Manual end turn (shouldn't be needed usually)
         if (!store.gameState) return
         store.gameState = endTurn(store.gameState)
         store.interactionState = 'IDLE'
+        store.tentativeMeepleSegment = null
+        store.tentativeMeepleType = null
       }),
 
       resetGame: () => set((store) => {
@@ -510,61 +543,48 @@ export const useGameStore = create<GameStore>()(
         store.tentativeDragonFacing = store.dragonOrientations[nextIdx]
       }),
 
-      confirmDragonOrientation: () => set((store) => {
-        if (!store.gameState || store.gameState.turnPhase !== 'DRAGON_ORIENT') return
-        if (!store.tentativeDragonFacing) return
+      confirmDragonOrientation: () => {
+        set((store) => {
+          if (!store.gameState || store.gameState.turnPhase !== 'DRAGON_ORIENT') return
+          if (!store.tentativeDragonFacing) return
 
-        store.gameState = engineOrientDragon(store.gameState, store.tentativeDragonFacing)
-        
-        // Re-initialize or clear based on new phase
-        if (store.gameState.turnPhase === 'DRAGON_ORIENT') {
-          store.dragonOrientations = getValidDragonOrientations(store.gameState)
-          store.tentativeDragonFacing = store.dragonOrientations.length > 0
-            ? store.dragonOrientations[0] : null
-        } else {
-          store.dragonOrientations = []
-          store.tentativeDragonFacing = null
-        }
+          store.gameState = engineOrientDragon(store.gameState, store.tentativeDragonFacing)
+          
+          // Re-initialize or clear based on new phase
+          if (store.gameState.turnPhase === 'DRAGON_ORIENT') {
+            store.dragonOrientations = getValidDragonOrientations(store.gameState)
+            store.tentativeDragonFacing = store.dragonOrientations.length > 0
+              ? store.dragonOrientations[0] : null
+          } else {
+            store.dragonOrientations = []
+            store.tentativeDragonFacing = null
+          }
 
-        store.placeableSegments = []
-        store.magicPortalTargets = []
+          store.placeableSegments = []
+          store.magicPortalTargets = []
+        })
+
+        const { gameState } = get()
+        if (!gameState) return
 
         // Dragon Hoard → SCORE (no meeple placement on Dragon Hoard tiles)
-        if (store.gameState.turnPhase === 'SCORE') {
-          store.gameState = endTurn(store.gameState)
-
-          // Check for dragon placement (next player holds dragon)
-          if (store.gameState.turnPhase === 'DRAGON_PLACE') {
-            store.dragonPlaceTargets = getDragonHoardTilesOnBoard(store.gameState)
-            return
-          }
-
-          // Check for fairy move opportunity
-          if (store.gameState.turnPhase === 'FAIRY_MOVE') {
-            store.fairyMoveTargets = getFairyMoveTargets(store.gameState)
-            return
-          }
-
-          // Auto-draw next tile
-          if (store.gameState.tileBag.length > 0) {
-            store.gameState = drawTile(store.gameState)
-            store.validPlacements = store.gameState.currentTile
-              ? getAllPotentialPlacements(store.gameState.board, store.gameState.staticTileMap, store.gameState.currentTile)
-              : []
-          }
-        } else if (store.gameState.turnPhase === 'PLACE_TILE') {
+        if (gameState.turnPhase === 'SCORE') {
+          get().processScoringSequence()
+        } else if (gameState.turnPhase === 'PLACE_TILE') {
           // Finished movement sequence, now place the Dragon card
-          if (store.gameState.currentTile) {
-            store.validPlacements = getAllPotentialPlacements(
-              store.gameState.board,
-              store.gameState.staticTileMap,
-              store.gameState.currentTile
-            )
+          if (gameState.currentTile) {
+            set(store => {
+              store.validPlacements = getAllPotentialPlacements(
+                gameState.board,
+                gameState.staticTileMap,
+                gameState.currentTile!
+              )
+            })
           }
         }
 
-        store.interactionState = 'IDLE'
-      }),
+        set(store => { store.interactionState = 'IDLE' })
+      },
 
       placeDragonOnHoard: (coord) => set((store) => {
         if (!store.gameState || store.gameState.turnPhase !== 'DRAGON_PLACE') return
@@ -591,9 +611,30 @@ export const useGameStore = create<GameStore>()(
           if (!currentStore.gameState || currentStore.gameState.turnPhase !== 'DRAGON_MOVEMENT') return
 
           // Try to move one tile
-          const nextStepState = executeDragonTileStep(currentStore.gameState)
+          const stepResult = executeDragonTileStep(currentStore.gameState)
           
-          if (nextStepState) {
+          if (stepResult) {
+            const { state: nextStepState, eatenMeeples } = stepResult
+            
+            // Trigger animations for eaten meeples
+            for (const meeple of eatenMeeples) {
+              const tile = nextStepState.board.tiles[`${meeple.coordinate.x},${meeple.coordinate.y}`]
+              const tileDef = nextStepState.staticTileMap[tile?.definitionId || '']
+              const segment = tileDef?.segments.find(s => s.id === meeple.segmentId)
+
+              if (segment?.meepleCentroid) {
+                useUIStore.getState().addFlyingElement({
+                  id: `dragon-eat-${meeple.playerId}-${Math.random()}`,
+                  type: 'MEEPLE',
+                  startBoardCoord: meeple.coordinate,
+                  startBoardNode: segment.meepleCentroid,
+                  targetPlayerId: meeple.playerId,
+                  color: nextStepState.players.find(p => p.id === meeple.playerId)?.color || '#fff',
+                  meepleType: meeple.meepleType as MeepleType
+                })
+              }
+            }
+
             // Moved successfully: update state and wait for next step
             set((store) => { store.gameState = nextStepState })
             
@@ -621,22 +662,7 @@ export const useGameStore = create<GameStore>()(
 
         const processPhaseTransition = (newState: GameState) => {
           if (newState.turnPhase === 'SCORE') {
-            set((store) => { store.gameState = endTurn(newState) })
-            const finalState = get().gameState
-            if (!finalState) return
-
-            if (finalState.turnPhase === 'DRAGON_PLACE') {
-              set((store) => { store.dragonPlaceTargets = getDragonHoardTilesOnBoard(finalState) })
-            } else if (finalState.turnPhase === 'FAIRY_MOVE') {
-              set((store) => { store.fairyMoveTargets = getFairyMoveTargets(finalState) })
-            } else if (finalState.tileBag.length > 0) {
-              set((store) => { 
-                store.gameState = drawTile(finalState)
-                store.validPlacements = store.gameState.currentTile
-                  ? getAllPotentialPlacements(store.gameState.board, store.gameState.staticTileMap, store.gameState.currentTile)
-                  : []
-              })
-            }
+            get().endTurn()
           } else if (newState.turnPhase === 'PLACE_TILE') {
             if (newState.currentTile) {
               set((store) => {

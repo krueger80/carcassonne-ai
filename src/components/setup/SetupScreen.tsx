@@ -1,6 +1,8 @@
 import { useState } from 'react'
 import { useGameStore } from '../../store/gameStore.ts'
 import { PLAYER_COLORS } from '../../core/types/player.ts'
+import { loadAllTiles } from '../../services/tileRegistry.ts'
+import type { TileDefinition } from '../../core/types/tile.ts'
 
 const DEFAULT_NAMES = ['Alice', 'Bob', 'Carol', 'Dave', 'Eve', 'Frank']
 
@@ -10,6 +12,7 @@ export function SetupScreen() {
   const [useInnsCathedrals, setUseInnsCathedrals] = useState(false)
   const [useTradersBuilders, setUseTradersBuilders] = useState(false)
   const [useDragonFairy, setUseDragonFairy] = useState(false)
+  const [edition, setEdition] = useState<'C2' | 'C3.1'>('C2')
   const [isStarting, setIsStarting] = useState(false)
   const { newGame } = useGameStore()
 
@@ -17,13 +20,27 @@ export function SetupScreen() {
     if (isStarting) return
     setIsStarting(true)
     const expansions: string[] = []
-    if (useInnsCathedrals) expansions.push('inns-cathedrals')
-    if (useTradersBuilders) expansions.push('traders-builders')
+    if (useInnsCathedrals) {
+      expansions.push(edition === 'C3.1' ? 'inns-cathedrals-c31' : 'inns-cathedrals')
+    }
+    if (useTradersBuilders) {
+      expansions.push(edition === 'C3.1' ? 'traders-builders-c31' : 'traders-builders')
+    }
     if (useDragonFairy) expansions.push('dragon-fairy')
     try {
+      // Load all tiles and filter based on the selected edition
+      const allTiles = await loadAllTiles()
+      const baseDefs = allTiles.filter((t: TileDefinition) =>
+        (!t.expansionId && edition === 'C2') || // C2 base has no expansionId
+        (t.expansionId === 'base' && edition === 'C2') ||
+        (t.id.startsWith('base_c3_') && edition === 'C3.1') ||
+        (t.expansionId === 'base-c3' && edition === 'C3.1')
+      )
+
       await newGame({
         playerNames: names.slice(0, playerCount),
         expansions,
+        baseDefinitions: baseDefs
       })
     } catch (e: any) {
       console.error(e)
@@ -118,6 +135,35 @@ export function SetupScreen() {
           ))}
         </div>
 
+        {/* Edition selection */}
+        <div>
+          <label style={{ display: 'block', marginBottom: 8, color: '#aaa', fontSize: 13 }}>
+            Game Edition
+          </label>
+          <div style={{ display: 'flex', gap: 8 }}>
+            {(['C2', 'C3.1'] as const).map(e => (
+              <button
+                key={e}
+                type="button"
+                onClick={() => setEdition(e)}
+                style={{
+                  flex: 1,
+                  padding: '8px 0',
+                  background: edition === e ? '#4a5a8a' : '#333',
+                  border: `1px solid ${edition === e ? '#6a7aba' : '#555'}`,
+                  color: '#f0f0f0',
+                  borderRadius: 6,
+                  cursor: 'pointer',
+                  fontWeight: edition === e ? 'bold' : 'normal',
+                  fontSize: 14,
+                }}
+              >
+                {e === 'C2' ? '2nd Edition (C2)' : '3.1 Edition (C3.1)'}
+              </button>
+            ))}
+          </div>
+        </div>
+
         {/* Expansions */}
         <div>
           <label style={{ display: 'block', marginBottom: 8, color: '#aaa', fontSize: 13 }}>
@@ -202,6 +248,31 @@ export function SetupScreen() {
         >
           {isStarting ? 'Starting Game...' : 'Start Game'}
         </button>
+      </div>
+
+      <div style={{
+        marginTop: 40,
+        display: 'flex',
+        gap: 24,
+        fontSize: 14,
+        opacity: 0.7
+      }}>
+        <a
+          href="#catalog"
+          style={{ color: '#aaa', textDecoration: 'none', display: 'flex', alignItems: 'center', gap: 6 }}
+          onMouseEnter={e => e.currentTarget.style.color = '#fff'}
+          onMouseLeave={e => e.currentTarget.style.color = '#aaa'}
+        >
+          <span>📚</span> Browse Extension Catalog
+        </a>
+        <a
+          href="#debug"
+          style={{ color: '#aaa', textDecoration: 'none', display: 'flex', alignItems: 'center', gap: 6 }}
+          onMouseEnter={e => e.currentTarget.style.color = '#fff'}
+          onMouseLeave={e => e.currentTarget.style.color = '#aaa'}
+        >
+          <span>🔧</span> Debug Configurator
+        </a>
       </div>
     </div>
   )

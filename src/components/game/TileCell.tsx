@@ -37,6 +37,8 @@ interface TileCellProps {
   currentPlayerColor?: string
   /** ID of the segment where the fairy is currently located */
   fairySegmentId?: string
+  /** If true, we are in the phase of choosing where to place the fairy */
+  isFairyMovePhase?: boolean
 }
 
 export const TileCell = memo(({
@@ -51,6 +53,7 @@ export const TileCell = memo(({
   tentativeMeepleType,
   currentPlayerColor = '#ffffff',
   fairySegmentId,
+  isFairyMovePhase,
 }: TileCellProps) => {
   const def = definition
   if (!def) return null
@@ -170,6 +173,12 @@ export const TileCell = memo(({
         const { x, y } = rotateCentroid(seg.meepleCentroid, tile.rotation)
 
         const isSelected = tentativeMeepleSegment === seg.id
+        
+        const tooltipTitle = isSelected 
+          ? 'Remove meeple' 
+          : isFairyMovePhase 
+            ? 'Place Fairy' 
+            : `Place meeple on ${seg.type.toLowerCase()}`
 
         return (
           <div
@@ -194,7 +203,7 @@ export const TileCell = memo(({
               zIndex: 20,
               transition: 'all 0.2s'
             }}
-            title={`Place meeple on ${seg.type.toLowerCase()}`}
+            title={tooltipTitle}
           />
         )
       })}
