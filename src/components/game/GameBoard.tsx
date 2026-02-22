@@ -349,16 +349,19 @@ export function GameBoard({ }: GameBoardProps) {
           onClick={() => { setBoardScale(boardScale * 1.2) }}
           style={btnStyle}
           title="Zoom in"
+          aria-label="Zoom in"
         >+</button>
         <button
           onClick={() => { setBoardScale(1) }}
           style={btnStyle}
           title="Reset zoom"
+          aria-label="Reset zoom"
         >⌖</button>
         <button
           onClick={() => { setBoardScale(boardScale * 0.8) }}
           style={btnStyle}
           title="Zoom out"
+          aria-label="Zoom out"
         >−</button>
       </div>
 
