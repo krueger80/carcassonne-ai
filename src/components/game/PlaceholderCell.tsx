@@ -1,3 +1,4 @@
+import { memo } from 'react'
 import type { Coordinate } from '../../core/types/board.ts'
 import { TileSVG } from '../svg/TileSVG.tsx'
 import type { TileInstance, TileDefinition } from '../../core/types/tile.ts'
@@ -14,7 +15,7 @@ interface PlaceholderCellProps {
   onClick: (e: React.MouseEvent) => void
 }
 
-export function PlaceholderCell({
+export const PlaceholderCell = memo(({
   size,
   isValid,
   isHovered,
@@ -23,7 +24,7 @@ export function PlaceholderCell({
   onHover,
   onLeave,
   onClick,
-}: PlaceholderCellProps) {
+}: PlaceholderCellProps) => {
   if (!isValid && !isHovered) {
     // Invisible placeholder — still occupies grid space
     return <div style={{ width: size, height: size }} />
@@ -34,9 +35,6 @@ export function PlaceholderCell({
       onMouseEnter={onHover}
       onMouseLeave={onLeave}
       onClick={isValid ? onClick : undefined}
-      onPointerDown={(e) => {
-        if (isValid) e.stopPropagation()
-      }}
       style={{
         width: size,
         height: size,
@@ -50,9 +48,8 @@ export function PlaceholderCell({
         alignItems: 'center',
         justifyContent: 'center',
         position: 'relative',
-        overflow: 'hidden',
-        transition: 'background 0.1s, border-color 0.1s',
         boxSizing: 'border-box',
+        overflow: 'visible',
       }}
     >
       {/* Ghost preview of the tile being placed */}
@@ -68,4 +65,4 @@ export function PlaceholderCell({
       )}
     </div>
   )
-}
+})

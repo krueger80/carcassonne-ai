@@ -1,4 +1,6 @@
+import { memo } from 'react'
 import { TileSVG } from '../svg/TileSVG.tsx'
+import { FairyPiece } from './FairyPiece.tsx'
 import type { PlacedTile } from '../../core/types/board.ts'
 import type { Player } from '../../core/types/player.ts'
 import type { Rotation, TileDefinition } from '../../core/types/tile.ts'
@@ -33,9 +35,13 @@ interface TileCellProps {
   tentativeMeepleType?: 'NORMAL' | 'BIG' | 'FARMER' | 'BUILDER' | 'PIG' | null
   /** Color of the current player (for tentative meeple rendering) */
   currentPlayerColor?: string
+  /** ID of the segment where the fairy is currently located */
+  fairySegmentId?: string
+  /** If true, we are in the phase of choosing where to place the fairy */
+  isFairyMovePhase?: boolean
 }
 
-export function TileCell({
+export const TileCell = memo(({
   tile,
   definition,
   size,
@@ -46,7 +52,9 @@ export function TileCell({
   tentativeMeepleSegment,
   tentativeMeepleType,
   currentPlayerColor = '#ffffff',
-}: TileCellProps) {
+  fairySegmentId,
+  isFairyMovePhase,
+}: TileCellProps) => {
   const def = definition
   if (!def) return null
 
@@ -86,10 +94,11 @@ export function TileCell({
         position: 'relative',
         width: size,
         height: size,
-        cursor: isInMeeplePlacementMode ? 'pointer' : 'default',
+        cursor: isInMeeplePlacementMode ? 'pointer' : 'inherit',
         opacity: isTentative ? 0.8 : 1, // Slightly transparent if tentative
         filter: isTentative ? 'drop-shadow(0 0 10px rgba(255,255,255,0.5))' : 'none',
         zIndex: isTentative ? 10 : 0,
+        overflow: 'visible', // Ensure meeples aren't clipped
       }}
     >
       <TileSVG
@@ -98,6 +107,34 @@ export function TileCell({
         size={size}
         meeples={meepleColors}
       />
+
+      {/* Fairy Rendering - placed close to the meeple on the segment */}
+      {fairySegmentId && (
+        (() => {
+          const seg = def.segments.find(s => s.id === fairySegmentId);
+          if (!seg) return null;
+          const { x, y } = rotateCentroid(seg.meepleCentroid, tile.rotation);
+          
+          // Meeple height constants from MeepleSVG.tsx
+          // s is roughly 15 * zoom. Here size is the tile size.
+          // In viewBox units (0-100), the meeple height is approx 18-25 units.
+          const meepleVisualHeight = 22; 
+          
+          // Position it above the meeple's head
+          return (
+            <div style={{
+              position: 'absolute',
+              left: `${x + 6}%`,
+              top: `${y - meepleVisualHeight - 2}%`,
+              transform: 'translate(-50%, -50%)',
+              zIndex: 30,
+              pointerEvents: 'none'
+            }}>
+              <FairyPiece size={size * 0.35} />
+            </div>
+          )
+        })()
+      )}
 
       {/* Tile ID Label */}
       <div style={{
@@ -136,6 +173,12 @@ export function TileCell({
         const { x, y } = rotateCentroid(seg.meepleCentroid, tile.rotation)
 
         const isSelected = tentativeMeepleSegment === seg.id
+        
+        const tooltipTitle = isSelected 
+          ? 'Remove meeple' 
+          : isFairyMovePhase 
+            ? 'Place Fairy' 
+            : `Place meeple on ${seg.type.toLowerCase()}`
 
         return (
           <div
@@ -160,10 +203,10 @@ export function TileCell({
               zIndex: 20,
               transition: 'all 0.2s'
             }}
-            title={`Place meeple on ${seg.type.toLowerCase()}`}
+            title={tooltipTitle}
           />
         )
       })}
     </div>
   )
-}
+})

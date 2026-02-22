@@ -9,8 +9,13 @@
 import type { TileDefinition } from '../core/types/tile.ts'
 import { tileService } from './tileService.ts'
 import { BASE_TILES } from '../core/data/baseTiles.ts'
+import { BASE_TILES_C3 } from '../core/data/baseTiles_C3.ts'
 import { IC_TILES } from '../core/data/innsCathedralsTiles.ts'
+import { IC_TILES_C3 } from '../core/data/innsCathedralsTiles_C3.ts'
+import { IC_C31_TILES } from '../core/data/innsCathedralsC31Tiles.ts'
 import { TB_TILES } from '../core/data/tradersBuildersTiles.ts'
+import { TB_C31_TILES } from '../core/data/tradersBuildersC31Tiles.ts'
+import { DF_TILES } from '../core/data/dragonFairyTiles.ts'
 
 // ─── Cache ───────────────────────────────────────────────────────────────────
 
@@ -38,7 +43,7 @@ export async function loadAllTiles(): Promise<TileDefinition[]> {
     }
 
     // Fallback to hardcoded definitions
-    cachedTiles = [...BASE_TILES, ...IC_TILES, ...TB_TILES]
+    cachedTiles = [...BASE_TILES, ...BASE_TILES_C3, ...IC_TILES, ...IC_TILES_C3, ...IC_C31_TILES, ...TB_TILES, ...TB_C31_TILES, ...DF_TILES]
     cachedMap = null
     return cachedTiles
 }
@@ -75,7 +80,7 @@ export async function loadExpansionTiles(expansionId: string): Promise<TileDefin
  * Used by the engine and tests when no async context is available.
  */
 export function getFallbackTiles(): TileDefinition[] {
-    return [...BASE_TILES, ...IC_TILES, ...TB_TILES]
+    return [...BASE_TILES, ...BASE_TILES_C3, ...IC_TILES, ...IC_TILES_C3, ...IC_C31_TILES, ...TB_TILES, ...TB_C31_TILES, ...DF_TILES]
 }
 
 export function getFallbackBaseTiles(): TileDefinition[] {
@@ -83,7 +88,7 @@ export function getFallbackBaseTiles(): TileDefinition[] {
 }
 
 export function getFallbackTileMap(): Record<string, TileDefinition> {
-    return Object.fromEntries([...BASE_TILES, ...IC_TILES, ...TB_TILES].map(t => [t.id, t]))
+    return Object.fromEntries([...BASE_TILES, ...BASE_TILES_C3, ...IC_TILES, ...IC_TILES_C3, ...IC_C31_TILES, ...TB_TILES, ...TB_C31_TILES, ...DF_TILES].map(t => [t.id, t]))
 }
 
 /**

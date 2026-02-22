@@ -20,8 +20,8 @@ export interface Feature {
   tileCount: number           // distinct tiles (not segments)
   pennantCount: number
   openEdgeCount: number       // 0 = complete (for CITY/ROAD)
-  // For farm scoring: number of completed adjacent cities
-  adjacentCompletedCities: number
+  // For farm scoring: set of adjacent city feature root IDs
+  touchingCityIds: string[]
   // Extra data for expansions
   metadata: Record<string, unknown>
 }

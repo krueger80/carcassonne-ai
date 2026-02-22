@@ -10,7 +10,10 @@ import {
   getSegmentAtEdgePosition,
 } from '../../src/core/engine/TilePlacement.ts'
 import { emptyBoard } from '../../src/core/types/board.ts'
-import { TILE_MAP, BASE_TILES, BASE_TILE_COUNT } from '../../src/core/data/baseTiles.ts'
+import { getFallbackTileMap } from '../../src/services/tileRegistry.ts'
+const TILE_MAP = getFallbackTileMap()
+import { BASE_TILES } from '../../src/core/data/baseTiles.ts'
+const BASE_TILE_COUNT = BASE_TILES.reduce((acc, t) => acc + (t.count ?? 1), 0)
 import type { Board, PlacedTile } from '../../src/core/types/board.ts'
 import type { TileInstance, Rotation } from '../../src/core/types/tile.ts'
 

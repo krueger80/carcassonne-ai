@@ -4,6 +4,8 @@ import type { TileDefinition } from '../core/types/tile'
 
 export const tileService = {
     async fetchAll(): Promise<TileDefinition[]> {
+        if (!supabase) throw new Error('Supabase not configured')
+
         const { data, error } = await supabase
             .from('carcassonne_tiles')
             .select('*')
@@ -19,14 +21,21 @@ export const tileService = {
             imageUrl: row.image_url,
             count: row.count,
             expansionId: row.expansion,
+            version: row.version,
             // config merges in
             segments: row.config?.segments || [],
             edgePositionToSegment: row.config?.edgePositionToSegment || {},
-            startingTile: row.config?.startingTile
+            startingTile: row.config?.startingTile,
+            isDragonHoard: row.config?.isDragonHoard || row.config?.isVolcano || row.config?.hasDragonHoard,
+            hasDragon: row.config?.hasDragon,
+            hasMagicPortal: row.config?.hasMagicPortal,
+            adjacencies: row.config?.adjacencies,
         }))
     },
 
     async update(id: string, def: TileDefinition): Promise<void> {
+        if (!supabase) throw new Error('Supabase not configured')
+
         const payload = {
             count: def.count,
             image_url: def.imageUrl,
@@ -34,7 +43,11 @@ export const tileService = {
             config: {
                 segments: def.segments,
                 edgePositionToSegment: def.edgePositionToSegment,
-                startingTile: def.startingTile
+                ...(def.startingTile != null && { startingTile: def.startingTile }),
+                ...(def.isDragonHoard != null && { isDragonHoard: def.isDragonHoard }),
+                ...(def.hasDragon != null && { hasDragon: def.hasDragon }),
+                ...(def.hasMagicPortal != null && { hasMagicPortal: def.hasMagicPortal }),
+                ...(def.adjacencies != null && { adjacencies: def.adjacencies }),
             }
         }
 

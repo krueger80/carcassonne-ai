@@ -1,12 +1,7 @@
 
-import { createClient } from '@supabase/supabase-js'
+import { supabase } from './supabaseClient'
 import { BASE_TILES } from '../src/core/data/baseTiles'
 import { IC_TILES } from '../src/core/data/innsCathedralsTiles'
-
-const url = 'https://itblfdpuxdfdkcyiiocp.supabase.co'
-const key = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Iml0YmxmZHB1eGRmZGtjeWlpb2NwIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzEzNzQzNTQsImV4cCI6MjA4Njk1MDM1NH0.uO2C4bV_Uw_pekr98exAfow3ompPaxePSKkn5pRvLJE'
-
-const supabase = createClient(url, key)
 
 async function run() {
   const tileId = process.argv[2]

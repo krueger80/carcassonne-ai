@@ -1,570 +1,1415 @@
-/**
- * 18 tile definitions for the Inns & Cathedrals expansion.
- *
- * Tile IDs: ic_A through ic_Q, with ic_Ka and ic_Kb variants (18 tiles, 18 total instances).
- * Special segment flags:
- *   - hasInn: true   on ROAD segments near a lake
- *   - hasCathedral: true  on CITY segments with a cathedral
- *
- * SVG paths use the same 100×100 viewBox as baseTiles.ts.
- * Edge position layout follows the same conventions.
- */
-
 import type { TileDefinition } from '../types/tile.ts'
 
-// ─── SVG path helpers (reused from baseTiles pattern) ────────────────────────
-
-// City caps
-const CITY_N = 'M0,0 L100,0 L70,25 L50,30 L30,25 Z'
-const CITY_E = 'M100,0 L100,100 L75,70 L70,50 L75,30 Z'
-const CITY_W = 'M0,0 L0,100 L25,70 L30,50 L25,30 Z'
-const CITY_NE = 'M0,0 L100,0 L100,100 L75,70 L60,60 L30,25 Z'
-const CITY_NW = 'M0,100 L0,0 L100,0 L70,25 L40,40 L30,75 Z'
-const CITY_WNE = 'M0,100 L0,0 L100,0 L100,100 L70,75 L50,70 L30,75 Z'
-
-// Full-tile fills
-const FIELD_FULL = 'M0,0 L100,0 L100,100 L0,100 Z'
-
-// Road strips
-const ROAD_NS = 'M46,0 L54,0 L54,100 L46,100 Z'
-const ROAD_EW = 'M0,46 L100,46 L100,54 L0,54 Z'
-
-// Road curves
-const ROAD_CURVE_SW = 'M0,46 L54,46 L54,100 L46,100 L46,54 L0,54 Z'
-const ROAD_CURVE_ES = 'M46,46 L100,46 L100,54 L54,54 L54,100 L46,100 Z'
-
-// Cloister
-// const CLOISTER_RECT = 'M30,30 L70,30 L70,70 L30,70 Z'
-
-// Meeple centroids
-const C_NORTH = { x: 50, y: 20 }
-const C_EAST = { x: 80, y: 50 }
-const C_SOUTH = { x: 50, y: 80 }
-const C_WEST = { x: 20, y: 50 }
-const C_CENTER = { x: 50, y: 50 }
-const C_FIELD_NE = { x: 75, y: 25 }
-const C_FIELD_SE = { x: 75, y: 75 }
-const C_FIELD_SW = { x: 25, y: 75 }
-const C_FIELD_NW = { x: 25, y: 25 }
-const C_ROAD_N = { x: 50, y: 25 }
-const C_ROAD_E = { x: 75, y: 50 }
-const C_ROAD_S = { x: 50, y: 75 }
-const C_ROAD_W = { x: 25, y: 50 }
-
-// ─── Tile definitions ────────────────────────────────────────────────────────
-
 export const IC_TILES: TileDefinition[] = [
-
-  // ── ic_A: Full city (all 4 edges) with cathedral ──
+  // ic_A
   {
-    id: 'ic_A', imageUrl: '/images/InnsAndCathedrals_C2/Inns_And_Cathedrals_C2_Tile_A.jpg',
+    id: 'ic_A',
     count: 1,
     expansionId: 'inns-cathedrals',
+    imageUrl: '/images/InnsAndCathedrals_C3/Inns_And_Cathedrals_C3_Tile_A.png',
     segments: [
       {
-        id: 'city0', type: 'CITY', hasCathedral: true,
-        svgPath: FIELD_FULL, meepleCentroid: C_CENTER,
+        id: 'field0',
+        type: 'FIELD',
+        svgPath: 'M0,0 L100,0 L100,100 L0,100 Z',
+        meepleCentroid: {
+          x: 38,
+          y: 22
+        }
       },
+      {
+        id: 'field1',
+        type: 'FIELD',
+        svgPath: 'M0,0 L100,0 L100,100 L0,100 Z',
+        meepleCentroid: {
+          x: 26,
+          y: 72
+        }
+      },
+      {
+        id: 'road0',
+        type: 'ROAD',
+        hasInn: true,
+        svgPath: 'M0,50 L33,50 L67,50 L100,50',
+        meepleCentroid: {
+          x: 57,
+          y: 61
+        }
+      }
     ],
     edgePositionToSegment: {
-      NORTH_LEFT: 'city0', NORTH_CENTER: 'city0', NORTH_RIGHT: 'city0',
-      EAST_LEFT: 'city0', EAST_CENTER: 'city0', EAST_RIGHT: 'city0',
-      SOUTH_LEFT: 'city0', SOUTH_CENTER: 'city0', SOUTH_RIGHT: 'city0',
-      WEST_LEFT: 'city0', WEST_CENTER: 'city0', WEST_RIGHT: 'city0',
+      EAST_CENTER: 'field1',
+      EAST_LEFT: 'field1',
+      EAST_RIGHT: 'field1',
+      NORTH_CENTER: 'field1',
+      NORTH_LEFT: 'field1',
+      NORTH_RIGHT: 'field1',
+      SOUTH_CENTER: 'road0',
+      SOUTH_LEFT: 'field1',
+      SOUTH_RIGHT: 'field0',
+      WEST_CENTER: 'road0',
+      WEST_LEFT: 'field0',
+      WEST_RIGHT: 'field1'
     },
+    adjacencies: [
+      [
+        'road0',
+        'field0'
+      ],
+      [
+        'road0',
+        'field1'
+      ]
+    ]
   },
-
-  // ── ic_B: 3-sided city (N+E+W connected) with cathedral ──
+  // ic_B
   {
-    id: 'ic_B', imageUrl: '/images/InnsAndCathedrals_C2/Inns_And_Cathedrals_C2_Tile_B.jpg',
+    id: 'ic_B',
     count: 1,
     expansionId: 'inns-cathedrals',
+    imageUrl: '/images/InnsAndCathedrals_C3/Inns_And_Cathedrals_C3_Tile_B.png',
     segments: [
       {
-        id: 'city0', type: 'CITY', hasCathedral: true,
-        svgPath: CITY_WNE, meepleCentroid: C_NORTH,
+        id: 'field0',
+        type: 'FIELD',
+        svgPath: 'M0,0 L100,0 L100,100 L0,100 Z',
+        meepleCentroid: {
+          x: 34,
+          y: 28
+        }
       },
       {
-        id: 'field0', type: 'FIELD',
-        svgPath: 'M0,60 L50,50 L100,60 L100,100 L0,100 Z', meepleCentroid: C_SOUTH,
+        id: 'field1',
+        type: 'FIELD',
+        svgPath: 'M0,0 L100,0 L100,100 L0,100 Z',
+        meepleCentroid: {
+          x: 51,
+          y: 77
+        }
       },
+      {
+        id: 'road0',
+        type: 'ROAD',
+        hasInn: true,
+        svgPath: 'M0,50 L33,50 L67,50 L100,50',
+        meepleCentroid: {
+          x: 52,
+          y: 57
+        }
+      }
     ],
     edgePositionToSegment: {
-      NORTH_LEFT: 'city0', NORTH_CENTER: 'city0', NORTH_RIGHT: 'city0',
-      EAST_LEFT: 'city0', EAST_CENTER: 'city0', EAST_RIGHT: 'city0',
-      SOUTH_LEFT: 'field0', SOUTH_CENTER: 'field0', SOUTH_RIGHT: 'field0',
-      WEST_LEFT: 'city0', WEST_CENTER: 'city0', WEST_RIGHT: 'city0',
+      EAST_CENTER: 'road0',
+      EAST_LEFT: 'field0',
+      EAST_RIGHT: 'field1',
+      NORTH_CENTER: 'field0',
+      NORTH_LEFT: 'field0',
+      NORTH_RIGHT: 'field0',
+      SOUTH_CENTER: 'field1',
+      SOUTH_LEFT: 'field1',
+      SOUTH_RIGHT: 'field1',
+      WEST_CENTER: 'road0',
+      WEST_LEFT: 'field1',
+      WEST_RIGHT: 'field0'
     },
+    adjacencies: [
+      [
+        'road0',
+        'field0'
+      ],
+      [
+        'road0',
+        'field1'
+      ]
+    ]
   },
-
-  // ── ic_C: City N+E connected (no pennant) + road S→W ──
+  // ic_C
   {
-    id: 'ic_C', imageUrl: '/images/InnsAndCathedrals_C2/Inns_And_Cathedrals_C2_Tile_C.jpg',
+    id: 'ic_C',
     count: 1,
     expansionId: 'inns-cathedrals',
+    imageUrl: '/images/InnsAndCathedrals_C3/Inns_And_Cathedrals_C3_Tile_C.png',
     segments: [
       {
-        id: 'city0', type: 'CITY',
-        svgPath: CITY_NE, meepleCentroid: C_FIELD_NE,
+        id: 'field0',
+        type: 'FIELD',
+        svgPath: 'M0,0 L100,0 L100,100 L0,100 Z',
+        meepleCentroid: {
+          x: 50,
+          y: 28
+        }
       },
       {
-        id: 'road0', type: 'ROAD',
-        svgPath: ROAD_CURVE_SW, meepleCentroid: C_ROAD_S,
+        id: 'field1',
+        type: 'FIELD',
+        svgPath: 'M0,0 L100,0 L100,100 L0,100 Z',
+        meepleCentroid: {
+          x: 79,
+          y: 76
+        }
       },
       {
-        id: 'field0', type: 'FIELD',  // outside curve (between city and road)
-        svgPath: 'M0,0 L30,25 L50,50 L54,46 L100,46 L100,100 L54,100 Z',
-        meepleCentroid: C_FIELD_SE,
+        id: 'field2',
+        type: 'FIELD',
+        svgPath: 'M0,0 L100,0 L100,100 L0,100 Z',
+        meepleCentroid: {
+          x: 25,
+          y: 75
+        }
       },
       {
-        id: 'field1', type: 'FIELD',  // inside curve (SW corner)
-        svgPath: 'M0,54 L46,54 L46,100 L0,100 Z', meepleCentroid: C_FIELD_SW,
+        id: 'road0',
+        type: 'ROAD',
+        hasInn: true,
+        svgPath: 'M0,50 L33,50 L67,50 L100,50',
+        meepleCentroid: {
+          x: 80,
+          y: 52
+        }
       },
+      {
+        id: 'road1',
+        type: 'ROAD',
+        svgPath: 'M0,50 L33,50 L67,50 L100,50',
+        meepleCentroid: {
+          x: 57,
+          y: 78
+        }
+      },
+      {
+        id: 'road2',
+        type: 'ROAD',
+        hasInn: true,
+        svgPath: 'M0,50 L33,50 L67,50 L100,50',
+        meepleCentroid: {
+          x: 26,
+          y: 55
+        }
+      }
     ],
     edgePositionToSegment: {
-      NORTH_LEFT: 'city0', NORTH_CENTER: 'city0', NORTH_RIGHT: 'city0',
-      EAST_LEFT: 'city0', EAST_CENTER: 'city0', EAST_RIGHT: 'city0',
-      SOUTH_LEFT: 'field0', SOUTH_CENTER: 'road0', SOUTH_RIGHT: 'field1',
-      WEST_LEFT: 'field1', WEST_CENTER: 'road0', WEST_RIGHT: 'field0',
+      EAST_CENTER: 'road0',
+      EAST_LEFT: 'field0',
+      EAST_RIGHT: 'field1',
+      NORTH_CENTER: 'field0',
+      NORTH_LEFT: 'field0',
+      NORTH_RIGHT: 'field0',
+      SOUTH_CENTER: 'road1',
+      SOUTH_LEFT: 'field1',
+      SOUTH_RIGHT: 'field2',
+      WEST_CENTER: 'road2',
+      WEST_LEFT: 'field2',
+      WEST_RIGHT: 'field0'
     },
+    adjacencies: [
+      [
+        'field0',
+        'road0'
+      ],
+      [
+        'field0',
+        'road2'
+      ],
+      [
+        'road1',
+        'field2'
+      ],
+      [
+        'road1',
+        'field1'
+      ],
+      [
+        'road2',
+        'field2'
+      ],
+      [
+        'field1',
+        'road0'
+      ]
+    ]
   },
-
-  // ── ic_D: City N+E connected (with pennant) + road S→W ──
+  // ic_D
   {
-    id: 'ic_D', imageUrl: '/images/InnsAndCathedrals_C2/Inns_And_Cathedrals_C2_Tile_D.jpg',
+    id: 'ic_D',
     count: 1,
     expansionId: 'inns-cathedrals',
+    imageUrl: '/images/InnsAndCathedrals_C3/Inns_And_Cathedrals_C3_Tile_D.png',
     segments: [
       {
-        id: 'city0', type: 'CITY', hasPennant: true,
-        svgPath: CITY_NE, meepleCentroid: C_FIELD_NE,
+        id: 'field0',
+        type: 'FIELD',
+        svgPath: 'M0,0 L100,0 L100,100 L0,100 Z',
+        meepleCentroid: {
+          x: 54,
+          y: 24
+        }
       },
       {
-        id: 'road0', type: 'ROAD',
-        svgPath: ROAD_CURVE_SW, meepleCentroid: C_ROAD_S,
+        id: 'field1',
+        type: 'FIELD',
+        svgPath: 'M0,0 L100,0 L100,100 L0,100 Z',
+        meepleCentroid: {
+          x: 50,
+          y: 84
+        }
       },
       {
-        id: 'field0', type: 'FIELD',
-        svgPath: 'M0,0 L30,25 L50,50 L54,46 L100,46 L100,100 L54,100 Z',
-        meepleCentroid: C_FIELD_SE,
+        id: 'road0',
+        type: 'ROAD',
+        svgPath: 'M0,50 L33,50 L67,50 L100,50',
+        meepleCentroid: {
+          x: 81,
+          y: 50
+        }
       },
       {
-        id: 'field1', type: 'FIELD',
-        svgPath: 'M0,54 L46,54 L46,100 L0,100 Z', meepleCentroid: C_FIELD_SW,
+        id: 'road1',
+        type: 'ROAD',
+        svgPath: 'M0,50 L33,50 L67,50 L100,50',
+        meepleCentroid: {
+          x: 17,
+          y: 70
+        }
       },
+      {
+        id: 'cloister0',
+        type: 'CLOISTER',
+        svgPath: 'M40,40 L60,40 L60,60 L40,60 Z',
+        meepleCentroid: {
+          x: 51,
+          y: 52
+        }
+      }
     ],
     edgePositionToSegment: {
-      NORTH_LEFT: 'city0', NORTH_CENTER: 'city0', NORTH_RIGHT: 'city0',
-      EAST_LEFT: 'city0', EAST_CENTER: 'city0', EAST_RIGHT: 'city0',
-      SOUTH_LEFT: 'field0', SOUTH_CENTER: 'road0', SOUTH_RIGHT: 'field1',
-      WEST_LEFT: 'field1', WEST_CENTER: 'road0', WEST_RIGHT: 'field0',
+      EAST_CENTER: 'road0',
+      EAST_LEFT: 'field0',
+      EAST_RIGHT: 'field1',
+      NORTH_CENTER: 'field0',
+      NORTH_LEFT: 'field0',
+      NORTH_RIGHT: 'field0',
+      SOUTH_CENTER: 'field1',
+      SOUTH_LEFT: 'field1',
+      SOUTH_RIGHT: 'field1',
+      WEST_CENTER: 'road1',
+      WEST_LEFT: 'field1',
+      WEST_RIGHT: 'field0'
     },
+    adjacencies: [
+      [
+        'cloister0',
+        'field0'
+      ],
+      [
+        'cloister0',
+        'road0'
+      ],
+      [
+        'cloister0',
+        'field1'
+      ],
+      [
+        'cloister0',
+        'road1'
+      ],
+      [
+        'field0',
+        'road1'
+      ],
+      [
+        'field0',
+        'road0'
+      ],
+      [
+        'field1',
+        'road0'
+      ],
+      [
+        'field1',
+        'road1'
+      ]
+    ]
   },
-
-  // ── ic_E: City N + road S→W with inn ──
+  // ic_E
   {
-    id: 'ic_E', imageUrl: '/images/InnsAndCathedrals_C2/Inns_And_Cathedrals_C2_Tile_E.jpg',
+    id: 'ic_E',
     count: 1,
     expansionId: 'inns-cathedrals',
+    imageUrl: '/images/InnsAndCathedrals_C3/Inns_And_Cathedrals_C3_Tile_E.png',
     segments: [
       {
-        id: 'city0', type: 'CITY',
-        svgPath: CITY_N, meepleCentroid: C_NORTH,
+        id: 'field0',
+        type: 'FIELD',
+        svgPath: 'M0,0 L100,0 L100,100 L0,100 Z',
+        meepleCentroid: {
+          x: 20,
+          y: 21
+        }
       },
       {
-        id: 'road0', type: 'ROAD', hasInn: true,
-        svgPath: ROAD_CURVE_SW, meepleCentroid: C_ROAD_S,
+        id: 'field1',
+        type: 'FIELD',
+        svgPath: 'M0,0 L100,0 L100,100 L0,100 Z',
+        meepleCentroid: {
+          x: 85,
+          y: 85
+        }
       },
       {
-        id: 'field0', type: 'FIELD',  // east of road
-        svgPath: 'M54,46 L100,46 L100,100 L54,100 Z', meepleCentroid: C_FIELD_SE,
+        id: 'field2',
+        type: 'FIELD',
+        svgPath: 'M0,0 L100,0 L100,100 L0,100 Z',
+        meepleCentroid: {
+          x: 56,
+          y: 49
+        }
       },
       {
-        id: 'field1', type: 'FIELD',  // inside curve (SW corner)
-        svgPath: 'M0,54 L46,54 L46,100 L0,100 Z', meepleCentroid: C_FIELD_SW,
+        id: 'road0',
+        type: 'ROAD',
+        svgPath: 'M0,50 L33,50 L67,50 L100,50',
+        meepleCentroid: {
+          x: 35,
+          y: 32
+        }
       },
+      {
+        id: 'road1',
+        type: 'ROAD',
+        svgPath: 'M0,50 L33,50 L67,50 L100,50',
+        meepleCentroid: {
+          x: 73,
+          y: 72
+        }
+      }
     ],
     edgePositionToSegment: {
-      NORTH_LEFT: 'city0', NORTH_CENTER: 'city0', NORTH_RIGHT: 'city0',
-      EAST_LEFT: 'field0', EAST_CENTER: 'field0', EAST_RIGHT: 'field0',
-      SOUTH_LEFT: 'field0', SOUTH_CENTER: 'road0', SOUTH_RIGHT: 'field1',
-      WEST_LEFT: 'field1', WEST_CENTER: 'road0', WEST_RIGHT: 'field0',
+      EAST_CENTER: 'road1',
+      EAST_LEFT: 'field2',
+      EAST_RIGHT: 'field1',
+      NORTH_CENTER: 'road0',
+      NORTH_LEFT: 'field0',
+      NORTH_RIGHT: 'field2',
+      SOUTH_CENTER: 'road1',
+      SOUTH_LEFT: 'field1',
+      SOUTH_RIGHT: 'field2',
+      WEST_CENTER: 'road0',
+      WEST_LEFT: 'field2',
+      WEST_RIGHT: 'field0'
     },
+    adjacencies: [
+      [
+        'road0',
+        'field0'
+      ],
+      [
+        'road0',
+        'field2'
+      ],
+      [
+        'road1',
+        'field2'
+      ],
+      [
+        'road1',
+        'field1'
+      ]
+    ]
   },
-
-  // ── ic_F: City N + road E→W with inn ──
+  // ic_F
   {
-    id: 'ic_F', imageUrl: '/images/InnsAndCathedrals_C2/Inns_And_Cathedrals_C2_Tile_F.jpg',
+    id: 'ic_F',
     count: 1,
     expansionId: 'inns-cathedrals',
+    imageUrl: '/images/InnsAndCathedrals_C3/Inns_And_Cathedrals_C3_Tile_F.png',
     segments: [
       {
-        id: 'city0', type: 'CITY',
-        svgPath: CITY_N, meepleCentroid: C_NORTH,
+        id: 'field0',
+        type: 'FIELD',
+        svgPath: 'M0,0 L100,0 L100,100 L0,100 Z',
+        meepleCentroid: {
+          x: 78,
+          y: 36
+        }
       },
       {
-        id: 'road0', type: 'ROAD', hasInn: true,
-        svgPath: ROAD_EW, meepleCentroid: C_CENTER,
+        id: 'field1',
+        type: 'FIELD',
+        svgPath: 'M0,0 L100,0 L100,100 L0,100 Z',
+        meepleCentroid: {
+          x: 57,
+          y: 78
+        }
       },
       {
-        id: 'field0', type: 'FIELD',  // below road
-        svgPath: 'M0,54 L100,54 L100,100 L0,100 Z', meepleCentroid: C_SOUTH,
+        id: 'road0',
+        type: 'ROAD',
+        svgPath: 'M0,50 L33,50 L67,50 L100,50',
+        meepleCentroid: {
+          x: 69,
+          y: 59
+        }
       },
       {
-        id: 'field1', type: 'FIELD',  // between city and road
-        svgPath: 'M0,40 L46,40 L46,46 L0,46 Z', meepleCentroid: C_FIELD_NW,
-      },
+        id: 'city0',
+        type: 'CITY',
+        svgPath: 'M40,20 L60,20 L80,40 L80,60 L60,80 L40,80 L20,60 L20,40 Z',
+        meepleCentroid: {
+          x: 30,
+          y: 29
+        }
+      }
     ],
     edgePositionToSegment: {
-      NORTH_LEFT: 'city0', NORTH_CENTER: 'city0', NORTH_RIGHT: 'city0',
-      EAST_LEFT: 'field1', EAST_CENTER: 'road0', EAST_RIGHT: 'field0',
-      SOUTH_LEFT: 'field0', SOUTH_CENTER: 'field0', SOUTH_RIGHT: 'field0',
-      WEST_LEFT: 'field0', WEST_CENTER: 'road0', WEST_RIGHT: 'field1',
+      EAST_CENTER: 'road0',
+      EAST_LEFT: 'field0',
+      EAST_RIGHT: 'field1',
+      NORTH_CENTER: 'city0',
+      NORTH_LEFT: 'city0',
+      NORTH_RIGHT: 'city0',
+      SOUTH_CENTER: 'field1',
+      SOUTH_LEFT: 'field1',
+      SOUTH_RIGHT: 'field1',
+      WEST_CENTER: 'city0',
+      WEST_LEFT: 'city0',
+      WEST_RIGHT: 'city0'
     },
+    adjacencies: [
+      [
+        'field0',
+        'city0'
+      ],
+      [
+        'field0',
+        'road0'
+      ],
+      [
+        'city0',
+        'road0'
+      ],
+      [
+        'city0',
+        'field1'
+      ],
+      [
+        'road0',
+        'field1'
+      ]
+    ]
   },
-
-  // ── ic_G: City N + road dead-end S ──
+  // ic_G
   {
-    id: 'ic_G', imageUrl: '/images/InnsAndCathedrals_C2/Inns_And_Cathedrals_C2_Tile_G.jpg',
+    id: 'ic_G',
     count: 1,
     expansionId: 'inns-cathedrals',
+    imageUrl: '/images/InnsAndCathedrals_C3/Inns_And_Cathedrals_C3_Tile_G.png',
     segments: [
       {
-        id: 'city0', type: 'CITY',
-        svgPath: CITY_N, meepleCentroid: C_NORTH,
+        id: 'city0',
+        type: 'CITY',
+        svgPath: 'M0,0 L100,0 L70,25 L50,30 L30,25 Z',
+        meepleCentroid: {
+          x: 28,
+          y: 35
+        }
       },
       {
-        id: 'road0', type: 'ROAD',
-        svgPath: 'M46,50 L54,50 L54,100 L46,100 Z', meepleCentroid: C_ROAD_S,
+        id: 'field0',
+        type: 'FIELD',
+        svgPath: 'M0,40 L100,40 L100,100 L0,100 Z',
+        meepleCentroid: {
+          x: 50,
+          y: 16
+        }
       },
       {
-        id: 'field0', type: 'FIELD',
-        svgPath: 'M0,40 L100,40 L100,100 L0,100 Z', meepleCentroid: C_FIELD_SW,
-      },
+        id: 'field1',
+        type: 'FIELD',
+        svgPath: 'M0,0 L100,0 L100,100 L0,100 Z',
+        meepleCentroid: {
+          x: 69,
+          y: 73
+        }
+      }
     ],
     edgePositionToSegment: {
-      NORTH_LEFT: 'city0', NORTH_CENTER: 'city0', NORTH_RIGHT: 'city0',
-      EAST_LEFT: 'field0', EAST_CENTER: 'field0', EAST_RIGHT: 'field0',
-      SOUTH_LEFT: 'field0', SOUTH_CENTER: 'road0', SOUTH_RIGHT: 'field0',
-      WEST_LEFT: 'field0', WEST_CENTER: 'field0', WEST_RIGHT: 'field0',
+      EAST_CENTER: 'field1',
+      EAST_LEFT: 'field1',
+      EAST_RIGHT: 'field1',
+      NORTH_CENTER: 'field0',
+      NORTH_LEFT: 'field0',
+      NORTH_RIGHT: 'field0',
+      SOUTH_CENTER: 'field1',
+      SOUTH_LEFT: 'field1',
+      SOUTH_RIGHT: 'field1',
+      WEST_CENTER: 'city0',
+      WEST_LEFT: 'city0',
+      WEST_RIGHT: 'city0'
     },
+    adjacencies: [
+      [
+        'city0',
+        'field0'
+      ],
+      [
+        'city0',
+        'field1'
+      ]
+    ]
   },
-
-  // ── ic_H: City N with pennant (large city cap) ──
+  // ic_H
   {
-    id: 'ic_H', imageUrl: '/images/InnsAndCathedrals_C2/Inns_And_Cathedrals_C2_Tile_H.jpg',
+    id: 'ic_H',
     count: 1,
     expansionId: 'inns-cathedrals',
+    imageUrl: '/images/InnsAndCathedrals_C3/Inns_And_Cathedrals_C3_Tile_H.png',
     segments: [
       {
-        id: 'city0', type: 'CITY', hasPennant: true,
-        svgPath: CITY_N, meepleCentroid: C_NORTH,
+        id: 'city0',
+        type: 'CITY',
+        svgPath: 'M40,20 L60,20 L80,40 L80,60 L60,80 L40,80 L20,60 L20,40 Z',
+        meepleCentroid: {
+          x: 50,
+          y: 18
+        }
       },
       {
-        id: 'field0', type: 'FIELD',
-        svgPath: 'M0,40 L50,50 L100,40 L100,100 L0,100 Z', meepleCentroid: C_FIELD_SW,
+        id: 'city1',
+        type: 'CITY',
+        svgPath: 'M40,20 L60,20 L80,40 L80,60 L60,80 L40,80 L20,60 L20,40 Z',
+        meepleCentroid: {
+          x: 82,
+          y: 46
+        }
       },
+      {
+        id: 'city2',
+        type: 'CITY',
+        svgPath: 'M40,20 L60,20 L80,40 L80,60 L60,80 L40,80 L20,60 L20,40 Z',
+        meepleCentroid: {
+          x: 52,
+          y: 81
+        }
+      },
+      {
+        id: 'city3',
+        type: 'CITY',
+        svgPath: 'M40,20 L60,20 L80,40 L80,60 L60,80 L40,80 L20,60 L20,40 Z',
+        meepleCentroid: {
+          x: 15,
+          y: 47
+        }
+      },
+      {
+        id: 'field0',
+        type: 'FIELD',
+        svgPath: 'M0,0 L100,0 L100,100 L0,100 Z',
+        meepleCentroid: {
+          x: 52,
+          y: 45
+        }
+      }
     ],
     edgePositionToSegment: {
-      NORTH_LEFT: 'city0', NORTH_CENTER: 'city0', NORTH_RIGHT: 'city0',
-      EAST_LEFT: 'field0', EAST_CENTER: 'field0', EAST_RIGHT: 'field0',
-      SOUTH_LEFT: 'field0', SOUTH_CENTER: 'field0', SOUTH_RIGHT: 'field0',
-      WEST_LEFT: 'field0', WEST_CENTER: 'field0', WEST_RIGHT: 'field0',
+      EAST_CENTER: 'city1',
+      EAST_LEFT: 'city1',
+      EAST_RIGHT: 'city1',
+      NORTH_CENTER: 'city0',
+      NORTH_LEFT: 'city0',
+      NORTH_RIGHT: 'city0',
+      SOUTH_CENTER: 'city2',
+      SOUTH_LEFT: 'city2',
+      SOUTH_RIGHT: 'city2',
+      WEST_CENTER: 'city3',
+      WEST_LEFT: 'city3',
+      WEST_RIGHT: 'city3'
     },
+    adjacencies: [
+      [
+        'field0',
+        'city0'
+      ],
+      [
+        'field0',
+        'city3'
+      ],
+      [
+        'field0',
+        'city2'
+      ],
+      [
+        'field0',
+        'city1'
+      ]
+    ]
   },
-
-  // ── ic_I: Straight road N→S with inn ──
+  // ic_I
   {
-    id: 'ic_I', imageUrl: '/images/InnsAndCathedrals_C2/Inns_And_Cathedrals_C2_Tile_I.jpg',
+    id: 'ic_I',
     count: 1,
     expansionId: 'inns-cathedrals',
+    imageUrl: '/images/InnsAndCathedrals_C3/Inns_And_Cathedrals_C3_Tile_I.png',
     segments: [
       {
-        id: 'road0', type: 'ROAD', hasInn: true,
-        svgPath: ROAD_NS, meepleCentroid: C_CENTER,
+        id: 'field0',
+        type: 'FIELD',
+        svgPath: 'M0,0 L100,0 L100,100 L0,100 Z',
+        meepleCentroid: {
+          x: 83,
+          y: 30
+        }
       },
       {
-        id: 'field0', type: 'FIELD',  // east side
-        svgPath: 'M54,0 L100,0 L100,100 L54,100 Z', meepleCentroid: C_EAST,
+        id: 'field1',
+        type: 'FIELD',
+        svgPath: 'M0,0 L100,0 L100,100 L0,100 Z',
+        meepleCentroid: {
+          x: 80,
+          y: 72
+        }
       },
       {
-        id: 'field1', type: 'FIELD',  // west side
-        svgPath: 'M0,0 L46,0 L46,100 L0,100 Z', meepleCentroid: C_WEST,
+        id: 'field2',
+        type: 'FIELD',
+        svgPath: 'M0,0 L100,0 L100,100 L0,100 Z',
+        meepleCentroid: {
+          x: 23,
+          y: 72
+        }
       },
+      {
+        id: 'field3',
+        type: 'FIELD',
+        svgPath: 'M0,0 L100,0 L100,100 L0,100 Z',
+        meepleCentroid: {
+          x: 23,
+          y: 36
+        }
+      },
+      {
+        id: 'road0',
+        type: 'ROAD',
+        svgPath: 'M0,50 L33,50 L67,50 L100,50',
+        meepleCentroid: {
+          x: 85,
+          y: 47
+        }
+      },
+      {
+        id: 'road1',
+        type: 'ROAD',
+        svgPath: 'M0,50 L33,50 L67,50 L100,50',
+        meepleCentroid: {
+          x: 20,
+          y: 53
+        }
+      },
+      {
+        id: 'city0',
+        type: 'CITY',
+        svgPath: 'M40,20 L60,20 L80,40 L80,60 L60,80 L40,80 L20,60 L20,40 Z',
+        meepleCentroid: {
+          x: 50,
+          y: 21
+        }
+      },
+      {
+        id: 'city1',
+        type: 'CITY',
+        svgPath: 'M40,20 L60,20 L80,40 L80,60 L60,80 L40,80 L20,60 L20,40 Z',
+        meepleCentroid: {
+          x: 50,
+          y: 78
+        }
+      }
     ],
     edgePositionToSegment: {
-      NORTH_LEFT: 'field1', NORTH_CENTER: 'road0', NORTH_RIGHT: 'field0',
-      EAST_LEFT: 'field0', EAST_CENTER: 'field0', EAST_RIGHT: 'field0',
-      SOUTH_LEFT: 'field0', SOUTH_CENTER: 'road0', SOUTH_RIGHT: 'field1',
-      WEST_LEFT: 'field1', WEST_CENTER: 'field1', WEST_RIGHT: 'field1',
+      EAST_CENTER: 'road0',
+      EAST_LEFT: 'field0',
+      EAST_RIGHT: 'field1',
+      NORTH_CENTER: 'city0',
+      NORTH_LEFT: 'city0',
+      NORTH_RIGHT: 'city0',
+      SOUTH_CENTER: 'city1',
+      SOUTH_LEFT: 'city1',
+      SOUTH_RIGHT: 'city1',
+      WEST_CENTER: 'road1',
+      WEST_LEFT: 'field2',
+      WEST_RIGHT: 'field3'
     },
+    adjacencies: [
+      [
+        'field3',
+        'city0'
+      ],
+      [
+        'field3',
+        'road1'
+      ],
+      [
+        'city1',
+        'field2'
+      ],
+      [
+        'city1',
+        'field1'
+      ],
+      [
+        'road1',
+        'field2'
+      ],
+      [
+        'road0',
+        'field1'
+      ],
+      [
+        'road0',
+        'field0'
+      ],
+      [
+        'field0',
+        'city0'
+      ]
+    ]
   },
-
-  // ── ic_J: Road curve S→W with inn ──
+  // ic_J
   {
-    id: 'ic_J', imageUrl: '/images/InnsAndCathedrals_C2/Inns_And_Cathedrals_C2_Tile_J.jpg',
+    id: 'ic_J',
     count: 1,
     expansionId: 'inns-cathedrals',
+    imageUrl: '/images/InnsAndCathedrals_C3/Inns_And_Cathedrals_C3_Tile_J.png',
     segments: [
       {
-        id: 'road0', type: 'ROAD', hasInn: true,
-        svgPath: ROAD_CURVE_SW, meepleCentroid: C_WEST,
+        id: 'field0',
+        type: 'FIELD',
+        svgPath: 'M0,0 L100,0 L100,100 L0,100 Z',
+        meepleCentroid: {
+          x: 77,
+          y: 55
+        }
       },
       {
-        id: 'field0', type: 'FIELD',  // outside curve (NE)
-        svgPath: 'M0,0 L100,0 L100,100 L54,100 L46,54 L0,54 Z', meepleCentroid: C_FIELD_NE,
+        id: 'field1',
+        type: 'FIELD',
+        svgPath: 'M0,0 L100,0 L100,100 L0,100 Z',
+        meepleCentroid: {
+          x: 24,
+          y: 57
+        }
       },
       {
-        id: 'field1', type: 'FIELD',  // inside curve (SW corner)
-        svgPath: 'M0,54 L46,54 L46,100 L0,100 Z', meepleCentroid: C_FIELD_SW,
+        id: 'road0',
+        type: 'ROAD',
+        svgPath: 'M0,50 L33,50 L67,50 L100,50',
+        meepleCentroid: {
+          x: 53,
+          y: 61
+        }
       },
+      {
+        id: 'city0',
+        type: 'CITY',
+        svgPath: 'M40,20 L60,20 L80,40 L80,60 L60,80 L40,80 L20,60 L20,40 Z',
+        meepleCentroid: {
+          x: 50,
+          y: 19
+        }
+      }
     ],
     edgePositionToSegment: {
-      NORTH_LEFT: 'field0', NORTH_CENTER: 'field0', NORTH_RIGHT: 'field0',
-      EAST_LEFT: 'field0', EAST_CENTER: 'field0', EAST_RIGHT: 'field0',
-      SOUTH_LEFT: 'field0', SOUTH_CENTER: 'road0', SOUTH_RIGHT: 'field1',
-      WEST_LEFT: 'field1', WEST_CENTER: 'road0', WEST_RIGHT: 'field0',
+      EAST_CENTER: 'field0',
+      EAST_LEFT: 'field0',
+      EAST_RIGHT: 'field0',
+      NORTH_CENTER: 'city0',
+      NORTH_LEFT: 'city0',
+      NORTH_RIGHT: 'city0',
+      SOUTH_CENTER: 'road0',
+      SOUTH_LEFT: 'field0',
+      SOUTH_RIGHT: 'field1',
+      WEST_CENTER: 'field1',
+      WEST_LEFT: 'field1',
+      WEST_RIGHT: 'field1'
     },
+    adjacencies: [
+      [
+        'road0',
+        'field1'
+      ],
+      [
+        'road0',
+        'field0'
+      ],
+      [
+        'road0',
+        'city0'
+      ],
+      [
+        'field0',
+        'city0'
+      ],
+      [
+        'field1',
+        'city0'
+      ]
+    ]
   },
-
-  // ── ic_Ka: City N+E connected (with pennant), field S+W ──
+  // ic_Ka
   {
-    id: 'ic_Ka', imageUrl: '/images/InnsAndCathedrals_C2/Inns_And_Cathedrals_C2_Tile_Ka.jpg',
+    id: 'ic_Ka',
     count: 1,
     expansionId: 'inns-cathedrals',
+    imageUrl: '/images/InnsAndCathedrals_C3/Inns_And_Cathedrals_C3_Tile_Ka.png',
     segments: [
       {
-        id: 'city0', type: 'CITY', hasPennant: true,
-        svgPath: CITY_NE, meepleCentroid: C_FIELD_NE,
-      },
-      {
-        id: 'field0', type: 'FIELD',
-        svgPath: 'M0,0 L30,25 L50,50 L0,60 Z', meepleCentroid: C_FIELD_NW,
-      },
-      {
-        id: 'field1', type: 'FIELD',
-        svgPath: 'M0,60 L50,50 L75,70 L100,100 L0,100 Z', meepleCentroid: C_FIELD_SW,
-      },
+        id: 'city0',
+        type: 'CITY',
+        svgPath: 'M40,20 L60,20 L80,40 L80,60 L60,80 L40,80 L20,60 L20,40 Z',
+        hasCathedral: true,
+        meepleCentroid: {
+          x: 50,
+          y: 50
+        }
+      }
     ],
     edgePositionToSegment: {
-      NORTH_LEFT: 'city0', NORTH_CENTER: 'city0', NORTH_RIGHT: 'city0',
-      EAST_LEFT: 'city0', EAST_CENTER: 'city0', EAST_RIGHT: 'city0',
-      SOUTH_LEFT: 'field1', SOUTH_CENTER: 'field1', SOUTH_RIGHT: 'field1',
-      WEST_LEFT: 'field1', WEST_CENTER: 'field0', WEST_RIGHT: 'field0',
-    },
+      EAST_CENTER: 'city0',
+      EAST_LEFT: 'city0',
+      EAST_RIGHT: 'city0',
+      NORTH_CENTER: 'city0',
+      NORTH_LEFT: 'city0',
+      NORTH_RIGHT: 'city0',
+      SOUTH_CENTER: 'city0',
+      SOUTH_LEFT: 'city0',
+      SOUTH_RIGHT: 'city0',
+      WEST_CENTER: 'city0',
+      WEST_LEFT: 'city0',
+      WEST_RIGHT: 'city0'
+    }
   },
-
-  // ── ic_Kb: City N+E connected (with pennant), field S+W (same features as Ka, different art) ──
+  // ic_Kb
   {
-    id: 'ic_Kb', imageUrl: '/images/InnsAndCathedrals_C2/Inns_And_Cathedrals_C2_Tile_Kb.jpg',
+    id: 'ic_Kb',
     count: 1,
     expansionId: 'inns-cathedrals',
+    imageUrl: '/images/InnsAndCathedrals_C3/Inns_And_Cathedrals_C3_Tile_Kb.png',
     segments: [
       {
-        id: 'city0', type: 'CITY', hasPennant: true,
-        svgPath: CITY_NE, meepleCentroid: C_FIELD_NE,
-      },
-      {
-        id: 'field0', type: 'FIELD',
-        svgPath: 'M0,0 L30,25 L50,50 L0,60 Z', meepleCentroid: C_FIELD_NW,
-      },
-      {
-        id: 'field1', type: 'FIELD',
-        svgPath: 'M0,60 L50,50 L75,70 L100,100 L0,100 Z', meepleCentroid: C_FIELD_SW,
-      },
+        id: 'city0',
+        type: 'CITY',
+        svgPath: 'M40,20 L60,20 L80,40 L80,60 L60,80 L40,80 L20,60 L20,40 Z',
+        hasCathedral: true,
+        meepleCentroid: {
+          x: 50,
+          y: 50
+        }
+      }
     ],
     edgePositionToSegment: {
-      NORTH_LEFT: 'city0', NORTH_CENTER: 'city0', NORTH_RIGHT: 'city0',
-      EAST_LEFT: 'city0', EAST_CENTER: 'city0', EAST_RIGHT: 'city0',
-      SOUTH_LEFT: 'field1', SOUTH_CENTER: 'field1', SOUTH_RIGHT: 'field1',
-      WEST_LEFT: 'field1', WEST_CENTER: 'field0', WEST_RIGHT: 'field0',
-    },
+      EAST_CENTER: 'city0',
+      EAST_LEFT: 'city0',
+      EAST_RIGHT: 'city0',
+      NORTH_CENTER: 'city0',
+      NORTH_LEFT: 'city0',
+      NORTH_RIGHT: 'city0',
+      SOUTH_CENTER: 'city0',
+      SOUTH_LEFT: 'city0',
+      SOUTH_RIGHT: 'city0',
+      WEST_CENTER: 'city0',
+      WEST_LEFT: 'city0',
+      WEST_RIGHT: 'city0'
+    }
   },
-
-  // ── ic_L: City N+E+W connected (with pennant) ──
+  // ic_L
   {
-    id: 'ic_L', imageUrl: '/images/InnsAndCathedrals_C2/Inns_And_Cathedrals_C2_Tile_L.jpg',
+    id: 'ic_L',
     count: 1,
     expansionId: 'inns-cathedrals',
+    imageUrl: '/images/InnsAndCathedrals_C3/Inns_And_Cathedrals_C3_Tile_L.png',
     segments: [
       {
-        id: 'city0', type: 'CITY', hasPennant: true,
-        svgPath: CITY_WNE, meepleCentroid: C_NORTH,
+        id: 'field0',
+        type: 'FIELD',
+        svgPath: 'M0,0 L100,0 L100,100 L0,100 Z',
+        meepleCentroid: {
+          x: 26,
+          y: 80
+        }
       },
       {
-        id: 'field0', type: 'FIELD',
-        svgPath: 'M0,60 L50,50 L100,60 L100,100 L0,100 Z', meepleCentroid: C_SOUTH,
+        id: 'field1',
+        type: 'FIELD',
+        svgPath: 'M0,0 L100,0 L100,100 L0,100 Z',
+        meepleCentroid: {
+          x: 77,
+          y: 75
+        }
       },
+      {
+        id: 'road0',
+        type: 'ROAD',
+        hasInn: true,
+        svgPath: 'M0,50 L33,50 L67,50 L100,50',
+        meepleCentroid: {
+          x: 60,
+          y: 59
+        }
+      },
+      {
+        id: 'city0',
+        type: 'CITY',
+        svgPath: 'M40,20 L60,20 L80,40 L80,60 L60,80 L40,80 L20,60 L20,40 Z',
+        hasPennant: true,
+        meepleCentroid: {
+          x: 32,
+          y: 32
+        }
+      }
     ],
     edgePositionToSegment: {
-      NORTH_LEFT: 'city0', NORTH_CENTER: 'city0', NORTH_RIGHT: 'city0',
-      EAST_LEFT: 'city0', EAST_CENTER: 'city0', EAST_RIGHT: 'city0',
-      SOUTH_LEFT: 'field0', SOUTH_CENTER: 'field0', SOUTH_RIGHT: 'field0',
-      WEST_LEFT: 'city0', WEST_CENTER: 'city0', WEST_RIGHT: 'city0',
+      EAST_CENTER: 'road0',
+      EAST_LEFT: 'field0',
+      EAST_RIGHT: 'field1',
+      NORTH_CENTER: 'city0',
+      NORTH_LEFT: 'city0',
+      NORTH_RIGHT: 'city0',
+      SOUTH_CENTER: 'road0',
+      SOUTH_LEFT: 'field1',
+      SOUTH_RIGHT: 'field0',
+      WEST_CENTER: 'city0',
+      WEST_LEFT: 'city0',
+      WEST_RIGHT: 'city0'
     },
+    adjacencies: [
+      [
+        'city0',
+        'field0'
+      ],
+      [
+        'road0',
+        'field0'
+      ],
+      [
+        'road0',
+        'field1'
+      ]
+    ]
   },
-
-  // ── ic_M: City N+W connected (no pennant) ──
+  // ic_M
   {
-    id: 'ic_M', imageUrl: '/images/InnsAndCathedrals_C2/Inns_And_Cathedrals_C2_Tile_M.jpg',
+    id: 'ic_M',
     count: 1,
     expansionId: 'inns-cathedrals',
+    imageUrl: '/images/InnsAndCathedrals_C3/Inns_And_Cathedrals_C3_Tile_M.png',
     segments: [
       {
-        id: 'city0', type: 'CITY',
-        svgPath: CITY_NW, meepleCentroid: { x: 25, y: 25 },
+        id: 'field0',
+        type: 'FIELD',
+        svgPath: 'M0,0 L100,0 L100,100 L0,100 Z',
+        meepleCentroid: {
+          x: 63,
+          y: 51
+        }
       },
       {
-        id: 'field0', type: 'FIELD',
-        svgPath: 'M50,50 L100,40 L100,100 L0,100 L0,60 Z', meepleCentroid: C_FIELD_SE,
+        id: 'field1',
+        type: 'FIELD',
+        svgPath: 'M0,0 L100,0 L100,100 L0,100 Z',
+        meepleCentroid: {
+          x: 26,
+          y: 72
+        }
       },
+      {
+        id: 'road0',
+        type: 'ROAD',
+        svgPath: 'M0,50 L33,50 L67,50 L100,50',
+        meepleCentroid: {
+          x: 40,
+          y: 63
+        }
+      },
+      {
+        id: 'city0',
+        type: 'CITY',
+        svgPath: 'M40,20 L60,20 L80,40 L80,60 L60,80 L40,80 L20,60 L20,40 Z',
+        meepleCentroid: {
+          x: 51,
+          y: 22
+        }
+      }
     ],
     edgePositionToSegment: {
-      NORTH_LEFT: 'city0', NORTH_CENTER: 'city0', NORTH_RIGHT: 'city0',
-      EAST_LEFT: 'field0', EAST_CENTER: 'field0', EAST_RIGHT: 'field0',
-      SOUTH_LEFT: 'field0', SOUTH_CENTER: 'field0', SOUTH_RIGHT: 'field0',
-      WEST_LEFT: 'city0', WEST_CENTER: 'city0', WEST_RIGHT: 'city0',
+      EAST_CENTER: 'field0',
+      EAST_LEFT: 'field0',
+      EAST_RIGHT: 'field0',
+      NORTH_CENTER: 'city0',
+      NORTH_LEFT: 'city0',
+      NORTH_RIGHT: 'city0',
+      SOUTH_CENTER: 'road0',
+      SOUTH_LEFT: 'field0',
+      SOUTH_RIGHT: 'field1',
+      WEST_CENTER: 'road0',
+      WEST_LEFT: 'field1',
+      WEST_RIGHT: 'field0'
     },
+    adjacencies: [
+      [
+        'field0',
+        'city0'
+      ],
+      [
+        'field0',
+        'road0'
+      ],
+      [
+        'field1',
+        'road0'
+      ]
+    ]
   },
-
-  // ── ic_N: City E + City W (separate, not connected) ──
+  // ic_N
   {
-    id: 'ic_N', imageUrl: '/images/InnsAndCathedrals_C2/Inns_And_Cathedrals_C2_Tile_N.jpg',
+    id: 'ic_N',
     count: 1,
     expansionId: 'inns-cathedrals',
+    imageUrl: '/images/InnsAndCathedrals_C3/Inns_And_Cathedrals_C3_Tile_N.png',
     segments: [
       {
-        id: 'field0', type: 'FIELD',
-        svgPath: FIELD_FULL,
-        meepleCentroid: C_CENTER,
+        id: 'field0',
+        type: 'FIELD',
+        svgPath: 'M0,0 L100,0 L100,100 L0,100 Z',
+        meepleCentroid: {
+          x: 79,
+          y: 50
+        }
       },
       {
-        id: 'city0', type: 'CITY',
-        svgPath: CITY_E, meepleCentroid: C_EAST,
+        id: 'field1',
+        type: 'FIELD',
+        svgPath: 'M0,0 L100,0 L100,100 L0,100 Z',
+        meepleCentroid: {
+          x: 29,
+          y: 81
+        }
       },
       {
-        id: 'city1', type: 'CITY',
-        svgPath: CITY_W, meepleCentroid: C_WEST,
+        id: 'road0',
+        type: 'ROAD',
+        hasInn: true,
+        svgPath: 'M0,50 L33,50 L67,50 L100,50',
+        meepleCentroid: {
+          x: 55,
+          y: 78
+        }
       },
+      {
+        id: 'city0',
+        type: 'CITY',
+        svgPath: 'M40,20 L60,20 L80,40 L80,60 L60,80 L40,80 L20,60 L20,40 Z',
+        meepleCentroid: {
+          x: 28,
+          y: 30
+        }
+      }
     ],
     edgePositionToSegment: {
-      NORTH_LEFT: 'field0', NORTH_CENTER: 'field0', NORTH_RIGHT: 'field0',
-      EAST_LEFT: 'city0', EAST_CENTER: 'city0', EAST_RIGHT: 'city0',
-      SOUTH_LEFT: 'field0', SOUTH_CENTER: 'field0', SOUTH_RIGHT: 'field0',
-      WEST_LEFT: 'city1', WEST_CENTER: 'city1', WEST_RIGHT: 'city1',
+      EAST_CENTER: 'field0',
+      EAST_LEFT: 'field0',
+      EAST_RIGHT: 'field0',
+      NORTH_CENTER: 'city0',
+      NORTH_LEFT: 'city0',
+      NORTH_RIGHT: 'city0',
+      SOUTH_CENTER: 'road0',
+      SOUTH_LEFT: 'field0',
+      SOUTH_RIGHT: 'field1',
+      WEST_CENTER: 'city0',
+      WEST_LEFT: 'city0',
+      WEST_RIGHT: 'city0'
     },
+    adjacencies: [
+      [
+        'city0',
+        'field0'
+      ],
+      [
+        'city0',
+        'road0'
+      ],
+      [
+        'city0',
+        'field1'
+      ],
+      [
+        'road0',
+        'field1'
+      ],
+      [
+        'road0',
+        'field0'
+      ]
+    ]
   },
-
-  // ── ic_O: 4-way road crossroads with inn ──
+  // ic_O
   {
-    id: 'ic_O', imageUrl: '/images/InnsAndCathedrals_C2/Inns_And_Cathedrals_C2_Tile_O.jpg',
+    id: 'ic_O',
     count: 1,
     expansionId: 'inns-cathedrals',
+    imageUrl: '/images/InnsAndCathedrals_C3/Inns_And_Cathedrals_C3_Tile_O.png',
     segments: [
       {
-        id: 'road_n', type: 'ROAD', hasInn: true,
-        svgPath: 'M46,0 L54,0 L54,46 L46,46 Z', meepleCentroid: C_ROAD_N,
+        id: 'field0',
+        type: 'FIELD',
+        svgPath: 'M0,0 L100,0 L100,100 L0,100 Z',
+        meepleCentroid: {
+          x: 53,
+          y: 57
+        }
       },
       {
-        id: 'road_e', type: 'ROAD', hasInn: true,
-        svgPath: 'M54,46 L100,46 L100,54 L54,54 Z', meepleCentroid: C_ROAD_E,
+        id: 'city0',
+        type: 'CITY',
+        svgPath: 'M40,20 L60,20 L80,40 L80,60 L60,80 L40,80 L20,60 L20,40 Z',
+        meepleCentroid: {
+          x: 56,
+          y: 11
+        }
       },
       {
-        id: 'road_s', type: 'ROAD', hasInn: true,
-        svgPath: 'M46,54 L54,54 L54,100 L46,100 Z', meepleCentroid: C_ROAD_S,
+        id: 'city1',
+        type: 'CITY',
+        svgPath: 'M40,20 L60,20 L80,40 L80,60 L60,80 L40,80 L20,60 L20,40 Z',
+        meepleCentroid: {
+          x: 90,
+          y: 47
+        }
       },
       {
-        id: 'road_w', type: 'ROAD', hasInn: true,
-        svgPath: 'M0,46 L46,46 L46,54 L0,54 Z', meepleCentroid: C_ROAD_W,
-      },
-      {
-        id: 'field0', type: 'FIELD',  // NE quadrant
-        svgPath: 'M54,0 L100,0 L100,46 L54,46 Z', meepleCentroid: C_FIELD_NE,
-      },
-      {
-        id: 'field1', type: 'FIELD',  // SE quadrant
-        svgPath: 'M54,54 L100,54 L100,100 L54,100 Z', meepleCentroid: C_FIELD_SE,
-      },
-      {
-        id: 'field2', type: 'FIELD',  // SW quadrant
-        svgPath: 'M0,54 L46,54 L46,100 L0,100 Z', meepleCentroid: C_FIELD_SW,
-      },
-      {
-        id: 'field3', type: 'FIELD',  // NW quadrant
-        svgPath: 'M0,0 L46,0 L46,46 L0,46 Z', meepleCentroid: C_FIELD_NW,
-      },
+        id: 'city2',
+        type: 'CITY',
+        svgPath: 'M40,20 L60,20 L80,40 L80,60 L60,80 L40,80 L20,60 L20,40 Z',
+        meepleCentroid: {
+          x: 18,
+          y: 50
+        }
+      }
     ],
     edgePositionToSegment: {
-      NORTH_LEFT: 'field3', NORTH_CENTER: 'road_n', NORTH_RIGHT: 'field0',
-      EAST_LEFT: 'field0', EAST_CENTER: 'road_e', EAST_RIGHT: 'field1',
-      SOUTH_LEFT: 'field1', SOUTH_CENTER: 'road_s', SOUTH_RIGHT: 'field2',
-      WEST_LEFT: 'field2', WEST_CENTER: 'road_w', WEST_RIGHT: 'field3',
+      EAST_CENTER: 'city1',
+      EAST_LEFT: 'city1',
+      EAST_RIGHT: 'city1',
+      NORTH_CENTER: 'city0',
+      NORTH_LEFT: 'city0',
+      NORTH_RIGHT: 'city0',
+      SOUTH_CENTER: 'field0',
+      SOUTH_LEFT: 'field0',
+      SOUTH_RIGHT: 'field0',
+      WEST_CENTER: 'city2',
+      WEST_LEFT: 'city2',
+      WEST_RIGHT: 'city2'
     },
+    adjacencies: [
+      [
+        'field0',
+        'city1'
+      ],
+      [
+        'field0',
+        'city0'
+      ],
+      [
+        'field0',
+        'city2'
+      ]
+    ]
   },
-
-  // ── ic_P: City N + road E→S ──
+  // ic_P
   {
-    id: 'ic_P', imageUrl: '/images/InnsAndCathedrals_C2/Inns_And_Cathedrals_C2_Tile_P.jpg',
+    id: 'ic_P',
     count: 1,
     expansionId: 'inns-cathedrals',
+    imageUrl: '/images/InnsAndCathedrals_C3/Inns_And_Cathedrals_C3_Tile_P.png',
     segments: [
       {
-        id: 'city0', type: 'CITY',
-        svgPath: CITY_N, meepleCentroid: C_NORTH,
+        id: 'field0',
+        type: 'FIELD',
+        svgPath: 'M0,0 L100,0 L100,100 L0,100 Z',
+        meepleCentroid: {
+          x: 69,
+          y: 60
+        }
       },
       {
-        id: 'road0', type: 'ROAD',
-        svgPath: ROAD_CURVE_ES, meepleCentroid: C_ROAD_E,
+        id: 'city0',
+        type: 'CITY',
+        svgPath: 'M40,20 L60,20 L80,40 L80,60 L60,80 L40,80 L20,60 L20,40 Z',
+        meepleCentroid: {
+          x: 42,
+          y: 27
+        }
       },
       {
-        id: 'field0', type: 'FIELD',  // west + inside (between city/road and west)
-        svgPath: 'M0,40 L46,46 L46,100 L0,100 Z', meepleCentroid: C_FIELD_SW,
-      },
-      {
-        id: 'field1', type: 'FIELD',  // SE corner (outside curve)
-        svgPath: 'M54,54 L100,54 L100,100 L54,100 Z', meepleCentroid: C_FIELD_SE,
-      },
+        id: 'city1',
+        type: 'CITY',
+        svgPath: 'M40,20 L60,20 L80,40 L80,60 L60,80 L40,80 L20,60 L20,40 Z',
+        hasPennant: true,
+        meepleCentroid: {
+          x: 51,
+          y: 81
+        }
+      }
     ],
     edgePositionToSegment: {
-      NORTH_LEFT: 'city0', NORTH_CENTER: 'city0', NORTH_RIGHT: 'city0',
-      EAST_LEFT: 'field0', EAST_CENTER: 'road0', EAST_RIGHT: 'field1',
-      SOUTH_LEFT: 'field1', SOUTH_CENTER: 'road0', SOUTH_RIGHT: 'field0',
-      WEST_LEFT: 'field0', WEST_CENTER: 'field0', WEST_RIGHT: 'field0',
+      EAST_CENTER: 'field0',
+      EAST_LEFT: 'field0',
+      EAST_RIGHT: 'field0',
+      NORTH_CENTER: 'city0',
+      NORTH_LEFT: 'city0',
+      NORTH_RIGHT: 'city0',
+      SOUTH_CENTER: 'city1',
+      SOUTH_LEFT: 'city1',
+      SOUTH_RIGHT: 'city1',
+      WEST_CENTER: 'city0',
+      WEST_LEFT: 'city0',
+      WEST_RIGHT: 'city0'
     },
+    adjacencies: [
+      [
+        'field0',
+        'city0'
+      ],
+      [
+        'field0',
+        'city1'
+      ]
+    ]
   },
-
-  // ── ic_Q: City N+E+W connected + road S ──
+  // ic_Q
   {
-    id: 'ic_Q', imageUrl: '/images/InnsAndCathedrals_C2/Inns_And_Cathedrals_C2_Tile_Q.jpg',
+    id: 'ic_Q',
     count: 1,
     expansionId: 'inns-cathedrals',
+    imageUrl: '/images/InnsAndCathedrals_C3/Inns_And_Cathedrals_C3_Tile_Q.png',
     segments: [
       {
-        id: 'city0', type: 'CITY',
-        svgPath: CITY_WNE, meepleCentroid: C_NORTH,
+        id: 'field0',
+        type: 'FIELD',
+        svgPath: 'M0,0 L100,0 L100,100 L0,100 Z',
+        meepleCentroid: {
+          x: 27,
+          y: 16
+        }
       },
       {
-        id: 'road0', type: 'ROAD',
-        svgPath: 'M46,70 L54,70 L54,100 L46,100 Z', meepleCentroid: C_ROAD_S,
+        id: 'field1',
+        type: 'FIELD',
+        svgPath: 'M0,0 L100,0 L100,100 L0,100 Z',
+        meepleCentroid: {
+          x: 70,
+          y: 17
+        }
       },
       {
-        id: 'field0', type: 'FIELD',
-        svgPath: 'M0,60 L46,60 L46,100 L0,100 Z', meepleCentroid: C_FIELD_SW,
+        id: 'field2',
+        type: 'FIELD',
+        svgPath: 'M0,0 L100,0 L100,100 L0,100 Z',
+        meepleCentroid: {
+          x: 73,
+          y: 86
+        }
       },
       {
-        id: 'field1', type: 'FIELD',
-        svgPath: 'M54,60 L100,60 L100,100 L54,100 Z', meepleCentroid: C_FIELD_SE,
+        id: 'field3',
+        type: 'FIELD',
+        svgPath: 'M0,0 L100,0 L100,100 L0,100 Z',
+        meepleCentroid: {
+          x: 31,
+          y: 88
+        }
       },
+      {
+        id: 'road0',
+        type: 'ROAD',
+        svgPath: 'M0,50 L33,50 L67,50 L100,50',
+        meepleCentroid: {
+          x: 49,
+          y: 19
+        }
+      },
+      {
+        id: 'road1',
+        type: 'ROAD',
+        svgPath: 'M0,50 L33,50 L67,50 L100,50',
+        meepleCentroid: {
+          x: 50,
+          y: 86
+        }
+      },
+      {
+        id: 'city0',
+        type: 'CITY',
+        svgPath: 'M40,20 L60,20 L80,40 L80,60 L60,80 L40,80 L20,60 L20,40 Z',
+        hasPennant: true,
+        meepleCentroid: {
+          x: 50,
+          y: 53
+        }
+      }
     ],
     edgePositionToSegment: {
-      NORTH_LEFT: 'city0', NORTH_CENTER: 'city0', NORTH_RIGHT: 'city0',
-      EAST_LEFT: 'city0', EAST_CENTER: 'city0', EAST_RIGHT: 'city0',
-      SOUTH_LEFT: 'field1', SOUTH_CENTER: 'road0', SOUTH_RIGHT: 'field0',
-      WEST_LEFT: 'city0', WEST_CENTER: 'city0', WEST_RIGHT: 'city0',
+      EAST_CENTER: 'city0',
+      EAST_LEFT: 'city0',
+      EAST_RIGHT: 'city0',
+      NORTH_CENTER: 'road0',
+      NORTH_LEFT: 'field0',
+      NORTH_RIGHT: 'field1',
+      SOUTH_CENTER: 'road1',
+      SOUTH_LEFT: 'field2',
+      SOUTH_RIGHT: 'field3',
+      WEST_CENTER: 'city0',
+      WEST_LEFT: 'city0',
+      WEST_RIGHT: 'city0'
     },
+    adjacencies: [
+      [
+        'city0',
+        'field0'
+      ],
+      [
+        'city0',
+        'road0'
+      ],
+      [
+        'city0',
+        'field1'
+      ],
+      [
+        'city0',
+        'field2'
+      ],
+      [
+        'city0',
+        'road1'
+      ],
+      [
+        'city0',
+        'field3'
+      ],
+      [
+        'road1',
+        'field3'
+      ],
+      [
+        'road1',
+        'field2'
+      ],
+      [
+        'road0',
+        'field0'
+      ],
+      [
+        'road0',
+        'field1'
+      ]
+    ]
   },
-
 ]
-
-// Total tile count for verification
-export const IC_TILE_COUNT = IC_TILES.reduce((sum, t) => sum + t.count, 0)

@@ -45,7 +45,15 @@ export interface TileDefinition {
   edgePositionToSegment: Record<EdgePosition, string>
   startingTile?: boolean
   expansionId?: string  // undefined = base game
+  version?: string      // e.g. 'C2', 'C3', 'C3.1'
   imageUrl?: string     // Optional image asset to render instead of SVG
+  // Intra-tile segment adjacency: list of [segId1, segId2] pairs that touch.
+  // Used for farm-city adjacency and builder triggers.
+  adjacencies?: [string, string][]
+  // Dragon & Fairy expansion flags (tile-level)
+  isDragonHoard?: boolean      // Dragon spawns here, player orients; no meeple placement
+  hasDragon?: boolean          // Triggers dragon movement when placed
+  hasMagicPortal?: boolean     // Player can place meeple on any unoccupied feature
 }
 
 // An instance of a tile (either in the bag or placed on the board)

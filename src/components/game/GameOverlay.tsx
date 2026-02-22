@@ -10,14 +10,26 @@ export function GameOverlay() {
     const {
         gameState,
         interactionState,
+        tentativeMeepleType,
         rotateTentativeTile,
         confirmTilePlacement,
         cancelTilePlacement,
         confirmMeeplePlacement,
         cancelMeeplePlacement,
         skipMeeple,
+        setTentativeMeepleType,
         undoTilePlacement,
         drawTile,
+        skipFairyMove,
+        startFairyMove,
+        cancelFairyMove,
+        executeDragon,
+        cycleDragonFacing,
+        confirmDragonOrientation,
+        tentativeDragonFacing,
+        dragonOrientations,
+        dragonPlaceTargets,
+        placeDragonOnHoard,
     } = useGameStore()
 
     const { selectedMeepleType, setSelectedMeepleType } = useUIStore()
@@ -90,9 +102,18 @@ export function GameOverlay() {
     const { currentTile } = gameState
     const currentPlayer = players[currentPlayerIndex]
     const expansionList = (gameState.expansionData?.expansions as string[] | undefined) ?? []
+    const hasInnsCathedrals = expansionList.includes('inns-cathedrals')
     const hasTradersBuilders = expansionList.includes('traders-builders')
+    const hasDragonFairy = expansionList.includes('dragon-fairy')
     const tbData = gameState.expansionData?.['tradersBuilders'] as { isBuilderBonusTurn?: boolean } | undefined
     const isBuilderBonusTurn = tbData?.isBuilderBonusTurn ?? false
+    const dfData = gameState.expansionData?.['dragonFairy'] as {
+        dragonPosition?: { x: number; y: number } | null;
+        dragonInPlay?: boolean;
+        fairyPosition?: { coordinate: { x: number; y: number }; segmentId: string } | null;
+        dragonHeldBy?: string | null;
+        dragonMovement?: { movesRemaining: number; nextPhase: string } | null;
+    } | undefined
 
     // Determine status text
     let statusText = isBuilderBonusTurn
@@ -109,11 +130,26 @@ export function GameOverlay() {
             instructionText = 'Place your tile'
         }
     } else if (turnPhase === 'PLACE_MEEPLE') {
+        const { magicPortalTargets } = useGameStore.getState()
+        const hasPortal = magicPortalTargets.length > 0
         if (interactionState === 'MEEPLE_SELECTED_TENTATIVELY') {
-            instructionText = 'Confirm Meeple'
+            instructionText = 'Confirm or click meeple to remove'
+        } else if (hasPortal) {
+            instructionText = '🌀 Portal: Place Meeple Anywhere!'
         } else {
             instructionText = 'Place Meeple or Skip'
         }
+    } else if (turnPhase === 'DRAGON_PLACE') {
+        instructionText = '🐉 Place dragon on a Dragon Hoard tile'
+    } else if (turnPhase === 'DRAGON_ORIENT') {
+        const facingLabel = tentativeDragonFacing
+            ? `Facing ${tentativeDragonFacing} — click to rotate`
+            : 'Click dragon to orient'
+        instructionText = `🐉 ${facingLabel}`
+    } else if (turnPhase === 'DRAGON_MOVEMENT') {
+        instructionText = '🐉 Dragon Moving...'
+    } else if (turnPhase === 'FAIRY_MOVE') {
+        instructionText = '✨ Place Fairy on a Meeple'
     } else if (turnPhase === 'SCORE') {
         instructionText = 'Turn ending...'
     }
@@ -124,6 +160,8 @@ export function GameOverlay() {
             inset: 0,
             pointerEvents: 'none',
             overflow: 'hidden',
+            userSelect: 'none',
+            WebkitUserSelect: 'none',
         }}>
             <AnimatePresence>
                 {showNewGameScreen && (
@@ -172,6 +210,13 @@ export function GameOverlay() {
                 zIndex: 40,
             }}>
                 Tiles: {tileBag.length}
+                {hasDragonFairy && (
+                    <div style={{ marginTop: 4, fontSize: 12 }}>
+                        <span style={{ color: '#e74c3c' }}>{dfData?.dragonInPlay ? '\u25C6 Dragon' : '\u25C7 No Dragon'}</span>
+                        {' '}
+                        <span style={{ color: '#f1c40f' }}>{dfData?.fairyPosition ? '\u2605 Fairy' : '\u2606 No Fairy'}</span>
+                    </div>
+                )}
             </div>
 
             {/* ── Left Sidebar: Players & Menu ──────────────────────────────── */}
@@ -266,6 +311,56 @@ export function GameOverlay() {
                                 >
                                     <span>🔄</span> New Game
                                 </button>
+
+                                <button
+                                    onClick={(e) => {
+                                        e.stopPropagation()
+                                        window.location.hash = '#catalog'
+                                        setIsMenuOpen(false)
+                                    }}
+                                    style={{
+                                        background: '#3a3a4a',
+                                        border: 'none',
+                                        borderRadius: 6,
+                                        color: 'white',
+                                        padding: '10px',
+                                        cursor: 'pointer',
+                                        textAlign: 'left',
+                                        transition: 'background 0.2s',
+                                        display: 'flex',
+                                        alignItems: 'center',
+                                        gap: 8,
+                                    }}
+                                    onMouseEnter={(e) => (e.currentTarget.style.background = '#4a4a5a')}
+                                    onMouseLeave={(e) => (e.currentTarget.style.background = '#3a3a4a')}
+                                >
+                                    <span>📚</span> Extension Catalog
+                                </button>
+
+                                <button
+                                    onClick={(e) => {
+                                        e.stopPropagation()
+                                        window.location.hash = '#debug'
+                                        setIsMenuOpen(false)
+                                    }}
+                                    style={{
+                                        background: '#3a4a3a',
+                                        border: 'none',
+                                        borderRadius: 6,
+                                        color: '#cfc',
+                                        padding: '10px',
+                                        cursor: 'pointer',
+                                        textAlign: 'left',
+                                        transition: 'background 0.2s',
+                                        display: 'flex',
+                                        alignItems: 'center',
+                                        gap: 8,
+                                    }}
+                                    onMouseEnter={(e) => (e.currentTarget.style.background = '#4a5a4a')}
+                                    onMouseLeave={(e) => (e.currentTarget.style.background = '#3a4a3a')}
+                                >
+                                    <span>🔧</span> Debug Configurator
+                                </button>
                             </motion.div>
                         )}
                     </AnimatePresence>
@@ -275,7 +370,8 @@ export function GameOverlay() {
                 <div style={{
                     display: 'flex',
                     flexDirection: 'column',
-                    gap: 12,
+                    alignItems: 'flex-start', // Don't stretch cards to sidebar width
+                    gap: 8,
                     width: '100%',
                     pointerEvents: 'auto',
                     marginTop: 'auto', // Keep players at bottom of sidebar
@@ -303,12 +399,29 @@ export function GameOverlay() {
                                         cancel: cancelTilePlacement,
                                         skip: skipMeeple,
                                         undo: undoTilePlacement,
-                                        selectMeeple: setSelectedMeepleType,
+                                        selectMeeple: (type: any) => {
+                                            setSelectedMeepleType(type)
+                                            if (interactionState === 'MEEPLE_SELECTED_TENTATIVELY') {
+                                                setTentativeMeepleType(type)
+                                            }
+                                        },
                                         confirmMeeple: confirmMeeplePlacement,
-                                        cancelMeeple: cancelMeeplePlacement,
+                                        cancelMeeple: turnPhase === 'FAIRY_MOVE' ? cancelFairyMove : cancelMeeplePlacement,
+                                        skipFairy: skipFairyMove,
+                                        startFairyMove: startFairyMove,
+                                        executeDragon: executeDragon,
+                                        cycleDragonFacing: cycleDragonFacing,
+                                        confirmDragonOrientation: confirmDragonOrientation,
+                                        placeDragonOnHoard: placeDragonOnHoard,
                                     },
                                     selectedMeepleType: selectedMeepleType,
+                                    tentativeMeepleType: tentativeMeepleType,
                                     validMeepleTypes,
+                                    dragonOrientations,
+                                    tentativeDragonFacing,
+                                    dragonPlaceTargets,
+                                    dragonMovesRemaining: dfData?.dragonMovement?.movesRemaining,
+                                    canUndo: turnPhase === 'DRAGON_ORIENT' && !dfData?.dragonMovement && !!gameState.lastPlacedCoord,
                                 };
                             }
 
@@ -332,6 +445,8 @@ export function GameOverlay() {
                                         player={p}
                                         isCurrentTurn={isCurrent}
                                         hasTradersBuilders={hasTradersBuilders}
+                                        hasInnsCathedrals={hasInnsCathedrals}
+                                        hasDragonHeldBy={dfData?.dragonHeldBy ?? null}
                                         turnState={turnState}
                                     />
                                 </motion.div>

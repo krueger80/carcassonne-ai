@@ -18,6 +18,7 @@ export interface MeeplePlacement {
   playerId: string
   meepleType: string   // MeepleType — kept as string to avoid circular dep
   segmentId: string
+  coordinate: Coordinate
 }
 
 export interface PlacedTile {

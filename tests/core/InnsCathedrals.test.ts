@@ -5,11 +5,12 @@ import {
   scoreAllRemainingFeatures,
 } from '../../src/core/engine/ScoreCalculator.ts'
 import { IC_SCORING_RULES } from '../../src/core/expansions/innsCathedrals.ts'
-import { IC_TILES, IC_TILE_COUNT } from '../../src/core/data/innsCathedralsTiles.ts'
+import { IC_TILES } from '../../src/core/data/innsCathedralsTiles.ts'
 import { initGame } from '../../src/core/engine/GameEngine.ts'
 import { emptyUnionFindState } from '../../src/core/types/feature.ts'
 import { addTileToUnionFind } from '../../src/core/engine/FeatureDetector.ts'
-import { TILE_MAP, registerTiles } from '../../src/core/data/baseTiles.ts'
+import { getFallbackTileMap } from '../../src/services/tileRegistry.ts'
+const TILE_MAP = getFallbackTileMap()
 import type { Feature } from '../../src/core/types/feature.ts'
 import type { Board, PlacedTile } from '../../src/core/types/board.ts'
 import { emptyBoard, coordKey } from '../../src/core/types/board.ts'
@@ -26,7 +27,7 @@ function makeFeature(overrides: Partial<Feature>): Feature {
     tileCount: 1,
     pennantCount: 0,
     openEdgeCount: 0,
-    adjacentCompletedCities: 0,
+    touchingCityIds: [],
     metadata: {},
     ...overrides,
   }
@@ -54,14 +55,13 @@ function placeTileOnBoard(board: Board, tile: PlacedTile): Board {
   }
 }
 
-// Register IC tiles so TILE_MAP can resolve them in tests
-registerTiles(IC_TILES)
+// TILE_MAP is now initialized via getFallbackTileMap() helper above.
 
 // ─── Tile definitions ─────────────────────────────────────────────────────────
 
 describe('IC tile definitions', () => {
   it('has exactly 18 tile instances', () => {
-    expect(IC_TILE_COUNT).toBe(18)
+    expect(IC_TILES.length).toBe(18)
   })
 
   it('all tiles have expansionId set to inns-cathedrals', () => {
@@ -122,10 +122,10 @@ describe('IC scoring rules', () => {
         tileCount: 3,
         isComplete: true,
         metadata: { hasInn: true },
-        meeples: [{ playerId: 'p1', meepleType: 'NORMAL', segmentId: 'road0' }],
+        meeples: [{ playerId: 'p1', meepleType: 'NORMAL', segmentId: 'road0', coordinate: { x: 0, y: 0 } }],
       })
       const rule = IC_SCORING_RULES.find(r => r.featureType === 'ROAD')!
-      expect(rule.scoreComplete(feature)).toBe(6) // 3 * 2
+      expect(rule.scoreComplete(feature, emptyUnionFindState())).toBe(6) // 3 * 2
     })
 
     it('incomplete road with inn scores 0', () => {
@@ -134,10 +134,10 @@ describe('IC scoring rules', () => {
         tileCount: 3,
         isComplete: false,
         metadata: { hasInn: true },
-        meeples: [{ playerId: 'p1', meepleType: 'NORMAL', segmentId: 'road0' }],
+        meeples: [{ playerId: 'p1', meepleType: 'NORMAL', segmentId: 'road0', coordinate: { x: 0, y: 0 } }],
       })
       const rule = IC_SCORING_RULES.find(r => r.featureType === 'ROAD')!
-      expect(rule.scoreIncomplete(feature)).toBe(0)
+      expect(rule.scoreIncomplete(feature, emptyUnionFindState())).toBe(0)
     })
 
     it('road without inn scores normally', () => {
@@ -146,11 +146,12 @@ describe('IC scoring rules', () => {
         tileCount: 4,
         isComplete: true,
         metadata: {},
-        meeples: [{ playerId: 'p1', meepleType: 'NORMAL', segmentId: 'road0' }],
+        meeples: [{ playerId: 'p1', meepleType: 'NORMAL', segmentId: 'road0', coordinate: { x: 0, y: 0 } }],
       })
       const rule = IC_SCORING_RULES.find(r => r.featureType === 'ROAD')!
-      expect(rule.scoreComplete(feature)).toBe(4) // 4 * 1
-      expect(rule.scoreIncomplete(feature)).toBe(4)
+      expect(rule.scoreComplete(feature, emptyUnionFindState())).toBe(4)
+      // 4 * 1
+      expect(rule.scoreIncomplete(feature, emptyUnionFindState())).toBe(4)
     })
   })
 
@@ -162,10 +163,10 @@ describe('IC scoring rules', () => {
         pennantCount: 1,
         isComplete: true,
         metadata: { hasCathedral: true },
-        meeples: [{ playerId: 'p1', meepleType: 'NORMAL', segmentId: 'city0' }],
+        meeples: [{ playerId: 'p1', meepleType: 'NORMAL', segmentId: 'city0', coordinate: { x: 0, y: 0 } }],
       })
       const rule = IC_SCORING_RULES.find(r => r.featureType === 'CITY')!
-      expect(rule.scoreComplete(feature)).toBe(12) // (3 + 1) * 3
+      expect(rule.scoreComplete(feature, emptyUnionFindState())).toBe(12) // (3 + 1) * 3
     })
 
     it('incomplete city with cathedral scores 0', () => {
@@ -175,10 +176,10 @@ describe('IC scoring rules', () => {
         pennantCount: 1,
         isComplete: false,
         metadata: { hasCathedral: true },
-        meeples: [{ playerId: 'p1', meepleType: 'NORMAL', segmentId: 'city0' }],
+        meeples: [{ playerId: 'p1', meepleType: 'NORMAL', segmentId: 'city0', coordinate: { x: 0, y: 0 } }],
       })
       const rule = IC_SCORING_RULES.find(r => r.featureType === 'CITY')!
-      expect(rule.scoreIncomplete(feature)).toBe(0)
+      expect(rule.scoreIncomplete(feature, emptyUnionFindState())).toBe(0)
     })
 
     it('city without cathedral scores normally', () => {
@@ -188,11 +189,11 @@ describe('IC scoring rules', () => {
         pennantCount: 1,
         isComplete: true,
         metadata: {},
-        meeples: [{ playerId: 'p1', meepleType: 'NORMAL', segmentId: 'city0' }],
+        meeples: [{ playerId: 'p1', meepleType: 'NORMAL', segmentId: 'city0', coordinate: { x: 0, y: 0 } }],
       })
       const rule = IC_SCORING_RULES.find(r => r.featureType === 'CITY')!
-      expect(rule.scoreComplete(feature)).toBe(6) // (2 + 1) * 2
-      expect(rule.scoreIncomplete(feature)).toBe(3) // 2 + 1
+      expect(rule.scoreComplete(feature, emptyUnionFindState())).toBe(6) // (2 + 1) * 2
+      expect(rule.scoreIncomplete(feature, emptyUnionFindState())).toBe(3) // 2 + 1
     })
   })
 
@@ -204,7 +205,7 @@ describe('IC scoring rules', () => {
         tileCount: 2,
         isComplete: true,
         metadata: { hasInn: true },
-        meeples: [{ playerId: 'p1', meepleType: 'NORMAL', segmentId: 'road0' }],
+        meeples: [{ playerId: 'p1', meepleType: 'NORMAL', segmentId: 'road0', coordinate: { x: 0, y: 0 } }],
       })
       const uf = makeUf([feature])
       const events = scoreCompletedFeatures(['road_feature'], uf, [], IC_SCORING_RULES)
@@ -220,7 +221,7 @@ describe('IC scoring rules', () => {
         isComplete: false,
         openEdgeCount: 1,
         metadata: { hasInn: true },
-        meeples: [{ playerId: 'p1', meepleType: 'NORMAL', segmentId: 'road0' }],
+        meeples: [{ playerId: 'p1', meepleType: 'NORMAL', segmentId: 'road0', coordinate: { x: 0, y: 0 } }],
       })
       const uf = makeUf([feature])
       const events = scoreAllRemainingFeatures(uf, new Set(), [], IC_SCORING_RULES)
@@ -287,7 +288,7 @@ describe('Feature metadata propagation', () => {
       meeples: {},
     }
     board = placeTileOnBoard(board, tile2)
-    ;({ state: uf } = addTileToUnionFind(uf, board, TILE_MAP, tile2))
+      ; ({ state: uf } = addTileToUnionFind(uf, board, TILE_MAP, tile2))
 
     // Find the merged road feature
     const roadFeatures = Object.values(uf.featureData).filter(f => f.type === 'ROAD')
@@ -303,8 +304,8 @@ describe('Big meeple majority scoring', () => {
   it('1 big meeple beats 1 normal meeple (2 vs 1)', () => {
     const feature = makeFeature({
       meeples: [
-        { playerId: 'p1', meepleType: 'NORMAL', segmentId: 'city0' },
-        { playerId: 'p2', meepleType: 'BIG', segmentId: 'city1' },
+        { playerId: 'p1', meepleType: 'NORMAL', segmentId: 'city0', coordinate: { x: 0, y: 0 } },
+        { playerId: 'p2', meepleType: 'BIG', segmentId: 'city1', coordinate: { x: 1, y: 0 } },
       ],
     })
     const result = distributeMajorityScore(feature, 10)
@@ -314,9 +315,9 @@ describe('Big meeple majority scoring', () => {
   it('1 big meeple ties with 2 normal meeples (2 vs 2)', () => {
     const feature = makeFeature({
       meeples: [
-        { playerId: 'p1', meepleType: 'NORMAL', segmentId: 'city0' },
-        { playerId: 'p1', meepleType: 'NORMAL', segmentId: 'city1' },
-        { playerId: 'p2', meepleType: 'BIG', segmentId: 'city2' },
+        { playerId: 'p1', meepleType: 'NORMAL', segmentId: 'city0', coordinate: { x: 0, y: 0 } },
+        { playerId: 'p1', meepleType: 'NORMAL', segmentId: 'city1', coordinate: { x: 1, y: 0 } },
+        { playerId: 'p2', meepleType: 'BIG', segmentId: 'city2', coordinate: { x: 2, y: 0 } },
       ],
     })
     const result = distributeMajorityScore(feature, 10)
@@ -326,10 +327,10 @@ describe('Big meeple majority scoring', () => {
   it('3 normal meeples beat 1 big meeple (3 vs 2)', () => {
     const feature = makeFeature({
       meeples: [
-        { playerId: 'p1', meepleType: 'NORMAL', segmentId: 'city0' },
-        { playerId: 'p1', meepleType: 'NORMAL', segmentId: 'city1' },
-        { playerId: 'p1', meepleType: 'NORMAL', segmentId: 'city2' },
-        { playerId: 'p2', meepleType: 'BIG', segmentId: 'city3' },
+        { playerId: 'p1', meepleType: 'NORMAL', segmentId: 'city0', coordinate: { x: 0, y: 0 } },
+        { playerId: 'p1', meepleType: 'NORMAL', segmentId: 'city1', coordinate: { x: 1, y: 0 } },
+        { playerId: 'p1', meepleType: 'NORMAL', segmentId: 'city2', coordinate: { x: 2, y: 0 } },
+        { playerId: 'p2', meepleType: 'BIG', segmentId: 'city3', coordinate: { x: 3, y: 0 } },
       ],
     })
     const result = distributeMajorityScore(feature, 10)

@@ -1,3 +1,4 @@
+import { memo } from 'react'
 import type { Segment } from '../../core/types/tile.ts'
 
 export const TERRAIN_COLORS: Record<string, string> = {
@@ -20,7 +21,7 @@ interface SegmentPathProps {
   dimmed?: boolean
 }
 
-export function SegmentPath({ segment, highlighted = false, dimmed = false }: SegmentPathProps) {
+export const SegmentPath = memo(({ segment, highlighted = false, dimmed = false }: SegmentPathProps) => {
   const fill = highlighted
     ? '#ffffaa'
     : TERRAIN_COLORS[segment.type] ?? '#cccccc'
@@ -63,4 +64,4 @@ export function SegmentPath({ segment, highlighted = false, dimmed = false }: Se
       opacity={opacity}
     />
   )
-}
+})
