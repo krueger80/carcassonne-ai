@@ -6,8 +6,6 @@ import { useGameStore } from '../../store/gameStore.ts'
 import { useUIStore } from '../../store/uiStore.ts'
 import { GameOverlay } from './GameOverlay.tsx'
 import { getBuilderPigPlaceableSegments } from '../../core/engine/MeeplePlacement.ts'
-import { coordKey, keyToCoord } from '../../core/types/board.ts'
-import { getAllPotentialPlacements } from '../../core/engine/GameEngine.ts'
 
 const CELL_SIZE = 88   // px per tile
 const BOARD_PADDING = 3  // extra cells around the board edge for expansion room
@@ -32,8 +30,6 @@ interface BoardGridProps {
   fairySegmentMap: Record<string, string> // New prop: coordKey -> segmentId
   dragonPlaceTargetSet: Set<string>
   dragonPos: any
-  dragonFacing: any
-  fairyPos: any
   isDragonOrientPhase: boolean
   isDragonPlacePhase: boolean
   isFairyPhase: boolean
@@ -57,7 +53,7 @@ const BoardGrid = memo(({
   placeableSegments, builderSegmentsMap, pigSegmentsMap,
   portalTargetsMap, fairyTargetMap, fairySegmentMap,
   dragonPlaceTargetSet,
-  dragonPos, dragonFacing, fairyPos,
+  dragonPos,
   isDragonOrientPhase, isDragonPlacePhase, isFairyPhase,
   hasPortalTargets,
   rotateTentativeTile, selectTilePlacement, selectMeeplePlacement,
@@ -136,7 +132,6 @@ const BoardGrid = memo(({
                 })()
 
                 const hasDragon = dragonPos && dragonPos.x === x && dragonPos.y === y
-                const hasFairy = fairyPos && fairyPos.x === x && fairyPos.y === y
                 const isFairyTarget = isFairyPhase && (fairyTargetMap[key]?.length ?? 0) > 0
                 const isPortalTarget = inMeeplePhaseBrowsing && portalTargetsMap[key]
                 const isDragonPlaceTarget = isDragonPlacePhase && dragonPlaceTargetSet.has(key)
@@ -169,65 +164,65 @@ const BoardGrid = memo(({
                       overflow: 'visible', // Allow meeples to overlap neighbors
                     }}
                   >
-                      <TileCell
-                        definition={gameState.staticTileMap[placedTile.definitionId]}
-                        tile={placedTile}
-                        size={CELL_SIZE}
-                        players={gameState.players}
-                        placeableSegments={segmentsHere}
-                        onSegmentClick={(segId) => {
-                          if (gameState.turnPhase === 'PLACE_MEEPLE') {
-                            const bMap = builderSegmentsMap[key]
-                            const pMap = pigSegmentsMap[key]
-                            const portalMap = portalTargetsMap[key]
-                            const canBuild = bMap?.includes(segId)
-                            const canPig = pMap?.includes(segId)
-                            const canPortal = portalMap?.includes(segId)
-                            const canNormal = key === lastKey && placeableSegments.includes(segId)
+                    <TileCell
+                      definition={gameState.staticTileMap[placedTile.definitionId]}
+                      tile={placedTile}
+                      size={CELL_SIZE}
+                      players={gameState.players}
+                      placeableSegments={segmentsHere}
+                      onSegmentClick={(segId) => {
+                        if (gameState.turnPhase === 'PLACE_MEEPLE') {
+                          const bMap = builderSegmentsMap[key]
+                          const pMap = pigSegmentsMap[key]
+                          const portalMap = portalTargetsMap[key]
+                          const canBuild = bMap?.includes(segId)
+                          const canPig = pMap?.includes(segId)
+                          const canPortal = portalMap?.includes(segId)
+                          const canNormal = key === lastKey && placeableSegments.includes(segId)
 
-                            let typeToPlace = selectedMeepleType
-                            if (canBuild) {
-                              typeToPlace = 'BUILDER'
-                              if (selectedMeepleType !== 'BUILDER') useUIStore.setState({ selectedMeepleType: 'BUILDER' })
-                            } else if (canPig) {
-                              typeToPlace = 'PIG'
-                              if (selectedMeepleType !== 'PIG') useUIStore.setState({ selectedMeepleType: 'PIG' })
-                            } else if (canNormal) {
-                              const isBig = selectedMeepleType === 'BIG'
-                              typeToPlace = isBig ? 'BIG' : 'NORMAL'
-                              if (selectedMeepleType === 'BUILDER' || selectedMeepleType === 'PIG') {
-                                useUIStore.setState({ selectedMeepleType: typeToPlace })
-                              }
-                            } else if (canPortal) {
-                              const isBig = selectedMeepleType === 'BIG'
-                              typeToPlace = isBig ? 'BIG' : 'NORMAL'
+                          let typeToPlace = selectedMeepleType
+                          if (canBuild) {
+                            typeToPlace = 'BUILDER'
+                            if (selectedMeepleType !== 'BUILDER') useUIStore.setState({ selectedMeepleType: 'BUILDER' })
+                          } else if (canPig) {
+                            typeToPlace = 'PIG'
+                            if (selectedMeepleType !== 'PIG') useUIStore.setState({ selectedMeepleType: 'PIG' })
+                          } else if (canNormal) {
+                            const isBig = selectedMeepleType === 'BIG'
+                            typeToPlace = isBig ? 'BIG' : 'NORMAL'
+                            if (selectedMeepleType === 'BUILDER' || selectedMeepleType === 'PIG') {
+                              useUIStore.setState({ selectedMeepleType: typeToPlace })
                             }
-
-                            if (typeToPlace === 'BUILDER' || typeToPlace === 'PIG' || canPortal) {
-                              selectMeeplePlacement(segId, typeToPlace, { x, y })
-                            } else {
-                              selectMeeplePlacement(segId, typeToPlace)
-                            }
-                          } else if (gameState.turnPhase === 'FAIRY_MOVE') {
-                            moveFairy({ x, y }, segId)
+                          } else if (canPortal) {
+                            const isBig = selectedMeepleType === 'BIG'
+                            typeToPlace = isBig ? 'BIG' : 'NORMAL'
                           }
-                        }}
-                        tentativeMeepleSegment={tentativeSegHere}
-                        tentativeMeepleType={tentativeSegHere ? tentativeMeepleType : undefined}
-                        currentPlayerColor={currentPlayer?.color}
-                        fairySegmentId={fairySegmentMap[key]}
-                        isFairyMovePhase={isFairyPhase}
-                      />
-                      {isDragonPlaceTarget && !hasDragon && (
-                        <div style={{ position: 'absolute', inset: 0, zIndex: 15, display: 'flex', alignItems: 'center', justifyContent: 'center', background: 'rgba(231, 76, 60, 0.08)' }}>
-                          <svg width="32" height="32" viewBox="0 0 24 24">
-                            <text x="12" y="17" textAnchor="middle" fontSize="14" fill="#e74c3c" opacity="0.6" style={{ filter: 'drop-shadow(0 1px 2px rgba(0,0,0,0.5))' }}>♦</text>
-                          </svg>
-                        </div>
-                      )}
-                    </div>
-                  )
-                }
+
+                          if (typeToPlace === 'BUILDER' || typeToPlace === 'PIG' || canPortal) {
+                            selectMeeplePlacement(segId, typeToPlace, { x, y })
+                          } else {
+                            selectMeeplePlacement(segId, typeToPlace)
+                          }
+                        } else if (gameState.turnPhase === 'FAIRY_MOVE') {
+                          moveFairy({ x, y }, segId)
+                        }
+                      }}
+                      tentativeMeepleSegment={tentativeSegHere}
+                      tentativeMeepleType={tentativeSegHere ? tentativeMeepleType : undefined}
+                      currentPlayerColor={currentPlayer?.color}
+                      fairySegmentId={fairySegmentMap[key]}
+                      isFairyMovePhase={isFairyPhase}
+                    />
+                    {isDragonPlaceTarget && !hasDragon && (
+                      <div style={{ position: 'absolute', inset: 0, zIndex: 15, display: 'flex', alignItems: 'center', justifyContent: 'center', background: 'rgba(231, 76, 60, 0.08)' }}>
+                        <svg width="32" height="32" viewBox="0 0 24 24">
+                          <text x="12" y="17" textAnchor="middle" fontSize="14" fill="#e74c3c" opacity="0.6" style={{ filter: 'drop-shadow(0 1px 2px rgba(0,0,0,0.5))' }}>♦</text>
+                        </svg>
+                      </div>
+                    )}
+                  </div>
+                )
+              }
 
               return (
                 <PlaceholderCell
@@ -313,7 +308,7 @@ export function GameBoard() {
 
       const scaleFactor = e.deltaY > 0 ? 0.9 : 1.1
       const newScale = Math.max(0.3, Math.min(3, boardScale * scaleFactor))
-      
+
       if (newScale === boardScale) return
 
       // Zoom towards mouse position (like Google Maps)
@@ -349,12 +344,12 @@ export function GameBoard() {
 
     const dx = e.clientX - panStart.current.x
     const dy = e.clientY - panStart.current.y
-    
+
     if (!isPanning) {
       const dist = Math.sqrt(dx * dx + dy * dy)
       if (dist > 5) {
         setIsPanning(true)
-        ;(e.currentTarget as HTMLElement).setPointerCapture(e.pointerId)
+          ; (e.currentTarget as HTMLElement).setPointerCapture(e.pointerId)
       }
       return
     }
@@ -438,7 +433,6 @@ export function GameBoard() {
   const dragonPos = dfData?.dragonPosition ?? null
   const isDragonOrientPhase = gameState.turnPhase === 'DRAGON_ORIENT'
   const dragonFacing = isDragonOrientPhase ? (tentativeDragonFacing ?? null) : (dfData?.dragonFacing ?? null)
-  const fairyPos = dfData?.fairyPosition?.coordinate ?? null
 
   const isDragonPlacePhase = gameState.turnPhase === 'DRAGON_PLACE'
   const dragonPlaceTargetSet = useMemo(() => {
@@ -495,7 +489,7 @@ export function GameBoard() {
         width: '100vw',
         height: '100vh',
         overflow: 'hidden',
-        background: '#1a2a1a', 
+        background: '#1a2a1a',
         cursor: isPanning ? 'grabbing' : 'grab',
         position: 'relative',
         touchAction: 'none',
@@ -538,8 +532,6 @@ export function GameBoard() {
           fairySegmentMap={fairySegmentMap}
           dragonPlaceTargetSet={dragonPlaceTargetSet}
           dragonPos={dragonPos}
-          dragonFacing={dragonFacing}
-          fairyPos={fairyPos}
           isDragonOrientPhase={isDragonOrientPhase}
           isDragonPlacePhase={isDragonPlacePhase}
           isFairyPhase={isFairyPhase}
@@ -580,28 +572,28 @@ export function GameBoard() {
         pointerEvents: 'auto',
         zIndex: 100,
       }}>
-        <button 
-          onClick={() => { 
+        <button
+          onClick={() => {
             setIsManualInteraction(false);
-            setBoardScale(boardScale * 1.5); 
-          }} 
-          style={btnStyle} 
+            setBoardScale(boardScale * 1.5);
+          }}
+          style={btnStyle}
           title="Zoom in"
         >+</button>
-        <button 
-          onClick={() => { 
+        <button
+          onClick={() => {
             setIsManualInteraction(false);
-            resetView(); 
-          }} 
-          style={btnStyle} 
+            resetView();
+          }}
+          style={btnStyle}
           title="Reset view"
         >⌖</button>
-        <button 
-          onClick={() => { 
+        <button
+          onClick={() => {
             setIsManualInteraction(false);
-            setBoardScale(boardScale * 0.66); 
-          }} 
-          style={btnStyle} 
+            setBoardScale(boardScale * 0.66);
+          }}
+          style={btnStyle}
           title="Zoom out"
         >−</button>
       </div>

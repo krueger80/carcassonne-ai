@@ -43,7 +43,6 @@ interface PlayerCardProps {
     isCurrentTurn: boolean;
     hasTradersBuilders: boolean;
     hasInnsCathedrals: boolean;
-    hasDragonFairy: boolean;
     hasDragonHeldBy?: string | null;
     turnState?: TurnState;
     style?: React.CSSProperties;
@@ -144,38 +143,38 @@ const GoodIcon = ({ type, count, isCompact }: GoodIconProps) => {
     )
 }
 
-export function PlayerCard({ player, isCurrentTurn, hasTradersBuilders, hasInnsCathedrals, hasDragonFairy, hasDragonHeldBy, turnState, style }: PlayerCardProps) {
+export function PlayerCard({ player, isCurrentTurn, hasTradersBuilders, hasInnsCathedrals, hasDragonHeldBy, turnState, style }: PlayerCardProps) {
     const { color, name, score, meeples, traderTokens } = player;
 
     // Interaction logic
     const isMeeplePhase = turnState?.phase === 'PLACE_MEEPLE';
 
     return (
-        <div 
+        <div
             id={`player-card-${player.id}`}
             style={{
                 background: isCurrentTurn ? 'rgba(35, 40, 50, 0.95)' : 'rgba(30, 30, 40, 0.85)',
-            borderLeft: `${isCurrentTurn ? 4 : 3}px solid ${color}`,
-            borderRadius: 12,
-            padding: isCurrentTurn ? 12 : 6,
-            marginBottom: 8,
-            boxShadow: isCurrentTurn ? `0 4px 20px rgba(0,0,0,0.4)` : '0 2px 4px rgba(0,0,0,0.3)',
-            transition: 'all 0.3s ease',
-            display: 'flex',
-            flexDirection: 'column',
-            gap: isCurrentTurn ? 12 : 2,
-            width: isCurrentTurn ? 280 : 'fit-content',
-            minWidth: isCurrentTurn ? 280 : 100,
-            transform: isCurrentTurn ? 'scale(1.02) translateX(10px)' : 'none',
-            zIndex: isCurrentTurn ? 10 : 1,
-            ...style
-        }}>
+                borderLeft: `${isCurrentTurn ? 4 : 3}px solid ${color}`,
+                borderRadius: 12,
+                padding: isCurrentTurn ? 12 : 6,
+                marginBottom: 8,
+                boxShadow: isCurrentTurn ? `0 4px 20px rgba(0,0,0,0.4)` : '0 2px 4px rgba(0,0,0,0.3)',
+                transition: 'all 0.3s ease',
+                display: 'flex',
+                flexDirection: 'column',
+                gap: isCurrentTurn ? 12 : 2,
+                width: isCurrentTurn ? 280 : 'fit-content',
+                minWidth: isCurrentTurn ? 280 : 100,
+                transform: isCurrentTurn ? 'scale(1.02) translateX(10px)' : 'none',
+                zIndex: isCurrentTurn ? 10 : 1,
+                ...style
+            }}>
             {/* 1. Header: Status (Active) or Name (Inactive) */}
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                 <div style={{ display: 'flex', flexDirection: 'column' }}>
-                    <div style={{ 
-                        fontWeight: 'bold', 
-                        color: '#f0f0f0', 
+                    <div style={{
+                        fontWeight: 'bold',
+                        color: '#f0f0f0',
                         fontSize: isCurrentTurn ? 15 : 12,
                         whiteSpace: 'nowrap',
                         overflow: 'hidden',
@@ -304,7 +303,7 @@ export function PlayerCard({ player, isCurrentTurn, hasTradersBuilders, hasInnsC
                     {hasTradersBuilders && (
                         <div style={{
                             display: 'flex', gap: isCurrentTurn ? 10 : 6,
-                            paddingTop: isCurrentTurn ? 8 : 0, 
+                            paddingTop: isCurrentTurn ? 8 : 0,
                             marginTop: isCurrentTurn ? 4 : 0,
                             borderTop: isCurrentTurn ? '1px solid rgba(255,255,255,0.1)' : 'none',
                             paddingLeft: !isCurrentTurn ? 4 : 0,
@@ -319,18 +318,18 @@ export function PlayerCard({ player, isCurrentTurn, hasTradersBuilders, hasInnsC
 
                 {/* Right Col: Tile Preview (Active only) */}
                 {isCurrentTurn && turnState?.currentTile && turnState.tileDefinition && (
-                    <div 
-                        style={{ 
-                            width: 80, 
-                            display: 'flex', 
-                            flexDirection: 'column', 
-                            alignItems: 'center', 
+                    <div
+                        style={{
+                            width: 80,
+                            display: 'flex',
+                            flexDirection: 'column',
+                            alignItems: 'center',
                             gap: 4,
                             cursor: (turnState.phase === 'DRAGON_ORIENT' || (turnState.phase === 'PLACE_TILE' && turnState.interactionState === 'TILE_PLACED_TENTATIVELY')) ? 'pointer' : 'default'
                         }}
                         onClick={
-                            turnState.phase === 'DRAGON_ORIENT' 
-                                ? turnState.actions.cycleDragonFacing 
+                            turnState.phase === 'DRAGON_ORIENT'
+                                ? turnState.actions.cycleDragonFacing
                                 : (turnState.phase === 'PLACE_TILE' && turnState.interactionState === 'TILE_PLACED_TENTATIVELY')
                                     ? turnState.actions.rotate
                                     : undefined
@@ -362,10 +361,10 @@ export function PlayerCard({ player, isCurrentTurn, hasTradersBuilders, hasInnsC
                                     <svg width="40" height="40" viewBox="0 0 24 24">
                                         <text x="12" y="17" textAnchor="middle" fontSize="16" fill="#e74c3c"
                                             style={{ filter: 'drop-shadow(0 1px 2px rgba(0,0,0,0.8))' }}>
-                                            {turnState.tentativeDragonFacing === 'NORTH' ? '\u25B2' : 
-                                             turnState.tentativeDragonFacing === 'SOUTH' ? '\u25BC' : 
-                                             turnState.tentativeDragonFacing === 'EAST' ? '\u25B6' : 
-                                             turnState.tentativeDragonFacing === 'WEST' ? '\u25C0' : '\u2666'}
+                                            {turnState.tentativeDragonFacing === 'NORTH' ? '\u25B2' :
+                                                turnState.tentativeDragonFacing === 'SOUTH' ? '\u25BC' :
+                                                    turnState.tentativeDragonFacing === 'EAST' ? '\u25B6' :
+                                                        turnState.tentativeDragonFacing === 'WEST' ? '\u25C0' : '\u2666'}
                                         </text>
                                     </svg>
                                 </div>

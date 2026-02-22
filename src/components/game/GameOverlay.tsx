@@ -107,7 +107,13 @@ export function GameOverlay() {
     const hasDragonFairy = expansionList.includes('dragon-fairy')
     const tbData = gameState.expansionData?.['tradersBuilders'] as { isBuilderBonusTurn?: boolean } | undefined
     const isBuilderBonusTurn = tbData?.isBuilderBonusTurn ?? false
-    const dfData = gameState.expansionData?.['dragonFairy'] as { dragonPosition?: { x: number; y: number } | null; dragonInPlay?: boolean; fairyPosition?: { coordinate: { x: number; y: number }; segmentId: string } | null; dragonHeldBy?: string | null } | undefined
+    const dfData = gameState.expansionData?.['dragonFairy'] as {
+        dragonPosition?: { x: number; y: number } | null;
+        dragonInPlay?: boolean;
+        fairyPosition?: { coordinate: { x: number; y: number }; segmentId: string } | null;
+        dragonHeldBy?: string | null;
+        dragonMovement?: { movesRemaining: number; nextPhase: string } | null;
+    } | undefined
 
     // Determine status text
     let statusText = isBuilderBonusTurn
@@ -393,7 +399,7 @@ export function GameOverlay() {
                                         cancel: cancelTilePlacement,
                                         skip: skipMeeple,
                                         undo: undoTilePlacement,
-                                        selectMeeple: (type) => {
+                                        selectMeeple: (type: any) => {
                                             setSelectedMeepleType(type)
                                             if (interactionState === 'MEEPLE_SELECTED_TENTATIVELY') {
                                                 setTentativeMeepleType(type)
@@ -440,7 +446,6 @@ export function GameOverlay() {
                                         isCurrentTurn={isCurrent}
                                         hasTradersBuilders={hasTradersBuilders}
                                         hasInnsCathedrals={hasInnsCathedrals}
-                                        hasDragonFairy={hasDragonFairy}
                                         hasDragonHeldBy={dfData?.dragonHeldBy ?? null}
                                         turnState={turnState}
                                     />

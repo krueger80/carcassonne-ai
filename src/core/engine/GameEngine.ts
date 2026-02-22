@@ -5,7 +5,7 @@
  * No side effects, no UI dependencies — fully unit-testable.
  */
 
-import type { GameState } from '../types/game.ts'
+import type { GameState, ScoreEvent } from '../types/game.ts'
 import type { Coordinate } from '../types/board.ts'
 import type { TileDefinition, Rotation, Direction } from '../types/tile.ts'
 import type { Player, MeepleType } from '../types/player.ts'
@@ -346,7 +346,7 @@ export function placeMeeple(
     return state  // invalid meeple placement
   }
 
-  const meepleData = createMeeplePlacement(player.id, meepleType, segmentId)
+  const meepleData = createMeeplePlacement(player.id, meepleType, segmentId, lastCoord)
   const nKey = nodeKey(lastCoord, segmentId)
 
   // Update the board tile's meeples record
@@ -431,7 +431,7 @@ export function placeMeepleOnExistingTile(
     return state
   }
 
-  const meepleData = createMeeplePlacement(player.id, meepleType, segmentId)
+  const meepleData = createMeeplePlacement(player.id, meepleType, segmentId, coord)
   const nKey = nodeKey(coord, segmentId)
 
   // Update the board tile's meeples record
@@ -821,13 +821,6 @@ const DIRECTION_DELTAS: Record<Direction, { dx: number; dy: number }> = {
   EAST: { dx: 1, dy: 0 },
   SOUTH: { dx: 0, dy: 1 },
   WEST: { dx: -1, dy: 0 },
-}
-
-const PERPENDICULAR_DIRS: Record<Direction, Direction[]> = {
-  NORTH: ['EAST', 'WEST'],
-  SOUTH: ['EAST', 'WEST'],
-  EAST: ['NORTH', 'SOUTH'],
-  WEST: ['NORTH', 'SOUTH'],
 }
 
 function getDfState(state: GameState): DragonFairyState | undefined {
@@ -1543,7 +1536,7 @@ export function placeMeepleViaPortal(
   // Validate: player has meeples available
   if (player.meeples.available[meepleType] <= 0) return state
 
-  const meepleData = createMeeplePlacement(player.id, meepleType, segmentId)
+  const meepleData = createMeeplePlacement(player.id, meepleType, segmentId, coord)
 
   // Update the board tile's meeples record
   const tileKey = coordKey(coord)

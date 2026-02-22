@@ -13,15 +13,11 @@ import {
 } from '../../src/core/engine/GameEngine.ts'
 import { DF_TILES } from '../../src/core/data/dragonFairyTiles.ts'
 import { DRAGON_FAIRY_EXPANSION, createInitialDragonFairyState } from '../../src/core/expansions/dragonFairy.ts'
-import { registerTiles } from '../../src/core/data/baseTiles.ts'
 import type { GameState } from '../../src/core/types/game.ts'
-import type { Board, PlacedTile } from '../../src/core/types/board.ts'
+import type { Board, PlacedTile, MeeplePlacement } from '../../src/core/types/board.ts'
 import { coordKey } from '../../src/core/types/board.ts'
 import { addTileToUnionFind } from '../../src/core/engine/FeatureDetector.ts'
 import type { DragonFairyState } from '../../src/core/expansions/dragonFairy.ts'
-
-// Register D&F tiles so TILE_MAP can resolve them
-registerTiles(DF_TILES)
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
 
@@ -62,7 +58,7 @@ function setDfState(state: GameState, df: Partial<DragonFairyState>): GameState 
 /** Build a minimal game state with a line of tiles for testing dragon movement */
 function buildLinearBoard(
   state: GameState,
-  tiles: { x: number; y: number; defId: string; meeples?: Record<string, { playerId: string; meepleType: string; segmentId: string }> }[],
+  tiles: { x: number; y: number; defId: string; meeples?: Record<string, any> }[],
 ): GameState {
   let board = state.board
   let uf = state.featureUnionFind
@@ -72,11 +68,19 @@ function buildLinearBoard(
     const def = state.staticTileMap[t.defId]
     if (!def) throw new Error(`Tile definition not found: ${t.defId}`)
 
+    // Populate coordinates for meeples
+    const formattedMeeples: Record<string, MeeplePlacement> = {}
+    if (t.meeples) {
+      for (const [segId, m] of Object.entries(t.meeples)) {
+        formattedMeeples[segId] = { ...m, coordinate: { x: t.x, y: t.y } } as MeeplePlacement
+      }
+    }
+
     const placed: PlacedTile = {
       coordinate: { x: t.x, y: t.y },
       definitionId: t.defId,
       rotation: 0,
-      meeples: t.meeples ?? {},
+      meeples: formattedMeeples,
     }
     board = placeTileOnBoard(board, placed)
 
@@ -85,10 +89,8 @@ function buildLinearBoard(
     uf = newUf
 
     // Track board meeples
-    if (t.meeples) {
-      for (const [segId, m] of Object.entries(t.meeples)) {
-        boardMeeples[`${t.x},${t.y}:${segId}`] = m
-      }
+    for (const [segId, m] of Object.entries(formattedMeeples)) {
+      boardMeeples[`${t.x},${t.y}:${segId}`] = m
     }
   }
 
@@ -258,9 +260,11 @@ describe('Dragon movement', () => {
     const player = state.players[0]
     state = buildLinearBoard(state, [
       { x: 1, y: 0, defId: 'df_K' },
-      { x: 2, y: 0, defId: 'df_H', meeples: {
-        city_N: { playerId: player.id, meepleType: 'NORMAL', segmentId: 'city_N' },
-      }},
+      {
+        x: 2, y: 0, defId: 'df_H', meeples: {
+          city_N: { playerId: player.id, meepleType: 'NORMAL', segmentId: 'city_N' },
+        }
+      },
       { x: 3, y: 0, defId: 'df_C' },
     ])
 
@@ -388,9 +392,11 @@ describe('Fairy movement', () => {
 
     // Place a tile with a meeple
     state = buildLinearBoard(state, [
-      { x: 1, y: 0, defId: 'df_N', meeples: {
-        city_N: { playerId: player.id, meepleType: 'NORMAL', segmentId: 'city_N' },
-      }},
+      {
+        x: 1, y: 0, defId: 'df_N', meeples: {
+          city_N: { playerId: player.id, meepleType: 'NORMAL', segmentId: 'city_N' },
+        }
+      },
     ])
 
     const targets = getFairyMoveTargets(state)
@@ -405,9 +411,11 @@ describe('Fairy movement', () => {
 
     // Place a tile with OTHER player's meeple
     state = buildLinearBoard(state, [
-      { x: 1, y: 0, defId: 'df_N', meeples: {
-        city_N: { playerId: otherPlayer.id, meepleType: 'NORMAL', segmentId: 'city_N' },
-      }},
+      {
+        x: 1, y: 0, defId: 'df_N', meeples: {
+          city_N: { playerId: otherPlayer.id, meepleType: 'NORMAL', segmentId: 'city_N' },
+        }
+      },
     ])
 
     // Current player is player 0
@@ -424,7 +432,7 @@ describe('Fairy movement', () => {
       ...state,
       turnPhase: 'FAIRY_MOVE',
       boardMeeples: {
-        '1,0:city_N': { playerId: player.id, meepleType: 'NORMAL', segmentId: 'city_N' },
+        '1,0:city_N': { playerId: player.id, meepleType: 'NORMAL', segmentId: 'city_N', coordinate: { x: 1, y: 0 } },
       },
     }
     state = setDfState(state, { canMoveFairy: true })
@@ -444,7 +452,7 @@ describe('Fairy movement', () => {
       ...state,
       turnPhase: 'FAIRY_MOVE',
       boardMeeples: {
-        '1,0:city_N': { playerId: otherPlayer.id, meepleType: 'NORMAL', segmentId: 'city_N' },
+        '1,0:city_N': { playerId: otherPlayer.id, meepleType: 'NORMAL', segmentId: 'city_N', coordinate: { x: 1, y: 0 } },
       },
     }
     state = setDfState(state, { canMoveFairy: true })

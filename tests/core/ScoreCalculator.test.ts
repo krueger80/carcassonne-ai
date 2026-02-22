@@ -49,7 +49,7 @@ describe('distributeMajorityScore', () => {
 
   it('single player with 1 meeple gets full points', () => {
     const feature = makeFeature({
-      meeples: [{ playerId: 'p1', meepleType: 'NORMAL', segmentId: 'city0' }],
+      meeples: [{ playerId: 'p1', meepleType: 'NORMAL', segmentId: 'city0', coordinate: { x: 0, y: 0 } }],
     })
     const result = distributeMajorityScore(feature, 10)
     expect(result).toEqual({ p1: 10 })
@@ -58,8 +58,8 @@ describe('distributeMajorityScore', () => {
   it('two players with equal meeples both score full points', () => {
     const feature = makeFeature({
       meeples: [
-        { playerId: 'p1', meepleType: 'NORMAL', segmentId: 'city0' },
-        { playerId: 'p2', meepleType: 'NORMAL', segmentId: 'city0' },
+        { playerId: 'p1', meepleType: 'NORMAL', segmentId: 'city0', coordinate: { x: 0, y: 0 } },
+        { playerId: 'p2', meepleType: 'NORMAL', segmentId: 'city0', coordinate: { x: 1, y: 0 } },
       ],
     })
     const result = distributeMajorityScore(feature, 10)
@@ -69,9 +69,9 @@ describe('distributeMajorityScore', () => {
   it('player with majority gets all points, minority player gets nothing', () => {
     const feature = makeFeature({
       meeples: [
-        { playerId: 'p1', meepleType: 'NORMAL', segmentId: 'city0' },
-        { playerId: 'p1', meepleType: 'NORMAL', segmentId: 'city0' },  // 2 meeples
-        { playerId: 'p2', meepleType: 'NORMAL', segmentId: 'city0' },  // 1 meeple
+        { playerId: 'p1', meepleType: 'NORMAL', segmentId: 'city0', coordinate: { x: 0, y: 0 } },
+        { playerId: 'p1', meepleType: 'NORMAL', segmentId: 'city0', coordinate: { x: 0, y: 0 } },  // 2 meeples
+        { playerId: 'p2', meepleType: 'NORMAL', segmentId: 'city0', coordinate: { x: 0, y: 1 } },  // 1 meeple
       ],
     })
     const result = distributeMajorityScore(feature, 10)
@@ -82,11 +82,11 @@ describe('distributeMajorityScore', () => {
   it('three players: two tied for majority, third loses', () => {
     const feature = makeFeature({
       meeples: [
-        { playerId: 'p1', meepleType: 'NORMAL', segmentId: 'x' },
-        { playerId: 'p1', meepleType: 'NORMAL', segmentId: 'x' },
-        { playerId: 'p2', meepleType: 'NORMAL', segmentId: 'x' },
-        { playerId: 'p2', meepleType: 'NORMAL', segmentId: 'x' },
-        { playerId: 'p3', meepleType: 'NORMAL', segmentId: 'x' },
+        { playerId: 'p1', meepleType: 'NORMAL', segmentId: 'x', coordinate: { x: 0, y: 0 } },
+        { playerId: 'p1', meepleType: 'NORMAL', segmentId: 'x', coordinate: { x: 0, y: 0 } },
+        { playerId: 'p2', meepleType: 'NORMAL', segmentId: 'x', coordinate: { x: 1, y: 0 } },
+        { playerId: 'p2', meepleType: 'NORMAL', segmentId: 'x', coordinate: { x: 1, y: 0 } },
+        { playerId: 'p3', meepleType: 'NORMAL', segmentId: 'x', coordinate: { x: 2, y: 0 } },
       ],
     })
     const result = distributeMajorityScore(feature, 10)
@@ -95,7 +95,7 @@ describe('distributeMajorityScore', () => {
 
   it('0 points → empty scores', () => {
     const feature = makeFeature({
-      meeples: [{ playerId: 'p1', meepleType: 'NORMAL', segmentId: 'x' }],
+      meeples: [{ playerId: 'p1', meepleType: 'NORMAL', segmentId: 'x', coordinate: { x: 0, y: 0 } }],
     })
     const result = distributeMajorityScore(feature, 0)
     expect(result).toEqual({})
@@ -166,7 +166,7 @@ describe('scoreCompletedFeatures', () => {
       type: 'CITY',
       tileCount: 3,
       pennantCount: 1,
-      meeples: [{ playerId: 'p1', meepleType: 'NORMAL', segmentId: 'city0' }],
+      meeples: [{ playerId: 'p1', meepleType: 'NORMAL', segmentId: 'city0', coordinate: { x: 0, y: 0 } }],
     })
     const uf = makeUf([feature])
     const players = [createPlayer('p1', 'Alice', 'red')]
@@ -195,7 +195,7 @@ describe('scoreCompletedFeatures', () => {
     const feature: Feature = makeFeature({
       id: 'feat1',
       type: 'CITY',
-      meeples: [{ playerId: 'p1', meepleType: 'NORMAL', segmentId: 'x' }],
+      meeples: [{ playerId: 'p1', meepleType: 'NORMAL', segmentId: 'x', coordinate: { x: 0, y: 0 } }],
     })
     const uf = makeUf([feature])
     const players = [createPlayer('p1', 'Alice', 'red')]
@@ -214,7 +214,7 @@ describe('scoreAllRemainingFeatures', () => {
       type: 'ROAD',
       tileCount: 4,
       isComplete: false,
-      meeples: [{ playerId: 'p1', meepleType: 'NORMAL', segmentId: 'road0' }],
+      meeples: [{ playerId: 'p1', meepleType: 'NORMAL', segmentId: 'road0', coordinate: { x: 0, y: 0 } }],
     })
     const uf = makeUf([road])
     const players = [createPlayer('p1', 'Alice', 'red')]
@@ -231,7 +231,7 @@ describe('scoreAllRemainingFeatures', () => {
       type: 'CITY',
       tileCount: 2,
       isComplete: true,
-      meeples: [{ playerId: 'p1', meepleType: 'NORMAL', segmentId: 'city0' }],
+      meeples: [{ playerId: 'p1', meepleType: 'NORMAL', segmentId: 'city0', coordinate: { x: 0, y: 0 } }],
     })
     const uf = makeUf([city])
     const players = [createPlayer('p1', 'Alice', 'red')]
@@ -256,9 +256,9 @@ describe('scoreAllRemainingFeatures', () => {
       type: 'FIELD',
       tileCount: 3,
       touchingCityIds: ['city1', 'city2'],
-      meeples: [{ playerId: 'p1', meepleType: 'NORMAL', segmentId: 'field0' }],
+      meeples: [{ playerId: 'p1', meepleType: 'NORMAL', segmentId: 'field0', coordinate: { x: 0, y: 0 } }],
     })
-    
+
     // In our simplified test setup, the root of 'city1' is 'city1'
     const uf = makeUf([city1, city2, farm])
     const players = [createPlayer('p1', 'Alice', 'red')]

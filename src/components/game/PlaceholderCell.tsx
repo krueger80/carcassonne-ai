@@ -48,8 +48,6 @@ export const PlaceholderCell = memo(({
         alignItems: 'center',
         justifyContent: 'center',
         position: 'relative',
-        overflow: 'hidden',
-        transition: 'background 0.1s, border-color 0.1s',
         boxSizing: 'border-box',
         overflow: 'visible',
       }}

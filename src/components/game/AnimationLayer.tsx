@@ -2,7 +2,7 @@ import { motion, AnimatePresence } from 'framer-motion'
 import { useUIStore, FlyingElement } from '../../store/uiStore'
 import { useGameStore } from '../../store/gameStore'
 import { MeepleSVG } from '../svg/MeepleSVG'
-import { useEffect, useState, useRef } from 'react'
+import { useEffect, useState } from 'react'
 
 const CELL_SIZE = 88
 
@@ -26,9 +26,9 @@ export function AnimationLayer() {
     }}>
       <AnimatePresence>
         {flyingElements.map(element => (
-          <FlyingElementView 
-            key={element.id} 
-            element={element} 
+          <FlyingElementView
+            key={element.id}
+            element={element}
             onComplete={() => removeFlyingElement(element.id)}
             boardScale={boardScale}
             boardOffset={boardOffset}
@@ -41,15 +41,15 @@ export function AnimationLayer() {
   )
 }
 
-function FlyingElementView({ 
-  element, 
-  onComplete, 
-  boardScale, 
+function FlyingElementView({
+  element,
+  onComplete,
+  boardScale,
   boardOffset,
   minX,
   minY
-}: { 
-  element: FlyingElement, 
+}: {
+  element: FlyingElement,
   onComplete: () => void,
   boardScale: number,
   boardOffset: { x: number, y: number },
@@ -57,7 +57,7 @@ function FlyingElementView({
   minY: number
 }) {
   const [targetPos, setTargetPlayerPos] = useState<{ x: number, y: number } | null>(null)
-  
+
   // Calculate relative position from board origin (minX, minY)
   const relX = (element.startBoardCoord.x - minX) * CELL_SIZE + (element.startBoardNode?.x || 50) * (CELL_SIZE / 100)
   const relY = (element.startBoardCoord.y - minY) * CELL_SIZE + (element.startBoardNode?.y || 50) * (CELL_SIZE / 100)
@@ -70,10 +70,10 @@ function FlyingElementView({
   const maxY = gameState.board.maxY + BOARD_PADDING
   const actualMinX = gameState.board.minX - BOARD_PADDING
   const actualMinY = gameState.board.minY - BOARD_PADDING
-  
+
   const bWidth = (maxX - actualMinX + 1) * CELL_SIZE
   const bHeight = (maxY - actualMinY + 1) * CELL_SIZE
-  
+
   // Calculate start position in screen space
   const startX = window.innerWidth / 2 + boardOffset.x + (relX - bWidth / 2 + (minX - actualMinX) * CELL_SIZE) * boardScale
   const startY = window.innerHeight / 2 + boardOffset.y + (relY - bHeight / 2 + (minY - actualMinY) * CELL_SIZE) * boardScale
@@ -82,10 +82,10 @@ function FlyingElementView({
   // Actually, the transform in GameBoard is:
   // transform: `translate(-50%, -50%) translate(${boardOffset.x}px, ${boardOffset.y}px) scale(${boardScale})`,
   // This means the board center (relative to its own bounds) is at screen center + offset.
-  
+
   // Let's refine the math.
   // GameBoard uses boardWidth/boardHeight which is based on minX..maxX.
-  
+
   useEffect(() => {
     // Find the player card in the sidebar
     const interval = setInterval(() => {
@@ -108,22 +108,22 @@ function FlyingElementView({
 
   return (
     <motion.div
-      initial={{ 
-        x: startX, 
-        y: startY, 
+      initial={{
+        x: startX,
+        y: startY,
         scale: boardScale,
-        opacity: 0 
+        opacity: 0
       }}
-      animate={{ 
+      animate={{
         x: [startX, startX, targetPos.x],
         y: [startY, startY - 120 * boardScale, targetPos.y],
         scale: isMeeple ? [boardScale, boardScale * 1.4, 0.4] : [boardScale * 1.2, boardScale * 1.6, 0.6],
         opacity: [0, 1, 1, 0],
       }}
-      transition={{ 
-        duration: isMeeple ? 2.0 : 1.6, 
+      transition={{
+        duration: isMeeple ? 2.0 : 1.6,
         times: [0, 0.15, 0.85, 1],
-        ease: "anticipate" 
+        ease: "anticipate"
       }}
       onAnimationComplete={onComplete}
       style={{
@@ -137,15 +137,15 @@ function FlyingElementView({
       }}
     >
       {isMeeple ? (
-        <div style={{ 
+        <div style={{
           filter: `drop-shadow(0 10px 20px rgba(0,0,0,0.4)) drop-shadow(0 0 15px ${element.color}66)`,
           transform: 'rotate(-5deg)'
         }}>
           <svg width="60" height="60" viewBox="0 0 100 100">
-            <MeepleSVG 
-              color={element.color} 
-              x={50} y={80} 
-              size={35} 
+            <MeepleSVG
+              color={element.color}
+              x={50} y={80}
+              size={35}
               isBig={element.meepleType === 'BIG'}
               isBuilder={element.meepleType === 'BUILDER'}
               isPig={element.meepleType === 'PIG'}

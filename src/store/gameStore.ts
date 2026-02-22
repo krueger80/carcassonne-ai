@@ -19,17 +19,15 @@ import {
   isValidPlacement,
   canPlaceMeeple,
   canPlaceBuilderOrPig,
-  executeDragonMovement,
+  placeDragonOnHoard as enginePlaceDragonOnHoard,
+  orientDragon as engineOrientDragon,
   executeDragonTileStep,
   finishDragonMovementStep,
-  orientDragon as engineOrientDragon,
   getValidDragonOrientations,
-  getDragonHoardTilesOnBoard,
-  placeDragonOnHoard as enginePlaceDragonOnHoard,
+  prepareFairyMove,
+  getFairyMoveTargets,
   moveFairy as engineMoveFairy,
   skipFairyMove as engineSkipFairy,
-  getFairyMoveTargets,
-  prepareFairyMove,
   getMagicPortalPlacements,
   placeMeepleViaPortal,
   isMagicPortalTile,
@@ -443,7 +441,7 @@ export const useGameStore = create<GameStore>()(
               const tile = gameState.board.tiles[`${node.coordinate.x},${node.coordinate.y}`]
               const tileDef = staticTileMap[tile?.definitionId || '']
               const segment = tileDef?.segments.find(s => s.id === node.segmentId)
-              
+
               if (segment?.meepleCentroid) {
                 useUIStore.getState().addFlyingElement({
                   id: `meeple-${id}-${meeple.playerId}-${Math.random()}`,
@@ -458,7 +456,8 @@ export const useGameStore = create<GameStore>()(
             }
           }
 
-          for (const [playerId, amount] of Object.entries(event.scores)) {
+          for (const [playerId, scores_val] of Object.entries(event.scores)) {
+            const amount = scores_val as number
             if (amount <= 0) continue
             const firstNode = feature.nodes[0]
             useUIStore.getState().addFlyingElement({
@@ -549,7 +548,7 @@ export const useGameStore = create<GameStore>()(
           if (!store.tentativeDragonFacing) return
 
           store.gameState = engineOrientDragon(store.gameState, store.tentativeDragonFacing)
-          
+
           // Re-initialize or clear based on new phase
           if (store.gameState.turnPhase === 'DRAGON_ORIENT') {
             store.dragonOrientations = getValidDragonOrientations(store.gameState)
@@ -612,10 +611,10 @@ export const useGameStore = create<GameStore>()(
 
           // Try to move one tile
           const stepResult = executeDragonTileStep(currentStore.gameState)
-          
+
           if (stepResult) {
             const { state: nextStepState, eatenMeeples } = stepResult
-            
+
             // Trigger animations for eaten meeples
             for (const meeple of eatenMeeples) {
               const tile = nextStepState.board.tiles[`${meeple.coordinate.x},${meeple.coordinate.y}`]
@@ -637,7 +636,7 @@ export const useGameStore = create<GameStore>()(
 
             // Moved successfully: update state and wait for next step
             set((store) => { store.gameState = nextStepState })
-            
+
             // Check if movement sequence was aborted (e.g. hit fairy)
             const df = (nextStepState.expansionData.dragonFairy as any)
             if (!df?.dragonMovement) {
@@ -653,7 +652,7 @@ export const useGameStore = create<GameStore>()(
             // Hit edge or no more tiles in this direction: finish this step and check reorientation
             const finishedState = finishDragonMovementStep(currentStore.gameState)
             set((store) => { store.gameState = finishedState })
-            
+
             // If still in movement phase (auto-reoriented), continue automatically?
             // Actually, let's stop to allow user to see the reorientation OR if manual orientation needed
             processPhaseTransition(finishedState)
@@ -776,7 +775,7 @@ export const useGameStore = create<GameStore>()(
 
 // Expose store for browser console inspection (dev only)
 if (typeof window !== 'undefined') {
-  ;(window as any).__gameStore = useGameStore
+  ; (window as any).__gameStore = useGameStore
 }
 
 export const selectCurrentPlayer = (s: { gameState: GameState | null }) => {

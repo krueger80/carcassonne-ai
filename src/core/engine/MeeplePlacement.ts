@@ -159,6 +159,7 @@ export function createMeeplePlacement(
   playerId: string,
   meepleType: MeepleType,
   segmentId: string,
+  coordinate: Coordinate,
 ): MeeplePlacement {
-  return { playerId, meepleType, segmentId }
+  return { playerId, meepleType, segmentId, coordinate }
 }
