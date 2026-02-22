@@ -86,7 +86,7 @@ export function TileCell({
         position: 'relative',
         width: size,
         height: size,
-        cursor: isInMeeplePlacementMode ? 'pointer' : 'default',
+        cursor: isInMeeplePlacementMode ? 'pointer' : 'inherit',
         opacity: isTentative ? 0.8 : 1, // Slightly transparent if tentative
         filter: isTentative ? 'drop-shadow(0 0 10px rgba(255,255,255,0.5))' : 'none',
         zIndex: isTentative ? 10 : 0,

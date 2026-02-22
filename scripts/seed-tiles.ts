@@ -21,8 +21,8 @@ async function seed() {
                 segments: t.segments,
                 edgePositionToSegment: t.edgePositionToSegment,
                 ...(t.startingTile != null && { startingTile: t.startingTile }),
-                ...(t.isVolcano != null && { isVolcano: t.isVolcano }),
-                ...(t.hasDragonHoard != null && { hasDragonHoard: t.hasDragonHoard }),
+                ...(t.isDragonHoard != null && { isDragonHoard: t.isDragonHoard }),
+                ...(t.hasDragon != null && { hasDragon: t.hasDragon }),
                 ...(t.hasMagicPortal != null && { hasMagicPortal: t.hasMagicPortal }),
             }
         }, { onConflict: 'tile_id' })

@@ -34,9 +34,6 @@ export function PlaceholderCell({
       onMouseEnter={onHover}
       onMouseLeave={onLeave}
       onClick={isValid ? onClick : undefined}
-      onPointerDown={(e) => {
-        if (isValid) e.stopPropagation()
-      }}
       style={{
         width: size,
         height: size,

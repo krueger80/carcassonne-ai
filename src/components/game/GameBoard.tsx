@@ -30,23 +30,35 @@ export function GameBoard({ }: GameBoardProps) {
     fairyMoveTargets,
     moveFairy,
     magicPortalTargets,
+    cycleDragonFacing,
+    dragonPlaceTargets,
+    placeDragonOnHoard,
+    tentativeDragonFacing,
   } = useGameStore()
 
   const { boardScale, boardOffset, hoveredCoord, setHoveredCoord, setBoardScale, selectedMeepleType } = useUIStore()
 
   const containerRef = useRef<HTMLDivElement>(null)
   const [isPanning, setIsPanning] = useState(false)
+  const isPointerDown = useRef(false)
   const panStart = useRef({ x: 0, y: 0, offsetX: 0, offsetY: 0 })
 
   // ── Keyboard shortcuts ──────────────────────────────────────────────────────
   const { rotateTile } = useGameStore() // Keep using rotateTile for tentative rotation
   useEffect(() => {
     const handler = (e: KeyboardEvent) => {
-      if (e.key === 'r' || e.key === 'R') rotateTile()
+      if (e.key === 'r' || e.key === 'R') {
+        const phase = useGameStore.getState().gameState?.turnPhase
+        if (phase === 'DRAGON_ORIENT') {
+          cycleDragonFacing()
+        } else {
+          rotateTile()
+        }
+      }
     }
     window.addEventListener('keydown', handler)
     return () => window.removeEventListener('keydown', handler)
-  }, [rotateTile])
+  }, [rotateTile, cycleDragonFacing])
 
   // ── Pan/zoom ────────────────────────────────────────────────────────────────
 
@@ -57,30 +69,43 @@ export function GameBoard({ }: GameBoardProps) {
   }, [boardScale, setBoardScale])
 
   const onPointerDown = useCallback((e: React.PointerEvent) => {
-    // Only pan if middle mouse or if spacebar held (optional), or just left click on background
-    // But we need left click for interacting with tiles.
-    // Let's us middle click OR left click on background (checked in onPointerDown? No, event bubbles)
-
-    // Simple approach: drag background to pan. 
-    // If clicking a tile, e.stopPropagation() should be called there if it handles click.
-
     if (e.button !== 0 && e.button !== 1) return // Left or Middle
 
-    setIsPanning(true)
+    isPointerDown.current = true
     panStart.current = { x: e.clientX, y: e.clientY, offsetX: boardOffset.x, offsetY: boardOffset.y }
-      ; (e.target as HTMLElement).setPointerCapture(e.pointerId)
   }, [boardOffset])
 
   const onPointerMove = useCallback((e: React.PointerEvent) => {
-    if (!isPanning) return
+    if (!isPointerDown.current) return
+
     const dx = e.clientX - panStart.current.x
     const dy = e.clientY - panStart.current.y
+    
+    // Only start panning if we moved more than 5px (threshold to distinguish click from pan)
+    if (!isPanning) {
+      const dist = Math.sqrt(dx * dx + dy * dy)
+      if (dist > 5) {
+        setIsPanning(true)
+        ;(e.currentTarget as HTMLElement).setPointerCapture(e.pointerId)
+      }
+      return
+    }
+
     useUIStore.setState({
       boardOffset: { x: panStart.current.offsetX + dx, y: panStart.current.offsetY + dy }
     })
   }, [isPanning])
 
-  const onPointerUp = useCallback(() => {
+  const onPointerUp = useCallback((e: React.PointerEvent) => {
+    isPointerDown.current = false
+    setIsPanning(false)
+    if ((e.currentTarget as HTMLElement).hasPointerCapture(e.pointerId)) {
+      (e.currentTarget as HTMLElement).releasePointerCapture(e.pointerId)
+    }
+  }, [])
+
+  const onPointerCancel = useCallback(() => {
+    isPointerDown.current = false
     setIsPanning(false)
   }, [])
 
@@ -150,16 +175,27 @@ export function GameBoard({ }: GameBoardProps) {
     dragonInPlay?: boolean
   } | undefined
   const dragonPos = dfData?.dragonPosition ?? null
-  const dragonFacing = dfData?.dragonFacing ?? null
+  // During DRAGON_ORIENT, show tentative facing; otherwise show committed facing
+  const isDragonOrientPhase = gameState.turnPhase === 'DRAGON_ORIENT'
+  const dragonFacing = isDragonOrientPhase ? (tentativeDragonFacing ?? null) : (dfData?.dragonFacing ?? null)
   const fairyPos = dfData?.fairyPosition?.coordinate ?? null
+
+  // Dragon Place targets (for DRAGON_PLACE phase highlighting)
+  const isDragonPlacePhase = gameState.turnPhase === 'DRAGON_PLACE'
+  const dragonPlaceTargetSet = useMemo(() => {
+    if (!isDragonPlacePhase) return new Set<string>()
+    return new Set(dragonPlaceTargets.map(c => `${c.x},${c.y}`))
+  }, [isDragonPlacePhase, dragonPlaceTargets])
 
   const validSet = new Set(validPlacements.map(c => `${c.x},${c.y}`))
 
-  // Fairy move targets as a map: "x,y" → segmentId
-  const fairyTargetMap = useMemo<Record<string, string>>(() => {
-    const map: Record<string, string> = {}
+  // Fairy move targets as a map: "x,y" → segmentId[]
+  const fairyTargetMap = useMemo<Record<string, string[]>>(() => {
+    const map: Record<string, string[]> = {}
     for (const t of fairyMoveTargets) {
-      map[`${t.coordinate.x},${t.coordinate.y}`] = t.segmentId
+      const k = `${t.coordinate.x},${t.coordinate.y}`
+      if (!map[k]) map[k] = []
+      map[k].push(t.segmentId)
     }
     return map
   }, [fairyMoveTargets])
@@ -197,11 +233,16 @@ export function GameBoard({ }: GameBoardProps) {
         background: '#1a2a1a', // Dark green felt-like
         cursor: isPanning ? 'grabbing' : 'grab',
         position: 'relative',
+        touchAction: 'none', // Critical for mobile panning
+        userSelect: 'none', // Prevent text selection during panning
+        WebkitUserSelect: 'none',
       }}
       onWheel={onWheel}
       onPointerDown={onPointerDown}
       onPointerMove={onPointerMove}
       onPointerUp={onPointerUp}
+      onPointerCancel={onPointerCancel}
+      onContextMenu={(e) => e.preventDefault()}
     >
       {/* Scrollable board area */}
       <div
@@ -241,10 +282,9 @@ export function GameBoard({ }: GameBoardProps) {
                       key={key}
                       style={{ width: CELL_SIZE, height: CELL_SIZE }}
                       onClick={(e) => {
-                        e.stopPropagation() // Prevent panning
+                        e.stopPropagation() // Prevent panning from firing click twice? No, stop bubbling.
                         rotateTentativeTile() // Click to rotate!
                       }}
-                      onPointerDown={(e) => e.stopPropagation()}
                     >
                       <TileCell
                         definition={gameState.staticTileMap[gameState.currentTile.definitionId]}
@@ -276,6 +316,7 @@ export function GameBoard({ }: GameBoardProps) {
 
                   // Determine which segments to highlight on this tile
                   const segmentsHere: string[] = (() => {
+                    if (isFairyPhase) return fairyTargetMap[key] ?? []
                     if (!inMeeplePhaseBrowsing) return []
                     const fromLast = key === lastKey ? placeableSegments : []
                     // Merge with builder/pig options
@@ -298,27 +339,37 @@ export function GameBoard({ }: GameBoardProps) {
 
                   const hasDragon = dragonPos && dragonPos.x === x && dragonPos.y === y
                   const hasFairy = fairyPos && fairyPos.x === x && fairyPos.y === y
-                  const isFairyTarget = isFairyPhase && fairyTargetMap[key]
+                  const isFairyTarget = isFairyPhase && (fairyTargetMap[key]?.length ?? 0) > 0
                   const isPortalTarget = inMeeplePhaseBrowsing && portalTargetsMap[key]
+                  const isDragonPlaceTarget = isDragonPlacePhase && dragonPlaceTargetSet.has(key)
+
+                  // During DRAGON_ORIENT, dragon overlay is interactive (click to rotate)
+                  const isDragonOrientHere = isDragonOrientPhase && hasDragon
 
                   return (
                     <div
                       key={key}
                       onClick={(e) => {
                         e.stopPropagation()
-                        if (isFairyTarget) {
-                          moveFairy({ x, y }, fairyTargetMap[key])
+                        if (isDragonOrientHere) {
+                          cycleDragonFacing()
+                        } else if (isDragonPlaceTarget) {
+                          placeDragonOnHoard({ x, y })
                         }
                       }}
                       style={{
                         position: 'relative',
-                        cursor: isFairyTarget ? 'pointer' : undefined,
-                        boxShadow: isFairyTarget
-                          ? 'inset 0 0 0 3px #f1c40f, 0 0 12px rgba(241,196,15,0.5)'
-                          : isPortalTarget
-                            ? 'inset 0 0 0 2px #9955cc, 0 0 10px rgba(153,85,204,0.4)'
-                            : undefined,
-                        borderRadius: (isFairyTarget || isPortalTarget) ? 2 : undefined,
+                        cursor: (isDragonOrientHere || isDragonPlaceTarget || isFairyTarget) ? 'pointer' : undefined,
+                        boxShadow: isDragonOrientHere
+                          ? 'inset 0 0 0 3px #e74c3c, 0 0 16px rgba(231,76,60,0.6)'
+                          : isDragonPlaceTarget
+                            ? 'inset 0 0 0 3px #e74c3c, 0 0 12px rgba(231,76,60,0.4)'
+                            : isFairyTarget
+                              ? 'inset 0 0 0 3px #f1c40f, 0 0 12px rgba(241,196,15,0.5)'
+                              : isPortalTarget
+                                ? 'inset 0 0 0 2px #9955cc, 0 0 10px rgba(153,85,204,0.4)'
+                                : undefined,
+                        borderRadius: (isDragonOrientHere || isDragonPlaceTarget || isFairyTarget || isPortalTarget) ? 2 : undefined,
                       }}
                     >
                       <TileCell
@@ -365,30 +416,82 @@ export function GameBoard({ }: GameBoardProps) {
                             } else {
                               selectMeeplePlacement(segId, typeToPlace)
                             }
+                          } else if (gameState.turnPhase === 'FAIRY_MOVE') {
+                            moveFairy({ x, y }, segId)
                           }
                         }}
                         tentativeMeepleSegment={tentativeSegHere}
                         tentativeMeepleType={tentativeSegHere ? tentativeMeepleType : undefined}
                         currentPlayerColor={currentPlayer?.color}
                       />
-                      {/* Dragon overlay */}
+                      {/* Dragon overlay — interactive during DRAGON_ORIENT, static otherwise */}
                       {hasDragon && (
+                        isDragonOrientHere ? (
+                          // Full-tile interactive dragon overlay during orientation
+                          <div style={{
+                            position: 'absolute',
+                            inset: 0,
+                            zIndex: 15,
+                            display: 'flex',
+                            alignItems: 'center',
+                            justifyContent: 'center',
+                            background: 'rgba(231, 76, 60, 0.1)',
+                          }}>
+                            <svg width="48" height="48" viewBox="0 0 48 48">
+                              <text x="24" y="32" textAnchor="middle" fontSize="28" fill="#e74c3c"
+                                style={{ filter: 'drop-shadow(0 2px 4px rgba(0,0,0,0.8))' }}>
+                                {dragonFacing === 'NORTH' ? '\u25B2' : dragonFacing === 'SOUTH' ? '\u25BC' : dragonFacing === 'EAST' ? '\u25B6' : dragonFacing === 'WEST' ? '\u25C0' : '\u2666'}
+                              </text>
+                            </svg>
+                            {/* Rotate hint */}
+                            <div style={{
+                              position: 'absolute',
+                              bottom: 2,
+                              right: 4,
+                              fontSize: 14,
+                              color: '#e74c3c',
+                              opacity: 0.8,
+                              pointerEvents: 'none',
+                            }}>↻</div>
+                          </div>
+                        ) : (
+                          // Small static dragon icon
+                          <div style={{
+                            position: 'absolute',
+                            top: 2,
+                            left: 2,
+                            width: 28,
+                            height: 28,
+                            pointerEvents: 'none',
+                            zIndex: 15,
+                            display: 'flex',
+                            alignItems: 'center',
+                            justifyContent: 'center',
+                          }}>
+                            <svg width="28" height="28" viewBox="0 0 24 24">
+                              <text x="12" y="17" textAnchor="middle" fontSize="16" fill="#e74c3c"
+                                style={{ filter: 'drop-shadow(0 1px 2px rgba(0,0,0,0.8))' }}>
+                                {dragonFacing === 'NORTH' ? '\u25B2' : dragonFacing === 'SOUTH' ? '\u25BC' : dragonFacing === 'EAST' ? '\u25B6' : dragonFacing === 'WEST' ? '\u25C0' : '\u2666'}
+                              </text>
+                            </svg>
+                          </div>
+                        )
+                      )}
+                      {/* Dragon Place target overlay — shows dragon icon hint on hoardable tiles */}
+                      {isDragonPlaceTarget && !hasDragon && (
                         <div style={{
                           position: 'absolute',
-                          top: 2,
-                          left: 2,
-                          width: 28,
-                          height: 28,
-                          pointerEvents: 'none',
+                          inset: 0,
                           zIndex: 15,
                           display: 'flex',
                           alignItems: 'center',
                           justifyContent: 'center',
+                          background: 'rgba(231, 76, 60, 0.08)',
                         }}>
-                          <svg width="28" height="28" viewBox="0 0 24 24">
-                            <text x="12" y="17" textAnchor="middle" fontSize="16" fill="#e74c3c"
-                              style={{ filter: 'drop-shadow(0 1px 2px rgba(0,0,0,0.8))' }}>
-                              {dragonFacing === 'N' ? '\u25B2' : dragonFacing === 'S' ? '\u25BC' : dragonFacing === 'E' ? '\u25B6' : dragonFacing === 'W' ? '\u25C0' : '\u2666'}
+                          <svg width="32" height="32" viewBox="0 0 24 24">
+                            <text x="12" y="17" textAnchor="middle" fontSize="14" fill="#e74c3c" opacity="0.6"
+                              style={{ filter: 'drop-shadow(0 1px 2px rgba(0,0,0,0.5))' }}>
+                              {'\u2666'}
                             </text>
                           </svg>
                         </div>

@@ -71,6 +71,7 @@ export function TileSVG({
           width="100"
           height="100"
           preserveAspectRatio="none"
+          style={{ pointerEvents: 'none', userSelect: 'none' }}
         />
       )}
 
@@ -139,33 +140,37 @@ export function TileSVG({
         </g>
       )}
 
-      {/* Dragon & Fairy tile-level indicators (always visible, even over images) */}
-      {definition.isVolcano && (
-        <g style={{ pointerEvents: 'none' }}>
-          <polygon
-            points="50,8 40,28 60,28"
-            fill="#ff4500" stroke="#cc3300" strokeWidth="1"
-          />
-          <circle cx={50} cy={15} r={3} fill="#ffaa00" opacity={0.8} />
-        </g>
-      )}
-      {definition.hasDragonHoard && (
-        <g style={{ pointerEvents: 'none' }}>
-          <circle cx={50} cy={16} r={10}
-            fill="#22aa44" stroke="#118833" strokeWidth="1" />
-          <text x={50} y={21} fontSize={14} textAnchor="middle" fill="white">
-            🐉
-          </text>
-        </g>
-      )}
-      {definition.hasMagicPortal && (
-        <g style={{ pointerEvents: 'none' }}>
-          <circle cx={50} cy={16} r={10}
-            fill="#9955cc" stroke="#7733aa" strokeWidth="1" />
-          <text x={50} y={21} fontSize={14} textAnchor="middle" fill="white">
-            🌀
-          </text>
-        </g>
+      {/* Dragon & Fairy tile-level indicators (only visible if no image or forced) */}
+      {(!definition.imageUrl || showSchematic) && (
+        <>
+          {definition.isDragonHoard && (
+            <g style={{ pointerEvents: 'none' }}>
+              <polygon
+                points="50,8 40,28 60,28"
+                fill="#ff4500" stroke="#cc3300" strokeWidth="1"
+              />
+              <circle cx={50} cy={15} r={3} fill="#ffaa00" opacity={0.8} />
+            </g>
+          )}
+          {definition.hasDragon && (
+            <g style={{ pointerEvents: 'none' }}>
+              <circle cx={50} cy={16} r={10}
+                fill="#22aa44" stroke="#118833" strokeWidth="1" />
+              <text x={50} y={21} fontSize={14} textAnchor="middle" fill="white">
+                🐉
+              </text>
+            </g>
+          )}
+          {definition.hasMagicPortal && (
+            <g style={{ pointerEvents: 'none' }}>
+              <circle cx={50} cy={16} r={10}
+                fill="#9955cc" stroke="#7733aa" strokeWidth="1" />
+              <text x={50} y={21} fontSize={14} textAnchor="middle" fill="white">
+                🌀
+              </text>
+            </g>
+          )}
+        </>
       )}
 
       {/* Tile border */}

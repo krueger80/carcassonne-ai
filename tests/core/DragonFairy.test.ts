@@ -8,7 +8,7 @@ import {
   getMagicPortalPlacements,
   placeMeepleViaPortal,
   isMagicPortalTile,
-  isVolcanoTile,
+  isDragonHoardTile,
   maybeReorientDragon,
 } from '../../src/core/engine/GameEngine.ts'
 import { DF_TILES } from '../../src/core/data/dragonFairyTiles.ts'
@@ -113,15 +113,15 @@ describe('D&F tile definitions', () => {
     }
   })
 
-  it('has 6 volcano tiles', () => {
-    const volcanos = DF_TILES.filter(t => t.isVolcano)
-    // 6 land volcanos + 1 river lake = 7
-    expect(volcanos.length).toBeGreaterThanOrEqual(6)
+  it('has 6 Dragon Hoard tiles', () => {
+    const hoards = DF_TILES.filter(t => t.isDragonHoard)
+    // 6 land Dragon Hoards + 1 river lake = 7
+    expect(hoards.length).toBeGreaterThanOrEqual(6)
   })
 
-  it('has 12 dragon hoard tiles', () => {
-    const hoards = DF_TILES.filter(t => t.hasDragonHoard)
-    expect(hoards.length).toBe(12)
+  it('has 12 Dragon tiles', () => {
+    const dragons = DF_TILES.filter(t => t.hasDragon)
+    expect(dragons.length).toBe(12)
   })
 
   it('has 4 magic portal tiles', () => {
@@ -129,11 +129,11 @@ describe('D&F tile definitions', () => {
     expect(portals.length).toBe(4)
   })
 
-  it('volcano tiles do NOT have dragon hoard or magic portal flags', () => {
-    const volcanos = DF_TILES.filter(t => t.isVolcano)
-    for (const v of volcanos) {
-      expect(v.hasDragonHoard).toBeFalsy()
-      expect(v.hasMagicPortal).toBeFalsy()
+  it('Dragon Hoard tiles do NOT have dragon or magic portal flags', () => {
+    const hoards = DF_TILES.filter(t => t.isDragonHoard)
+    for (const h of hoards) {
+      expect(h.hasDragon).toBeFalsy()
+      expect(h.hasMagicPortal).toBeFalsy()
     }
   })
 
@@ -191,25 +191,25 @@ describe('D&F game initialization', () => {
   })
 })
 
-// ─── Volcano tiles ────────────────────────────────────────────────────────────
+// ─── Dragon Hoard tiles ──────────────────────────────────────────────────────
 
-describe('Volcano tile detection', () => {
-  it('isVolcanoTile returns true for volcano tiles', () => {
-    const state = createDfGame()
-    const stateWithVolcano = {
-      ...state,
-      currentTile: { definitionId: 'df_1', rotation: 0 as const },
-    }
-    expect(isVolcanoTile(stateWithVolcano)).toBe(true)
-  })
-
-  it('isVolcanoTile returns false for non-volcano tiles', () => {
+describe('Dragon Hoard tile detection', () => {
+  it('isDragonHoardTile returns true for Dragon Hoard tiles', () => {
     const state = createDfGame()
     const stateWithHoard = {
       ...state,
+      currentTile: { definitionId: 'df_1', rotation: 0 as const },
+    }
+    expect(isDragonHoardTile(stateWithHoard)).toBe(true)
+  })
+
+  it('isDragonHoardTile returns false for non-Dragon-Hoard tiles', () => {
+    const state = createDfGame()
+    const stateWithDragon = {
+      ...state,
       currentTile: { definitionId: 'df_K', rotation: 0 as const },
     }
-    expect(isVolcanoTile(stateWithHoard)).toBe(false)
+    expect(isDragonHoardTile(stateWithDragon)).toBe(false)
   })
 })
 
@@ -227,11 +227,11 @@ describe('Magic Portal tile detection', () => {
 
   it('isMagicPortalTile returns false for non-portal tiles', () => {
     const state = createDfGame()
-    const stateWithVolcano = {
+    const stateWithHoard = {
       ...state,
       currentTile: { definitionId: 'df_1', rotation: 0 as const },
     }
-    expect(isMagicPortalTile(stateWithVolcano)).toBe(false)
+    expect(isMagicPortalTile(stateWithHoard)).toBe(false)
   })
 })
 

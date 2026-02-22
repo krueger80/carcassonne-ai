@@ -19,7 +19,15 @@ export function GameOverlay() {
         undoTilePlacement,
         drawTile,
         skipFairyMove,
+        startFairyMove,
+        cancelFairyMove,
         executeDragon,
+        cycleDragonFacing,
+        confirmDragonOrientation,
+        tentativeDragonFacing,
+        dragonOrientations,
+        dragonPlaceTargets,
+        placeDragonOnHoard,
     } = useGameStore()
 
     const { selectedMeepleType, setSelectedMeepleType } = useUIStore()
@@ -92,11 +100,12 @@ export function GameOverlay() {
     const { currentTile } = gameState
     const currentPlayer = players[currentPlayerIndex]
     const expansionList = (gameState.expansionData?.expansions as string[] | undefined) ?? []
+    const hasInnsCathedrals = expansionList.includes('inns-cathedrals')
     const hasTradersBuilders = expansionList.includes('traders-builders')
     const hasDragonFairy = expansionList.includes('dragon-fairy')
     const tbData = gameState.expansionData?.['tradersBuilders'] as { isBuilderBonusTurn?: boolean } | undefined
     const isBuilderBonusTurn = tbData?.isBuilderBonusTurn ?? false
-    const dfData = gameState.expansionData?.['dragonFairy'] as { dragonPosition?: { x: number; y: number } | null; dragonInPlay?: boolean; fairyPosition?: { coordinate: { x: number; y: number }; segmentId: string } | null } | undefined
+    const dfData = gameState.expansionData?.['dragonFairy'] as { dragonPosition?: { x: number; y: number } | null; dragonInPlay?: boolean; fairyPosition?: { coordinate: { x: number; y: number }; segmentId: string } | null; dragonHeldBy?: string | null } | undefined
 
     // Determine status text
     let statusText = isBuilderBonusTurn
@@ -122,8 +131,15 @@ export function GameOverlay() {
         } else {
             instructionText = 'Place Meeple or Skip'
         }
+    } else if (turnPhase === 'DRAGON_PLACE') {
+        instructionText = '🐉 Place dragon on a Dragon Hoard tile'
+    } else if (turnPhase === 'DRAGON_ORIENT') {
+        const facingLabel = tentativeDragonFacing
+            ? `Facing ${tentativeDragonFacing} — click to rotate`
+            : 'Click dragon to orient'
+        instructionText = `🐉 ${facingLabel}`
     } else if (turnPhase === 'DRAGON_MOVEMENT') {
-        instructionText = '🐉 Dragon Hoard! Move the Dragon'
+        instructionText = '🐉 Dragon Moving...'
     } else if (turnPhase === 'FAIRY_MOVE') {
         instructionText = 'Move Fairy or Skip'
     } else if (turnPhase === 'SCORE') {
@@ -136,6 +152,8 @@ export function GameOverlay() {
             inset: 0,
             pointerEvents: 'none',
             overflow: 'hidden',
+            userSelect: 'none',
+            WebkitUserSelect: 'none',
         }}>
             <AnimatePresence>
                 {showNewGameScreen && (
@@ -324,12 +342,21 @@ export function GameOverlay() {
                                         undo: undoTilePlacement,
                                         selectMeeple: setSelectedMeepleType,
                                         confirmMeeple: confirmMeeplePlacement,
-                                        cancelMeeple: cancelMeeplePlacement,
+                                        cancelMeeple: turnPhase === 'FAIRY_MOVE' ? cancelFairyMove : cancelMeeplePlacement,
                                         skipFairy: skipFairyMove,
+                                        startFairyMove: startFairyMove,
                                         executeDragon: executeDragon,
+                                        cycleDragonFacing: cycleDragonFacing,
+                                        confirmDragonOrientation: confirmDragonOrientation,
+                                        placeDragonOnHoard: placeDragonOnHoard,
                                     },
                                     selectedMeepleType: selectedMeepleType,
                                     validMeepleTypes,
+                                    dragonOrientations,
+                                    tentativeDragonFacing,
+                                    dragonPlaceTargets,
+                                    dragonMovesRemaining: dfData?.dragonMovement?.movesRemaining,
+                                    canUndo: turnPhase === 'DRAGON_ORIENT' && !dfData?.dragonMovement && !!gameState.lastPlacedCoord,
                                 };
                             }
 
@@ -353,6 +380,9 @@ export function GameOverlay() {
                                         player={p}
                                         isCurrentTurn={isCurrent}
                                         hasTradersBuilders={hasTradersBuilders}
+                                        hasInnsCathedrals={hasInnsCathedrals}
+                                        hasDragonFairy={hasDragonFairy}
+                                        hasDragonHeldBy={dfData?.dragonHeldBy ?? null}
                                         turnState={turnState}
                                     />
                                 </motion.div>

@@ -326,39 +326,39 @@ export function addTileToUnionFind(
     const checkDef = tileMap[checkTile.definitionId]
     if (!checkDef) continue
 
-    const cloisterSeg = checkDef.segments.find(s => s.type === 'CLOISTER')
-    if (!cloisterSeg) continue
-
-    const cloisterNodeKey = nodeKey(checkCoord, cloisterSeg.id)
-    if (!(cloisterNodeKey in working.parent)) {
-      // Create the cloister node if it doesn't exist
-      const surroundCount = countSurroundingTiles(board, checkCoord)
-      const feature: Feature = {
-        id: cloisterNodeKey,
-        type: 'CLOISTER',
-        nodes: [{ coordinate: checkCoord, segmentId: cloisterSeg.id }],
-        meeples: [],
-        isComplete: surroundCount === 8,
-        tileCount: surroundCount + 1,  // including the cloister tile itself
-        pennantCount: 0,
-        openEdgeCount: 8 - surroundCount,
-        adjacentCompletedCities: 0,
-        metadata: {},
-      }
-      ufMakeSet(working, cloisterNodeKey, feature)
-    } else {
-      // Update existing cloister
-      const root = ufFind(working, cloisterNodeKey)
-      const existing = working.featureData[root]
-      if (existing) {
+    const cloisterSegments = checkDef.segments.filter(s => s.type === 'CLOISTER')
+    for (const cloisterSeg of cloisterSegments) {
+      const cloisterNodeKey = nodeKey(checkCoord, cloisterSeg.id)
+      if (!(cloisterNodeKey in working.parent)) {
+        // Create the cloister node if it doesn't exist
         const surroundCount = countSurroundingTiles(board, checkCoord)
-        const wasComplete = existing.isComplete
-        existing.openEdgeCount = 8 - surroundCount
-        existing.tileCount = surroundCount + 1
-        existing.isComplete = surroundCount === 8
+        const feature: Feature = {
+          id: cloisterNodeKey,
+          type: 'CLOISTER',
+          nodes: [{ coordinate: checkCoord, segmentId: cloisterSeg.id }],
+          meeples: [],
+          isComplete: surroundCount === 8,
+          tileCount: surroundCount + 1,  // including the cloister tile itself
+          pennantCount: 0,
+          openEdgeCount: 8 - surroundCount,
+          adjacentCompletedCities: 0,
+          metadata: {},
+        }
+        ufMakeSet(working, cloisterNodeKey, feature)
+      } else {
+        // Update existing cloister
+        const root = ufFind(working, cloisterNodeKey)
+        const existing = working.featureData[root]
+        if (existing) {
+          const surroundCount = countSurroundingTiles(board, checkCoord)
+          const wasComplete = existing.isComplete
+          existing.openEdgeCount = 8 - surroundCount
+          existing.tileCount = surroundCount + 1
+          existing.isComplete = surroundCount === 8
 
-        if (!wasComplete && existing.isComplete) {
-          completedFeatureIds.push(root)
+          if (!wasComplete && existing.isComplete) {
+            completedFeatureIds.push(root)
+          }
         }
       }
     }

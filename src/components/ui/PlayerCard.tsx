@@ -1,7 +1,8 @@
 import { Player, MeepleType } from "../../core/types/player";
 import { MeepleSVG } from "../svg/MeepleSVG";
 import { TileSVG } from "../svg/TileSVG";
-import { TileDefinition, Rotation } from "../../core/types/tile";
+import { TileDefinition, Rotation, Direction } from "../../core/types/tile";
+import { Coordinate } from "../../core/types/board";
 import { Button } from "./Button";
 
 interface TurnState {
@@ -21,16 +22,28 @@ interface TurnState {
         confirmMeeple?: () => void;
         cancelMeeple?: () => void;
         skipFairy?: () => void;
+        startFairyMove?: () => void;
         executeDragon?: () => void;
+        cycleDragonFacing?: () => void;
+        confirmDragonOrientation?: () => void;
+        placeDragonOnHoard?: (coord: Coordinate) => void;
     };
     selectedMeepleType?: MeepleType;
     validMeepleTypes?: MeepleType[];
+    dragonOrientations?: Direction[];
+    tentativeDragonFacing?: Direction | null;
+    dragonPlaceTargets?: Coordinate[];
+    dragonMovesRemaining?: number;
+    canUndo?: boolean;
 }
 
 interface PlayerCardProps {
     player: Player;
     isCurrentTurn: boolean;
     hasTradersBuilders: boolean;
+    hasInnsCathedrals: boolean;
+    hasDragonFairy: boolean;
+    hasDragonHeldBy?: string | null;
     turnState?: TurnState;
     style?: React.CSSProperties;
 }
@@ -127,7 +140,7 @@ const GoodIcon = ({ type, count }: GoodIconProps) => {
     )
 }
 
-export function PlayerCard({ player, isCurrentTurn, hasTradersBuilders, turnState, style }: PlayerCardProps) {
+export function PlayerCard({ player, isCurrentTurn, hasTradersBuilders, hasInnsCathedrals, hasDragonFairy, hasDragonHeldBy, turnState, style }: PlayerCardProps) {
     const { color, name, score, meeples, traderTokens } = player;
 
     // Interaction logic
@@ -196,7 +209,7 @@ export function PlayerCard({ player, isCurrentTurn, hasTradersBuilders, turnStat
                             isSelected={isMeeplePhase && turnState?.selectedMeepleType === 'NORMAL'}
                             disabled={!isCurrentTurn || !isMeeplePhase || meeples.available.NORMAL <= 0 || (turnState?.validMeepleTypes && !turnState.validMeepleTypes.includes('NORMAL'))}
                         />
-                        {(hasTradersBuilders || meeples.available.BIG !== undefined) && (
+                        {(hasInnsCathedrals || hasTradersBuilders) && (
                             <MeepleIcon
                                 type="BIG"
                                 count={meeples.available.BIG ?? 0}
@@ -229,6 +242,29 @@ export function PlayerCard({ player, isCurrentTurn, hasTradersBuilders, turnStat
                                 />
                             </>
                         )}
+                        {/* Dragon held by this player */}
+                        {hasDragonHeldBy === player.id && (
+                            <div style={{
+                                display: 'flex',
+                                flexDirection: 'column',
+                                alignItems: 'center',
+                                padding: 4,
+                                borderRadius: 6,
+                                border: `1px solid ${isCurrentTurn && (turnState?.phase === 'DRAGON_ORIENT' || turnState?.phase === 'DRAGON_PLACE') ? '#e74c3c' : '#666'}`,
+                                background: isCurrentTurn && (turnState?.phase === 'DRAGON_ORIENT' || turnState?.phase === 'DRAGON_PLACE')
+                                    ? 'rgba(231, 76, 60, 0.15)' : 'transparent',
+                            }} title="Dragon">
+                                <div style={{ width: 24, height: 24 }}>
+                                    <svg width="24" height="24" viewBox="0 0 24 24"
+                                        style={{ filter: 'drop-shadow(0 1px 2px rgba(0,0,0,0.5))' }}>
+                                        <text x="12" y="18" textAnchor="middle" fontSize="16" fill="#e74c3c">
+                                            🐉
+                                        </text>
+                                    </svg>
+                                </div>
+                                <div style={{ fontSize: 9, color: '#e74c3c', marginTop: 2, fontWeight: 'bold' }}>Dragon</div>
+                            </div>
+                        )}
                     </div>
 
                     {/* Goods Collection (Traders) */}
@@ -247,28 +283,67 @@ export function PlayerCard({ player, isCurrentTurn, hasTradersBuilders, turnStat
 
                 {/* Right Col: Tile Preview (Active only) */}
                 {isCurrentTurn && turnState?.currentTile && turnState.tileDefinition && (
-                    <div style={{ width: 80, display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 4 }}>
+                    <div 
+                        style={{ 
+                            width: 80, 
+                            display: 'flex', 
+                            flexDirection: 'column', 
+                            alignItems: 'center', 
+                            gap: 4,
+                            cursor: (turnState.phase === 'DRAGON_ORIENT' || (turnState.phase === 'PLACE_TILE' && turnState.interactionState === 'TILE_PLACED_TENTATIVELY')) ? 'pointer' : 'default'
+                        }}
+                        onClick={
+                            turnState.phase === 'DRAGON_ORIENT' 
+                                ? turnState.actions.cycleDragonFacing 
+                                : (turnState.phase === 'PLACE_TILE' && turnState.interactionState === 'TILE_PLACED_TENTATIVELY')
+                                    ? turnState.actions.rotate
+                                    : undefined
+                        }
+                    >
                         <div style={{
                             width: 80, height: 80,
                             borderRadius: 8, overflow: 'hidden',
                             boxShadow: '0 4px 10px rgba(0,0,0,0.5)',
                             border: '1px solid #666',
-                            background: '#000'
+                            background: '#000',
+                            position: 'relative'
                         }}>
                             <TileSVG
                                 definition={turnState.tileDefinition}
                                 rotation={turnState.currentTile.rotation}
                                 size={80}
                             />
+                            {turnState.phase === 'DRAGON_ORIENT' && (
+                                <div style={{
+                                    position: 'absolute',
+                                    inset: 0,
+                                    display: 'flex',
+                                    alignItems: 'center',
+                                    justifyContent: 'center',
+                                    background: 'rgba(231, 76, 60, 0.1)',
+                                    zIndex: 5,
+                                }}>
+                                    <svg width="40" height="40" viewBox="0 0 24 24">
+                                        <text x="12" y="17" textAnchor="middle" fontSize="16" fill="#e74c3c"
+                                            style={{ filter: 'drop-shadow(0 1px 2px rgba(0,0,0,0.8))' }}>
+                                            {turnState.tentativeDragonFacing === 'NORTH' ? '\u25B2' : 
+                                             turnState.tentativeDragonFacing === 'SOUTH' ? '\u25BC' : 
+                                             turnState.tentativeDragonFacing === 'EAST' ? '\u25B6' : 
+                                             turnState.tentativeDragonFacing === 'WEST' ? '\u25C0' : '\u2666'}
+                                        </text>
+                                    </svg>
+                                </div>
+                            )}
                         </div>
-                        {turnState.phase === 'PLACE_TILE' && turnState.interactionState === 'TILE_PLACED_TENTATIVELY' && (
-                            <Button
-                                onClick={turnState.actions.rotate!}
-                                style={{ fontSize: 10, padding: '4px 8px', width: '100%' }}
-                                title="Rotate Tile"
-                            >
-                                Rotate ⭮
-                            </Button>
+                        {(turnState.phase === 'PLACE_TILE' && turnState.interactionState === 'TILE_PLACED_TENTATIVELY') && (
+                            <div style={{ fontSize: 9, color: '#aaa', fontWeight: 'bold' }}>
+                                Click to Rotate ⭮
+                            </div>
+                        )}
+                        {turnState.phase === 'DRAGON_ORIENT' && (
+                            <div style={{ fontSize: 9, color: '#e74c3c', fontWeight: 'bold' }}>
+                                Click to Rotate ↻
+                            </div>
                         )}
                     </div>
                 )}
@@ -292,15 +367,53 @@ export function PlayerCard({ player, isCurrentTurn, hasTradersBuilders, turnStat
                         ) : (
                             <>
                                 <Button onClick={turnState.actions.undo!} danger style={{ flex: 1 }}>Undo Tile</Button>
-                                <Button onClick={turnState.actions.skip!} style={{ flex: 1 }}>Skip Meeple</Button>
+                                <div style={{ display: 'flex', flex: 2, gap: 8 }}>
+                                    <Button onClick={turnState.actions.skip!} style={{ flex: 1 }}>Skip</Button>
+                                    {hasDragonFairy && turnState.actions.startFairyMove && (
+                                        <Button onClick={turnState.actions.startFairyMove} style={{ flex: 1, background: '#f1c40f', color: '#000' }}>Fairy</Button>
+                                    )}
+                                </div>
                             </>
                         )
+                    )}
+                    {turnState.phase === 'DRAGON_ORIENT' && turnState.actions.confirmDragonOrientation && (
+                        <>
+                            <Button
+                                onClick={turnState.actions.confirmDragonOrientation}
+                                primary
+                                style={{ flex: 1 }}
+                                disabled={!turnState.tentativeDragonFacing}
+                            >
+                                {turnState.dragonMovesRemaining && turnState.dragonMovesRemaining > 0 ? 'Confirm & Move' : 'Confirm'}
+                            </Button>
+                            {turnState.canUndo && (
+                                <Button
+                                    onClick={turnState.actions.undo!}
+                                    danger
+                                    style={{ flex: 1 }}
+                                >
+                                    Undo Tile
+                                </Button>
+                            )}
+                        </>
+                    )}
+                    {turnState.phase === 'DRAGON_PLACE' && turnState.dragonPlaceTargets && turnState.dragonPlaceTargets.length > 0 && (
+                        <div style={{ fontSize: 12, color: '#e74c3c', textAlign: 'center', flex: 1, padding: '6px 0' }}>
+                            🐉 Click a Dragon Hoard tile on the board
+                        </div>
                     )}
                     {turnState.phase === 'DRAGON_MOVEMENT' && turnState.actions.executeDragon && (
                         <Button onClick={turnState.actions.executeDragon} primary style={{ flex: 1 }}>🐉 Move Dragon</Button>
                     )}
-                    {turnState.phase === 'FAIRY_MOVE' && turnState.actions.skipFairy && (
-                        <Button onClick={turnState.actions.skipFairy} style={{ flex: 1 }}>Skip Fairy</Button>
+                    {turnState.phase === 'FAIRY_MOVE' && (
+                        <div style={{ display: 'flex', gap: 8, flex: 1 }}>
+                            {turnState.actions.cancelMeeple && (
+                                <Button onClick={turnState.actions.cancelMeeple} danger style={{ flex: 1 }}>Cancel</Button>
+                            )}
+                            {turnState.actions.skipFairy && (
+                                <Button onClick={turnState.actions.skipFairy} style={{ flex: 1 }}>Skip Fairy</Button>
+                            )}
+                        </div>
                     )}
                 </div>
             )}

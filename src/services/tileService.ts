@@ -25,8 +25,8 @@ export const tileService = {
             segments: row.config?.segments || [],
             edgePositionToSegment: row.config?.edgePositionToSegment || {},
             startingTile: row.config?.startingTile,
-            isVolcano: row.config?.isVolcano,
-            hasDragonHoard: row.config?.hasDragonHoard,
+            isDragonHoard: row.config?.isDragonHoard || row.config?.isVolcano || row.config?.hasDragonHoard,
+            hasDragon: row.config?.hasDragon,
             hasMagicPortal: row.config?.hasMagicPortal,
         }))
     },
@@ -42,8 +42,8 @@ export const tileService = {
                 segments: def.segments,
                 edgePositionToSegment: def.edgePositionToSegment,
                 ...(def.startingTile != null && { startingTile: def.startingTile }),
-                ...(def.isVolcano != null && { isVolcano: def.isVolcano }),
-                ...(def.hasDragonHoard != null && { hasDragonHoard: def.hasDragonHoard }),
+                ...(def.isDragonHoard != null && { isDragonHoard: def.isDragonHoard }),
+                ...(def.hasDragon != null && { hasDragon: def.hasDragon }),
                 ...(def.hasMagicPortal != null && { hasMagicPortal: def.hasMagicPortal }),
             }
         }

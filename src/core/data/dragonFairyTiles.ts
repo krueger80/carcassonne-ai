@@ -3,8 +3,8 @@
  *
  * 26 land tiles + 2 double-sized river tiles (Source + Lake).
  * Tile types:
- *   - Volcano (~6): Dragon teleports here, no meeple placement
- *   - Dragon Hoard (~12): Triggers dragon movement
+ *   - Dragon Hoard (~6): Dragon spawns here, player orients, no meeple placement
+ *   - Dragon (~12): Triggers dragon movement when placed
  *   - Magic Portal (~4): Player can place meeple on any unoccupied feature
  *   - Normal (~4): Standard tiles with the expansion icon
  *
@@ -57,16 +57,16 @@ const C_ROAD_S = { x: 50, y: 75 }
 const C_ROAD_W = { x: 25, y: 50 }
 const C_ROAD_E = { x: 75, y: 50 }
 
-// ─── Volcano Tiles (6) ──────────────────────────────────────────────────────
+// ─── Dragon Hoard Tiles (6) ─────────────────────────────────────────────────
 
-const VOLCANO_TILES: TileDefinition[] = [
-  // ── df_1: Volcano with all-field edges ──
+const DRAGON_HOARD_TILES: TileDefinition[] = [
+  // ── df_1: Dragon Hoard with all-field edges ──
   {
     id: 'df_1',
     count: 1,
     expansionId: 'dragon-fairy',
     imageUrl: '/images/DragonAndFairy_C31/Dragon_And_Fairy_C31_Tile_1.jpg',
-    isVolcano: true,
+    isDragonHoard: true,
     segments: [
       { id: 'field0', type: 'FIELD', svgPath: FIELD_FULL, meepleCentroid: C_FIELD_NE },
     ],
@@ -78,13 +78,13 @@ const VOLCANO_TILES: TileDefinition[] = [
     },
   },
 
-  // ── df_X: Volcano with city on north ──
+  // ── df_X: Dragon Hoard with city on north ──
   {
     id: 'df_X',
     count: 1,
     expansionId: 'dragon-fairy',
     imageUrl: '/images/DragonAndFairy_C31/Dragon_And_Fairy_C31_Tile_X.jpg',
-    isVolcano: true,
+    isDragonHoard: true,
     segments: [
       { id: 'city0', type: 'CITY', svgPath: CITY_N, meepleCentroid: C_NORTH },
       { id: 'field0', type: 'FIELD', svgPath: FIELD_FULL, meepleCentroid: C_FIELD_SW },
@@ -97,13 +97,13 @@ const VOLCANO_TILES: TileDefinition[] = [
     },
   },
 
-  // ── df_2: Volcano with road N-S ──
+  // ── df_2: Dragon Hoard with road N-S ──
   {
     id: 'df_2',
     count: 1,
     expansionId: 'dragon-fairy',
     imageUrl: '/images/DragonAndFairy_C31/Dragon_And_Fairy_C31_Tile_2.jpg',
-    isVolcano: true,
+    isDragonHoard: true,
     segments: [
       { id: 'road0', type: 'ROAD', svgPath: ROAD_NS, meepleCentroid: C_CENTER },
       { id: 'field0', type: 'FIELD', svgPath: 'M0,0 L46,0 L46,100 L0,100 Z', meepleCentroid: C_WEST },
@@ -117,13 +117,13 @@ const VOLCANO_TILES: TileDefinition[] = [
     },
   },
 
-  // ── df_Y: Volcano with city on north + road E-S ──
+  // ── df_Y: Dragon Hoard with city on north + road E-S ──
   {
     id: 'df_Y',
     count: 1,
     expansionId: 'dragon-fairy',
     imageUrl: '/images/DragonAndFairy_C31/Dragon_And_Fairy_C31_Tile_Y.jpg',
-    isVolcano: true,
+    isDragonHoard: true,
     segments: [
       { id: 'city0', type: 'CITY', svgPath: CITY_N, meepleCentroid: C_NORTH },
       { id: 'road0', type: 'ROAD', svgPath: ROAD_CURVE_SE, meepleCentroid: C_FIELD_SE },
@@ -138,13 +138,13 @@ const VOLCANO_TILES: TileDefinition[] = [
     },
   },
 
-  // ── df_W: Volcano with city on east ──
+  // ── df_W: Dragon Hoard with city on east ──
   {
     id: 'df_W',
     count: 1,
     expansionId: 'dragon-fairy',
     imageUrl: '/images/DragonAndFairy_C31/Dragon_And_Fairy_C31_Tile_W.jpg',
-    isVolcano: true,
+    isDragonHoard: true,
     segments: [
       { id: 'city0', type: 'CITY', svgPath: CITY_E, meepleCentroid: C_EAST },
       { id: 'field0', type: 'FIELD', svgPath: FIELD_FULL, meepleCentroid: C_FIELD_SW },
@@ -157,13 +157,13 @@ const VOLCANO_TILES: TileDefinition[] = [
     },
   },
 
-  // ── df_Z: Volcano with road E-W ──
+  // ── df_Z: Dragon Hoard with road E-W ──
   {
     id: 'df_Z',
     count: 1,
     expansionId: 'dragon-fairy',
     imageUrl: '/images/DragonAndFairy_C31/Dragon_And_Fairy_C31_Tile_Z.jpg',
-    isVolcano: true,
+    isDragonHoard: true,
     segments: [
       { id: 'road0', type: 'ROAD', svgPath: ROAD_EW, meepleCentroid: C_CENTER },
       { id: 'field0', type: 'FIELD', svgPath: 'M0,0 L100,0 L100,46 L0,46 Z', meepleCentroid: C_NORTH },
@@ -178,16 +178,16 @@ const VOLCANO_TILES: TileDefinition[] = [
   },
 ]
 
-// ─── Dragon Hoard Tiles (12) ────────────────────────────────────────────────
+// ─── Dragon Tiles (12) ─────────────────────────────────────────────────────
 
-const DRAGON_HOARD_TILES: TileDefinition[] = [
-  // ── df_K: Dragon hoard, city N, road S ──
+const DRAGON_TILES: TileDefinition[] = [
+  // ── df_K: Dragon, city N, road S ──
   {
     id: 'df_K',
     count: 1,
     expansionId: 'dragon-fairy',
     imageUrl: '/images/DragonAndFairy_C31/Dragon_And_Fairy_C31_Tile_K.jpg',
-    hasDragonHoard: true,
+    hasDragon: true,
     segments: [
       { id: 'city0', type: 'CITY', svgPath: CITY_N, meepleCentroid: C_NORTH },
       { id: 'road0', type: 'ROAD', svgPath: 'M46,30 L54,30 L54,100 L46,100 Z', meepleCentroid: C_ROAD_S },
@@ -202,13 +202,13 @@ const DRAGON_HOARD_TILES: TileDefinition[] = [
     },
   },
 
-  // ── df_H: Dragon hoard, all field ──
+  // ── df_H: Dragon, all field ──
   {
     id: 'df_H',
     count: 1,
     expansionId: 'dragon-fairy',
     imageUrl: '/images/DragonAndFairy_C31/Dragon_And_Fairy_C31_Tile_H.jpg',
-    hasDragonHoard: true,
+    hasDragon: true,
     segments: [
       { id: 'field0', type: 'FIELD', svgPath: FIELD_FULL, meepleCentroid: C_CENTER },
     ],
@@ -220,13 +220,13 @@ const DRAGON_HOARD_TILES: TileDefinition[] = [
     },
   },
 
-  // ── df_C: Dragon hoard, city N+E (connected, with pennant) ──
+  // ── df_C: Dragon, city N+E (connected, with pennant) ──
   {
     id: 'df_C',
     count: 1,
     expansionId: 'dragon-fairy',
     imageUrl: '/images/DragonAndFairy_C31/Dragon_And_Fairy_C31_Tile_C.jpg',
-    hasDragonHoard: true,
+    hasDragon: true,
     segments: [
       { id: 'city0', type: 'CITY', hasPennant: true, svgPath: CITY_NE, meepleCentroid: C_FIELD_NE },
       { id: 'field0', type: 'FIELD', svgPath: FIELD_FULL, meepleCentroid: C_FIELD_SW },
@@ -239,13 +239,13 @@ const DRAGON_HOARD_TILES: TileDefinition[] = [
     },
   },
 
-  // ── df_L: Dragon hoard, road N-S, city W ──
+  // ── df_L: Dragon, road N-S, city W ──
   {
     id: 'df_L',
     count: 1,
     expansionId: 'dragon-fairy',
     imageUrl: '/images/DragonAndFairy_C31/Dragon_And_Fairy_C31_Tile_L.jpg',
-    hasDragonHoard: true,
+    hasDragon: true,
     segments: [
       { id: 'city0', type: 'CITY', svgPath: CITY_W, meepleCentroid: C_WEST },
       { id: 'road0', type: 'ROAD', svgPath: ROAD_NS, meepleCentroid: C_CENTER },
@@ -260,13 +260,13 @@ const DRAGON_HOARD_TILES: TileDefinition[] = [
     },
   },
 
-  // ── df_G: Dragon hoard, road W-S (curve) ──
+  // ── df_G: Dragon, road W-S (curve) ──
   {
     id: 'df_G',
     count: 1,
     expansionId: 'dragon-fairy',
     imageUrl: '/images/DragonAndFairy_C31/Dragon_And_Fairy_C31_Tile_G.jpg',
-    hasDragonHoard: true,
+    hasDragon: true,
     segments: [
       { id: 'road0', type: 'ROAD', svgPath: ROAD_CURVE_SW, meepleCentroid: { x: 30, y: 70 } },
       { id: 'field0', type: 'FIELD', svgPath: 'M0,0 L100,0 L100,100 L54,100 L54,46 L0,46 Z', meepleCentroid: C_FIELD_NE },
@@ -280,13 +280,13 @@ const DRAGON_HOARD_TILES: TileDefinition[] = [
     },
   },
 
-  // ── df_I: Dragon hoard, cloister ──
+  // ── df_I: Dragon, cloister ──
   {
     id: 'df_I',
     count: 1,
     expansionId: 'dragon-fairy',
     imageUrl: '/images/DragonAndFairy_C31/Dragon_And_Fairy_C31_Tile_I.jpg',
-    hasDragonHoard: true,
+    hasDragon: true,
     segments: [
       { id: 'field0', type: 'FIELD', svgPath: FIELD_FULL, meepleCentroid: C_FIELD_NE },
       { id: 'cloister0', type: 'CLOISTER', svgPath: CLOISTER_RECT, meepleCentroid: C_CENTER },
@@ -299,13 +299,13 @@ const DRAGON_HOARD_TILES: TileDefinition[] = [
     },
   },
 
-  // ── df_M: Dragon hoard, city N, road E-W ──
+  // ── df_M: Dragon, city N, road E-W ──
   {
     id: 'df_M',
     count: 1,
     expansionId: 'dragon-fairy',
     imageUrl: '/images/DragonAndFairy_C31/Dragon_And_Fairy_C31_Tile_M.jpg',
-    hasDragonHoard: true,
+    hasDragon: true,
     segments: [
       { id: 'city0', type: 'CITY', svgPath: CITY_N, meepleCentroid: C_NORTH },
       { id: 'road0', type: 'ROAD', svgPath: ROAD_EW, meepleCentroid: C_CENTER },
@@ -321,13 +321,13 @@ const DRAGON_HOARD_TILES: TileDefinition[] = [
     },
   },
 
-  // ── df_J: Dragon hoard, city S ──
+  // ── df_J: Dragon, city S ──
   {
     id: 'df_J',
     count: 1,
     expansionId: 'dragon-fairy',
     imageUrl: '/images/DragonAndFairy_C31/Dragon_And_Fairy_C31_Tile_J.jpg',
-    hasDragonHoard: true,
+    hasDragon: true,
     segments: [
       { id: 'city0', type: 'CITY', svgPath: CITY_S, meepleCentroid: C_SOUTH },
       { id: 'field0', type: 'FIELD', svgPath: FIELD_FULL, meepleCentroid: C_NORTH },
@@ -340,13 +340,13 @@ const DRAGON_HOARD_TILES: TileDefinition[] = [
     },
   },
 
-  // ── df_D: Dragon hoard, road N-E (curve) ──
+  // ── df_D: Dragon, road N-E (curve) ──
   {
     id: 'df_D',
     count: 1,
     expansionId: 'dragon-fairy',
     imageUrl: '/images/DragonAndFairy_C31/Dragon_And_Fairy_C31_Tile_D.jpg',
-    hasDragonHoard: true,
+    hasDragon: true,
     segments: [
       { id: 'road0', type: 'ROAD', svgPath: ROAD_CURVE_NE, meepleCentroid: C_FIELD_NE },
       { id: 'field0', type: 'FIELD', svgPath: 'M0,0 L46,0 L46,54 L100,54 L100,100 L0,100 Z', meepleCentroid: C_FIELD_SW },
@@ -360,13 +360,13 @@ const DRAGON_HOARD_TILES: TileDefinition[] = [
     },
   },
 
-  // ── df_E: Dragon hoard, city N+E+W (3-sided) ──
+  // ── df_E: Dragon, city N+E+W (3-sided) ──
   {
     id: 'df_E',
     count: 1,
     expansionId: 'dragon-fairy',
     imageUrl: '/images/DragonAndFairy_C31/Dragon_And_Fairy_C31_Tile_E.jpg',
-    hasDragonHoard: true,
+    hasDragon: true,
     segments: [
       { id: 'city0', type: 'CITY', svgPath: CITY_WNE, meepleCentroid: C_CENTER },
       { id: 'field0', type: 'FIELD', svgPath: 'M30,75 L50,70 L70,75 L100,100 L0,100 Z', meepleCentroid: C_SOUTH },
@@ -379,13 +379,13 @@ const DRAGON_HOARD_TILES: TileDefinition[] = [
     },
   },
 
-  // ── df_O: Dragon hoard, cloister with road S ──
+  // ── df_O: Dragon, cloister with road S ──
   {
     id: 'df_O',
     count: 1,
     expansionId: 'dragon-fairy',
     imageUrl: '/images/DragonAndFairy_C31/Dragon_And_Fairy_C31_Tile_O.jpg',
-    hasDragonHoard: true,
+    hasDragon: true,
     segments: [
       { id: 'field0', type: 'FIELD', svgPath: FIELD_FULL, meepleCentroid: C_FIELD_NE },
       { id: 'road0', type: 'ROAD', svgPath: 'M46,50 L54,50 L54,100 L46,100 Z', meepleCentroid: C_ROAD_S },
@@ -399,13 +399,13 @@ const DRAGON_HOARD_TILES: TileDefinition[] = [
     },
   },
 
-  // ── df_F: Dragon hoard, city N with pennant ──
+  // ── df_F: Dragon, city N with pennant ──
   {
     id: 'df_F',
     count: 1,
     expansionId: 'dragon-fairy',
     imageUrl: '/images/DragonAndFairy_C31/Dragon_And_Fairy_C31_Tile_F.jpg',
-    hasDragonHoard: true,
+    hasDragon: true,
     segments: [
       { id: 'city0', type: 'CITY', hasPennant: true, svgPath: CITY_N, meepleCentroid: C_NORTH },
       { id: 'field0', type: 'FIELD', svgPath: FIELD_FULL, meepleCentroid: C_FIELD_SW },
@@ -591,8 +591,8 @@ const NORMAL_TILES: TileDefinition[] = [
 // ─── Export all tiles ────────────────────────────────────────────────────────
 
 export const DF_TILES: TileDefinition[] = [
-  ...VOLCANO_TILES,
   ...DRAGON_HOARD_TILES,
+  ...DRAGON_TILES,
   ...MAGIC_PORTAL_TILES,
   ...NORMAL_TILES,
 ]

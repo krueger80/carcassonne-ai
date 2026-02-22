@@ -9,7 +9,9 @@ export type GamePhase = 'SETUP' | 'PLAYING' | 'END'
 export type TurnPhase =
   | 'DRAW_TILE'
   | 'PLACE_TILE'
-  | 'DRAGON_MOVEMENT'    // D&F: dragon straight-line movement after dragon hoard tile
+  | 'DRAGON_PLACE'       // D&F: player must place captured dragon on a Dragon Hoard tile
+  | 'DRAGON_ORIENT'      // D&F: player orients dragon on Dragon Hoard tile
+  | 'DRAGON_MOVEMENT'    // D&F: dragon straight-line movement after Dragon tile
   | 'PLACE_MEEPLE'
   | 'FAIRY_MOVE'         // D&F: player may move fairy after scoring 0 from a completed feature
   | 'SCORE'

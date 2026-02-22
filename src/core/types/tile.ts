@@ -47,8 +47,8 @@ export interface TileDefinition {
   expansionId?: string  // undefined = base game
   imageUrl?: string     // Optional image asset to render instead of SVG
   // Dragon & Fairy expansion flags (tile-level)
-  isVolcano?: boolean          // Dragon teleports here; no meeple placement
-  hasDragonHoard?: boolean     // Triggers dragon movement when placed
+  isDragonHoard?: boolean      // Dragon spawns here, player orients; no meeple placement
+  hasDragon?: boolean          // Triggers dragon movement when placed
   hasMagicPortal?: boolean     // Player can place meeple on any unoccupied feature
 }
 

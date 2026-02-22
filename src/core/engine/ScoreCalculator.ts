@@ -114,9 +114,7 @@ export function scoreCompletedFeatures(
       ? rule.distributeScore(feature, true, players)
       : distributeMajorityScore(feature, rule.scoreComplete(feature))
 
-    if (Object.keys(scores).length > 0) {
-      events.push(buildScoreEvent(feature, scores, false))
-    }
+    events.push(buildScoreEvent(feature, scores, false))
   }
 
   return events

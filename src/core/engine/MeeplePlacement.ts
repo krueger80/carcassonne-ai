@@ -21,8 +21,14 @@ export function canPlaceMeeple(
   coord: Coordinate,
   segmentId: string,
   meepleType: MeepleType = 'NORMAL',
+  dragonPosition?: Coordinate | null,
 ): boolean {
   if (availableMeepleCount(player, meepleType) <= 0) return false
+
+  // Cannot place on a tile occupied by the dragon
+  if (dragonPosition && coord.x === dragonPosition.x && coord.y === dragonPosition.y) {
+    return false
+  }
 
   const nKey = nodeKey(coord, segmentId)
   // Check if the feature (root of this node) already has meeples
@@ -39,10 +45,16 @@ export function getPlaceableSegments(
   board: Board,
   coord: Coordinate,
   player: Player,
+  dragonPosition?: Coordinate | null,
 ): string[] {
   const key = coordKey(coord)
   const placedTile = board.tiles[key]
   if (!placedTile) return []
+
+  // Cannot place on a tile occupied by the dragon
+  if (dragonPosition && coord.x === dragonPosition.x && coord.y === dragonPosition.y) {
+    return []
+  }
 
   const def = tileMap[placedTile.definitionId]
   if (!def) return []
@@ -75,8 +87,14 @@ export function canPlaceBuilderOrPig(
   coord: Coordinate,
   segmentId: string,
   meepleType: 'BUILDER' | 'PIG',
+  dragonPosition?: Coordinate | null,
 ): boolean {
   if (availableMeepleCount(player, meepleType) <= 0) return false
+
+  // Cannot place on a tile occupied by the dragon
+  if (dragonPosition && coord.x === dragonPosition.x && coord.y === dragonPosition.y) {
+    return false
+  }
 
   const nKey = nodeKey(coord, segmentId)
   const feature = getFeature(state, nKey)
@@ -114,6 +132,7 @@ export function getBuilderPigPlaceableSegments(
   lastPlacedCoord: Coordinate,
   player: Player,
   meepleType: 'BUILDER' | 'PIG',
+  dragonPosition?: Coordinate | null,
 ): Array<{ coord: Coordinate; segmentId: string }> {
   if (availableMeepleCount(player, meepleType) <= 0) return []
 
@@ -126,7 +145,7 @@ export function getBuilderPigPlaceableSegments(
 
   const results: Array<{ coord: Coordinate; segmentId: string }> = []
   for (const seg of def.segments) {
-    if (canPlaceBuilderOrPig(state, player, lastPlacedCoord, seg.id, meepleType)) {
+    if (canPlaceBuilderOrPig(state, player, lastPlacedCoord, seg.id, meepleType, dragonPosition)) {
       results.push({ coord: lastPlacedCoord, segmentId: seg.id })
     }
   }

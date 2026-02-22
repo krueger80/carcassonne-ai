@@ -42,8 +42,10 @@ async function restore() {
 
         // Preserve optional D&F flags
         if (tile.startingTile != null) config.startingTile = tile.startingTile
-        if (tile.isVolcano != null) config.isVolcano = tile.isVolcano
-        if (tile.hasDragonHoard != null) config.hasDragonHoard = tile.hasDragonHoard
+        if (tile.isDragonHoard != null || tile.isVolcano != null || tile.hasDragonHoard != null) {
+            config.isDragonHoard = tile.isDragonHoard || tile.isVolcano || tile.hasDragonHoard
+        }
+        if (tile.hasDragon != null) config.hasDragon = tile.hasDragon
         if (tile.hasMagicPortal != null) config.hasMagicPortal = tile.hasMagicPortal
 
         const { error } = await supabase.from('carcassonne_tiles').upsert({

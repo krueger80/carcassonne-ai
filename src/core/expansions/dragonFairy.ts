@@ -20,14 +20,18 @@ export interface DragonFairyState {
   dragonFacing: Direction | null
   /** Fairy's current position. null = not yet placed. */
   fairyPosition: { coordinate: Coordinate; segmentId: string } | null
-  /** Whether the dragon has entered play (first volcano placed). */
+  /** Whether the dragon has entered play (first Dragon Hoard placed). */
   dragonInPlay: boolean
   /** Whether the current player can move the fairy this turn. */
   canMoveFairy: boolean
+  /** Player ID holding the captured dragon (fairy hit). null = nobody. */
+  dragonHeldBy: string | null
+  /** Whether a dragon movement is pending after meeple placement. */
+  pendingMovement?: boolean
   /** Dragon movement state during DRAGON_MOVEMENT phase. */
   dragonMovement: {
-    phase: 1 | 2
-    visitedTiles: string[]  // coordKey strings visited during this movement
+    movesRemaining: number  // 2, 1, or 0
+    nextPhase: 'PLACE_TILE' | 'SCORE' // Where to go after movement ends
   } | null
 }
 
@@ -38,6 +42,7 @@ export function createInitialDragonFairyState(): DragonFairyState {
     fairyPosition: null,
     dragonInPlay: false,
     canMoveFairy: false,
+    dragonHeldBy: null,
     dragonMovement: null,
   }
 }

@@ -258,11 +258,11 @@ export function TileDebugger() {
                                             const color = commodity === 'CLOTH' ? '#5588cc' : commodity === 'WHEAT' ? '#ccaa33' : '#cc4466'
                                             return <span title={commodity} style={{ fontSize: 11, background: color, borderRadius: 3, padding: '0 3px', lineHeight: '16px' }}>{icon}</span>
                                         })()}
-                                        {t.isVolcano && (
-                                            <span title="Volcano" style={{ fontSize: 11, background: '#ff6b35', borderRadius: 3, padding: '0 3px', lineHeight: '16px' }}>🌋</span>
+                                        {t.isDragonHoard && (
+                                            <span title="Dragon Hoard" style={{ fontSize: 11, background: '#ff6b35', borderRadius: 3, padding: '0 3px', lineHeight: '16px' }}>🏰</span>
                                         )}
-                                        {t.hasDragonHoard && (
-                                            <span title="Dragon Hoard" style={{ fontSize: 11, background: '#22aa44', borderRadius: 3, padding: '0 3px', lineHeight: '16px' }}>🐉</span>
+                                        {t.hasDragon && (
+                                            <span title="Dragon" style={{ fontSize: 11, background: '#22aa44', borderRadius: 3, padding: '0 3px', lineHeight: '16px' }}>🐉</span>
                                         )}
                                         {t.hasMagicPortal && (
                                             <span title="Magic Portal" style={{ fontSize: 11, background: '#9955cc', borderRadius: 3, padding: '0 3px', lineHeight: '16px' }}>🌀</span>
@@ -446,35 +446,35 @@ function PropertiesPanel({
                     </label>
 
                     {/* Dragon & Fairy tile-level flags */}
-                    {(tile.expansionId === 'dragon-fairy' || tile.isVolcano || tile.hasDragonHoard || tile.hasMagicPortal) && (
+                    {(tile.expansionId === 'dragon-fairy' || tile.isDragonHoard || tile.hasDragon || tile.hasMagicPortal) && (
                         <div style={{ display: 'flex', gap: 12, flexWrap: 'wrap', marginTop: 5 }}>
                             <label
                                 onClick={e => e.stopPropagation()}
                                 style={{
                                     display: 'flex', alignItems: 'center', gap: 4, fontSize: 12,
-                                    color: tile.isVolcano ? '#ff6b35' : '#aaa'
+                                    color: tile.isDragonHoard ? '#ff6b35' : '#aaa'
                                 }}
                             >
                                 <input
                                     type="checkbox"
-                                    checked={tile.isVolcano || false}
-                                    onChange={e => onUpdate({ isVolcano: e.target.checked || undefined })}
+                                    checked={tile.isDragonHoard || false}
+                                    onChange={e => onUpdate({ isDragonHoard: e.target.checked || undefined })}
                                 />
-                                <span>🌋 Volcano</span>
+                                <span>🏰 Dragon Hoard</span>
                             </label>
                             <label
                                 onClick={e => e.stopPropagation()}
                                 style={{
                                     display: 'flex', alignItems: 'center', gap: 4, fontSize: 12,
-                                    color: tile.hasDragonHoard ? '#22aa44' : '#aaa'
+                                    color: tile.hasDragon ? '#22aa44' : '#aaa'
                                 }}
                             >
                                 <input
                                     type="checkbox"
-                                    checked={tile.hasDragonHoard || false}
-                                    onChange={e => onUpdate({ hasDragonHoard: e.target.checked || undefined })}
+                                    checked={tile.hasDragon || false}
+                                    onChange={e => onUpdate({ hasDragon: e.target.checked || undefined })}
                                 />
-                                <span>🐉 Dragon Hoard</span>
+                                <span>🐉 Dragon</span>
                             </label>
                             <label
                                 onClick={e => e.stopPropagation()}
