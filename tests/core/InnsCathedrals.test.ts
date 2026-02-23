@@ -66,7 +66,7 @@ describe('IC tile definitions', () => {
 
   it('all tiles have expansionId set to inns-cathedrals', () => {
     for (const tile of IC_TILES) {
-      expect(tile.expansionId).toBe('inns-cathedrals')
+      expect(tile.expansionId).toBe('inns-cathedrals-c3')
     }
   })
 
@@ -239,7 +239,7 @@ describe('Feature metadata propagation', () => {
     const board = emptyBoard()
     const tile: PlacedTile = {
       coordinate: { x: 0, y: 0 },
-      definitionId: 'ic_I',
+      definitionId: 'ic3_I',
       rotation: 0,
       meeples: {},
     }
@@ -257,7 +257,7 @@ describe('Feature metadata propagation', () => {
     const board = emptyBoard()
     const tile: PlacedTile = {
       coordinate: { x: 0, y: 0 },
-      definitionId: 'ic_A',
+      definitionId: 'ic3_A',
       rotation: 0,
       meeples: {},
     }
@@ -274,7 +274,7 @@ describe('Feature metadata propagation', () => {
     let board = emptyBoard()
     const tile1: PlacedTile = {
       coordinate: { x: 0, y: 0 },
-      definitionId: 'ic_I',
+      definitionId: 'ic3_I',
       rotation: 0,
       meeples: {},
     }
@@ -283,7 +283,7 @@ describe('Feature metadata propagation', () => {
 
     const tile2: PlacedTile = {
       coordinate: { x: 0, y: 1 },
-      definitionId: 'base_U',
+      definitionId: 'base2_U',
       rotation: 0,
       meeples: {},
     }
@@ -344,7 +344,7 @@ describe('Game initialization with Inns & Cathedrals', () => {
   it('tile bag has 89 tiles (72 base + 18 IC - 1 starting)', () => {
     const state = initGame({
       playerNames: ['Alice', 'Bob'],
-      expansions: ['inns-cathedrals'],
+      expansions: ['inns-cathedrals-c3'],
     })
     expect(state.tileBag.length).toBe(89) // 72 + 18 - 1 starting tile
   })
@@ -352,7 +352,7 @@ describe('Game initialization with Inns & Cathedrals', () => {
   it('players start with 7 NORMAL + 1 BIG meeple', () => {
     const state = initGame({
       playerNames: ['Alice', 'Bob'],
-      expansions: ['inns-cathedrals'],
+      expansions: ['inns-cathedrals-c3'],
     })
     for (const player of state.players) {
       expect(player.meeples.available.NORMAL).toBe(7)
@@ -363,7 +363,7 @@ describe('Game initialization with Inns & Cathedrals', () => {
   it('scoring rules are stored in expansionData', () => {
     const state = initGame({
       playerNames: ['Alice', 'Bob'],
-      expansions: ['inns-cathedrals'],
+      expansions: ['inns-cathedrals-c3'],
     })
     expect(state.expansionData.scoringRules).toBeDefined()
     expect(state.expansionData.scoringRules).toBe(IC_SCORING_RULES)

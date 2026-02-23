@@ -1,11 +1,11 @@
 import type { TileDefinition } from '../types/tile.ts'
 
 export const TB_TILES: TileDefinition[] = [
-  // tb_A
+  // tb2_A
   {
-    id: 'tb_A',
+    id: 'tb2_A',
     count: 1,
-    expansionId: 'traders-builders',
+    expansionId: 'traders-builders-c2',
     imageUrl: '/images/TradersAndBuilders_C2/Traders_And_Builders_C2_Tile_A.jpg',
     segments: [
       {
@@ -82,11 +82,11 @@ export const TB_TILES: TileDefinition[] = [
       ]
     ]
   },
-  // tb_B
+  // tb2_B
   {
-    id: 'tb_B',
+    id: 'tb2_B',
     count: 1,
-    expansionId: 'traders-builders',
+    expansionId: 'traders-builders-c2',
     imageUrl: '/images/TradersAndBuilders_C2/Traders_And_Builders_C2_Tile_B.jpg',
     segments: [
       {
@@ -193,11 +193,11 @@ export const TB_TILES: TileDefinition[] = [
       ]
     ]
   },
-  // tb_C
+  // tb2_C
   {
-    id: 'tb_C',
+    id: 'tb2_C',
     count: 1,
-    expansionId: 'traders-builders',
+    expansionId: 'traders-builders-c2',
     imageUrl: '/images/TradersAndBuilders_C2/Traders_And_Builders_C2_Tile_C.jpg',
     segments: [
       {
@@ -313,11 +313,11 @@ export const TB_TILES: TileDefinition[] = [
       ]
     ]
   },
-  // tb_D
+  // tb2_D
   {
-    id: 'tb_D',
+    id: 'tb2_D',
     count: 1,
-    expansionId: 'traders-builders',
+    expansionId: 'traders-builders-c2',
     imageUrl: '/images/TradersAndBuilders_C2/Traders_And_Builders_C2_Tile_D.jpg',
     segments: [
       {
@@ -408,11 +408,11 @@ export const TB_TILES: TileDefinition[] = [
       ]
     ]
   },
-  // tb_E
+  // tb2_E
   {
-    id: 'tb_E',
+    id: 'tb2_E',
     count: 1,
-    expansionId: 'traders-builders',
+    expansionId: 'traders-builders-c2',
     imageUrl: '/images/TradersAndBuilders_C2/Traders_And_Builders_C2_Tile_E.jpg',
     segments: [
       {
@@ -503,11 +503,11 @@ export const TB_TILES: TileDefinition[] = [
       ]
     ]
   },
-  // tb_F
+  // tb2_F
   {
-    id: 'tb_F',
+    id: 'tb2_F',
     count: 1,
-    expansionId: 'traders-builders',
+    expansionId: 'traders-builders-c2',
     imageUrl: '/images/TradersAndBuilders_C2/Traders_And_Builders_C2_Tile_F.jpg',
     segments: [
       {
@@ -585,11 +585,11 @@ export const TB_TILES: TileDefinition[] = [
       ]
     ]
   },
-  // tb_G
+  // tb2_G
   {
-    id: 'tb_G',
+    id: 'tb2_G',
     count: 1,
-    expansionId: 'traders-builders',
+    expansionId: 'traders-builders-c2',
     imageUrl: '/images/TradersAndBuilders_C2/Traders_And_Builders_C2_Tile_G.jpg',
     segments: [
       {
@@ -634,11 +634,11 @@ export const TB_TILES: TileDefinition[] = [
       ]
     ]
   },
-  // tb_H
+  // tb2_H
   {
-    id: 'tb_H',
+    id: 'tb2_H',
     count: 1,
-    expansionId: 'traders-builders',
+    expansionId: 'traders-builders-c2',
     imageUrl: '/images/TradersAndBuilders_C2/Traders_And_Builders_C2_Tile_H.jpg',
     segments: [
       {
@@ -682,11 +682,11 @@ export const TB_TILES: TileDefinition[] = [
       ]
     ]
   },
-  // tb_I
+  // tb2_I
   {
-    id: 'tb_I',
+    id: 'tb2_I',
     count: 1,
-    expansionId: 'traders-builders',
+    expansionId: 'traders-builders-c2',
     imageUrl: '/images/TradersAndBuilders_C2/Traders_And_Builders_C2_Tile_I.jpg',
     segments: [
       {
@@ -777,11 +777,11 @@ export const TB_TILES: TileDefinition[] = [
       ]
     ]
   },
-  // tb_J
+  // tb2_J
   {
-    id: 'tb_J',
+    id: 'tb2_J',
     count: 1,
-    expansionId: 'traders-builders',
+    expansionId: 'traders-builders-c2',
     imageUrl: '/images/TradersAndBuilders_C2/Traders_And_Builders_C2_Tile_J.jpg',
     segments: [
       {
@@ -913,11 +913,11 @@ export const TB_TILES: TileDefinition[] = [
       ]
     ]
   },
-  // tb_K
+  // tb2_K
   {
-    id: 'tb_K',
+    id: 'tb2_K',
     count: 1,
-    expansionId: 'traders-builders',
+    expansionId: 'traders-builders-c2',
     imageUrl: '/images/TradersAndBuilders_C2/Traders_And_Builders_C2_Tile_K.jpg',
     segments: [
       {
@@ -995,11 +995,11 @@ export const TB_TILES: TileDefinition[] = [
       ]
     ]
   },
-  // tb_L
+  // tb2_L
   {
-    id: 'tb_L',
+    id: 'tb2_L',
     count: 1,
-    expansionId: 'traders-builders',
+    expansionId: 'traders-builders-c2',
     imageUrl: '/images/TradersAndBuilders_C2/Traders_And_Builders_C2_Tile_L.jpg',
     segments: [
       {
@@ -1091,11 +1091,11 @@ export const TB_TILES: TileDefinition[] = [
       ]
     ]
   },
-  // tb_M
+  // tb2_M
   {
-    id: 'tb_M',
+    id: 'tb2_M',
     count: 1,
-    expansionId: 'traders-builders',
+    expansionId: 'traders-builders-c2',
     imageUrl: '/images/TradersAndBuilders_C2/Traders_And_Builders_C2_Tile_M.jpg',
     segments: [
       {
@@ -1165,11 +1165,11 @@ export const TB_TILES: TileDefinition[] = [
       ]
     ]
   },
-  // tb_N
+  // tb2_N
   {
-    id: 'tb_N',
+    id: 'tb2_N',
     count: 1,
-    expansionId: 'traders-builders',
+    expansionId: 'traders-builders-c2',
     imageUrl: '/images/TradersAndBuilders_C2/Traders_And_Builders_C2_Tile_N.jpg',
     segments: [
       {
@@ -1239,11 +1239,11 @@ export const TB_TILES: TileDefinition[] = [
       ]
     ]
   },
-  // tb_O
+  // tb2_O
   {
-    id: 'tb_O',
+    id: 'tb2_O',
     count: 1,
-    expansionId: 'traders-builders',
+    expansionId: 'traders-builders-c2',
     imageUrl: '/images/TradersAndBuilders_C2/Traders_And_Builders_C2_Tile_O.jpg',
     segments: [
       {
@@ -1369,11 +1369,11 @@ export const TB_TILES: TileDefinition[] = [
       ]
     ]
   },
-  // tb_P
+  // tb2_P
   {
-    id: 'tb_P',
+    id: 'tb2_P',
     count: 1,
-    expansionId: 'traders-builders',
+    expansionId: 'traders-builders-c2',
     imageUrl: '/images/TradersAndBuilders_C2/Traders_And_Builders_C2_Tile_P.jpg',
     segments: [
       {
@@ -1445,11 +1445,11 @@ export const TB_TILES: TileDefinition[] = [
       ]
     ]
   },
-  // tb_Q
+  // tb2_Q
   {
-    id: 'tb_Q',
+    id: 'tb2_Q',
     count: 1,
-    expansionId: 'traders-builders',
+    expansionId: 'traders-builders-c2',
     imageUrl: '/images/TradersAndBuilders_C2/Traders_And_Builders_C2_Tile_Q.jpg',
     segments: [
       {
@@ -1506,11 +1506,11 @@ export const TB_TILES: TileDefinition[] = [
       ]
     ]
   },
-  // tb_R
+  // tb2_R
   {
-    id: 'tb_R',
+    id: 'tb2_R',
     count: 1,
-    expansionId: 'traders-builders',
+    expansionId: 'traders-builders-c2',
     imageUrl: '/images/TradersAndBuilders_C2/Traders_And_Builders_C2_Tile_R.jpg',
     segments: [
       {
@@ -1635,11 +1635,11 @@ export const TB_TILES: TileDefinition[] = [
       ]
     ]
   },
-  // tb_S
+  // tb2_S
   {
-    id: 'tb_S',
+    id: 'tb2_S',
     count: 1,
-    expansionId: 'traders-builders',
+    expansionId: 'traders-builders-c2',
     imageUrl: '/images/TradersAndBuilders_C2/Traders_And_Builders_C2_Tile_S.jpg',
     segments: [
       {
@@ -1730,11 +1730,11 @@ export const TB_TILES: TileDefinition[] = [
       ]
     ]
   },
-  // tb_T
+  // tb2_T
   {
-    id: 'tb_T',
+    id: 'tb2_T',
     count: 1,
-    expansionId: 'traders-builders',
+    expansionId: 'traders-builders-c2',
     imageUrl: '/images/TradersAndBuilders_C2/Traders_And_Builders_C2_Tile_T.jpg',
     segments: [
       {
@@ -1778,11 +1778,11 @@ export const TB_TILES: TileDefinition[] = [
       ]
     ]
   },
-  // tb_U
+  // tb2_U
   {
-    id: 'tb_U',
+    id: 'tb2_U',
     count: 1,
-    expansionId: 'traders-builders',
+    expansionId: 'traders-builders-c2',
     imageUrl: '/images/TradersAndBuilders_C2/Traders_And_Builders_C2_Tile_U.jpg',
     segments: [
       {
@@ -1894,11 +1894,11 @@ export const TB_TILES: TileDefinition[] = [
       ]
     ]
   },
-  // tb_V
+  // tb2_V
   {
-    id: 'tb_V',
+    id: 'tb2_V',
     count: 1,
-    expansionId: 'traders-builders',
+    expansionId: 'traders-builders-c2',
     imageUrl: '/images/TradersAndBuilders_C2/Traders_And_Builders_C2_Tile_V.jpg',
     segments: [
       {
@@ -1976,11 +1976,11 @@ export const TB_TILES: TileDefinition[] = [
       ]
     ]
   },
-  // tb_W
+  // tb2_W
   {
-    id: 'tb_W',
+    id: 'tb2_W',
     count: 1,
-    expansionId: 'traders-builders',
+    expansionId: 'traders-builders-c2',
     imageUrl: '/images/TradersAndBuilders_C2/Traders_And_Builders_C2_Tile_W.jpg',
     segments: [
       {
@@ -2071,11 +2071,11 @@ export const TB_TILES: TileDefinition[] = [
       ]
     ]
   },
-  // tb_X
+  // tb2_X
   {
-    id: 'tb_X',
+    id: 'tb2_X',
     count: 1,
-    expansionId: 'traders-builders',
+    expansionId: 'traders-builders-c2',
     imageUrl: '/images/TradersAndBuilders_C2/Traders_And_Builders_C2_Tile_X.jpg',
     segments: [
       {

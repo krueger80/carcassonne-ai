@@ -39,7 +39,7 @@ export const IC_C31_SCORING_RULES: ScoringRule[] = [
 ]
 
 export const INNS_CATHEDRALS_C31_EXPANSION = {
-    id: 'inns-cathedrals' as const,
+    id: 'inns-cathedrals-c31' as const,
     version: 'C3.1',
     tiles: IC_C31_TILES,
     scoringRules: IC_C31_SCORING_RULES,

@@ -482,7 +482,7 @@ function PropertiesPanel({
                     </label>
 
                     {/* Dragon & Fairy tile-level flags */}
-                    {(tile.expansionId === 'dragon-fairy' || tile.isDragonHoard || tile.hasDragon || tile.hasMagicPortal) && (
+                    {(tile.expansionId === 'dragon-fairy-c31' || tile.isDragonHoard || tile.hasDragon || tile.hasMagicPortal) && (
                         <div style={{ display: 'flex', gap: 12, flexWrap: 'wrap', marginTop: 5 }}>
                             <label
                                 onClick={e => e.stopPropagation()}

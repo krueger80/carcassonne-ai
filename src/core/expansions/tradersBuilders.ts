@@ -12,6 +12,8 @@ import { ScoringRule, countAdjacentCompletedCities } from '../engine/ScoreCalcul
 import type { Feature, UnionFindState } from '../types/feature.ts'
 import type { Player } from '../types/player.ts'
 import { TB_TILES } from '../data/tradersBuildersTiles.ts'
+import { TB1_TILES } from '../data/tradersBuildersTilesC1.ts'
+import { TB3_TILES } from '../data/tradersBuildersTilesC3.ts'
 
 // ─── Pig-aware farm scoring ────────────────────────────────────────────────────
 
@@ -99,10 +101,29 @@ export function buildCombinedIcTbRules(icRules: ScoringRule[]): ScoringRule[] {
 
 // ─── Expansion config ─────────────────────────────────────────────────────────
 
-export const TRADERS_BUILDERS_EXPANSION = {
-  id: 'traders-builders' as const,
+export const TRADERS_BUILDERS_C1_EXPANSION = {
+  id: 'traders-builders-c1' as const,
+  tiles: TB1_TILES,
+  scoringRules: TB_SCORING_RULES,
+  enableBigMeeple: true,
+  enableBuilderAndPig: true,
+}
+
+export const TRADERS_BUILDERS_C2_EXPANSION = {
+  id: 'traders-builders-c2' as const,
   tiles: TB_TILES,
   scoringRules: TB_SCORING_RULES,
   enableBigMeeple: true,
   enableBuilderAndPig: true,
 }
+
+export const TRADERS_BUILDERS_C3_EXPANSION = {
+  id: 'traders-builders-c3' as const,
+  tiles: TB3_TILES,
+  scoringRules: TB_SCORING_RULES,
+  enableBigMeeple: true,
+  enableBuilderAndPig: true,
+}
+
+/** @deprecated use TRADERS_BUILDERS_C2_EXPANSION */
+export const TRADERS_BUILDERS_EXPANSION = TRADERS_BUILDERS_C2_EXPANSION

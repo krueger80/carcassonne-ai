@@ -3,9 +3,9 @@ import type { TileDefinition } from '../types/tile.ts'
 export const DF_TILES: TileDefinition[] = [
   // df_1
   {
-    id: 'df_1',
+    id: 'df31_1',
     count: 1,
-    expansionId: 'dragon-fairy',
+    expansionId: 'dragon-fairy-c31',
     imageUrl: '/images/DragonAndFairy_C31/Dragon_And_Fairy_C31_Tile_1.jpg',
     isDragonHoard: true,
     segments: [
@@ -36,9 +36,9 @@ export const DF_TILES: TileDefinition[] = [
   },
   // df_2
   {
-    id: 'df_2',
+    id: 'df31_2',
     count: 1,
-    expansionId: 'dragon-fairy',
+    expansionId: 'dragon-fairy-c31',
     imageUrl: '/images/DragonAndFairy_C31/Dragon_And_Fairy_C31_Tile_2.jpg',
     isDragonHoard: true,
     segments: [
@@ -97,9 +97,9 @@ export const DF_TILES: TileDefinition[] = [
   },
   // df_C
   {
-    id: 'df_C',
+    id: 'df31_C',
     count: 1,
-    expansionId: 'dragon-fairy',
+    expansionId: 'dragon-fairy-c31',
     imageUrl: '/images/DragonAndFairy_C31/Dragon_And_Fairy_C31_Tile_C.jpg',
     hasDragon: true,
     segments: [
@@ -171,9 +171,9 @@ export const DF_TILES: TileDefinition[] = [
   },
   // df_D
   {
-    id: 'df_D',
+    id: 'df31_D',
     count: 1,
-    expansionId: 'dragon-fairy',
+    expansionId: 'dragon-fairy-c31',
     imageUrl: '/images/DragonAndFairy_C31/Dragon_And_Fairy_C31_Tile_D.jpg',
     hasDragon: true,
     segments: [
@@ -219,9 +219,9 @@ export const DF_TILES: TileDefinition[] = [
   },
   // df_E
   {
-    id: 'df_E',
+    id: 'df31_E',
     count: 1,
-    expansionId: 'dragon-fairy',
+    expansionId: 'dragon-fairy-c31',
     imageUrl: '/images/DragonAndFairy_C31/Dragon_And_Fairy_C31_Tile_E.jpg',
     segments: [
       {
@@ -279,9 +279,9 @@ export const DF_TILES: TileDefinition[] = [
   },
   // df_F
   {
-    id: 'df_F',
+    id: 'df31_F',
     count: 1,
-    expansionId: 'dragon-fairy',
+    expansionId: 'dragon-fairy-c31',
     imageUrl: '/images/DragonAndFairy_C31/Dragon_And_Fairy_C31_Tile_F.jpg',
     segments: [
       {
@@ -353,9 +353,9 @@ export const DF_TILES: TileDefinition[] = [
   },
   // df_G
   {
-    id: 'df_G',
+    id: 'df31_G',
     count: 1,
-    expansionId: 'dragon-fairy',
+    expansionId: 'dragon-fairy-c31',
     imageUrl: '/images/DragonAndFairy_C31/Dragon_And_Fairy_C31_Tile_G.jpg',
     hasDragon: true,
     segments: [
@@ -414,9 +414,9 @@ export const DF_TILES: TileDefinition[] = [
   },
   // df_H
   {
-    id: 'df_H',
+    id: 'df31_H',
     count: 1,
-    expansionId: 'dragon-fairy',
+    expansionId: 'dragon-fairy-c31',
     imageUrl: '/images/DragonAndFairy_C31/Dragon_And_Fairy_C31_Tile_H.jpg',
     hasDragon: true,
     segments: [
@@ -518,9 +518,9 @@ export const DF_TILES: TileDefinition[] = [
   },
   // df_I
   {
-    id: 'df_I',
+    id: 'df31_I',
     count: 1,
-    expansionId: 'dragon-fairy',
+    expansionId: 'dragon-fairy-c31',
     imageUrl: '/images/DragonAndFairy_C31/Dragon_And_Fairy_C31_Tile_I.jpg',
     hasDragon: true,
     segments: [
@@ -566,9 +566,9 @@ export const DF_TILES: TileDefinition[] = [
   },
   // df_J
   {
-    id: 'df_J',
+    id: 'df31_J',
     count: 1,
-    expansionId: 'dragon-fairy',
+    expansionId: 'dragon-fairy-c31',
     imageUrl: '/images/DragonAndFairy_C31/Dragon_And_Fairy_C31_Tile_J.jpg',
     hasDragon: true,
     segments: [
@@ -614,9 +614,9 @@ export const DF_TILES: TileDefinition[] = [
   },
   // df_K
   {
-    id: 'df_K',
+    id: 'df31_K',
     count: 1,
-    expansionId: 'dragon-fairy',
+    expansionId: 'dragon-fairy-c31',
     imageUrl: '/images/DragonAndFairy_C31/Dragon_And_Fairy_C31_Tile_K.jpg',
     hasDragon: true,
     segments: [
@@ -688,9 +688,9 @@ export const DF_TILES: TileDefinition[] = [
   },
   // df_L
   {
-    id: 'df_L',
+    id: 'df31_L',
     count: 1,
-    expansionId: 'dragon-fairy',
+    expansionId: 'dragon-fairy-c31',
     imageUrl: '/images/DragonAndFairy_C31/Dragon_And_Fairy_C31_Tile_L.jpg',
     hasDragon: true,
     segments: [
@@ -762,9 +762,9 @@ export const DF_TILES: TileDefinition[] = [
   },
   // df_M
   {
-    id: 'df_M',
+    id: 'df31_M',
     count: 1,
-    expansionId: 'dragon-fairy',
+    expansionId: 'dragon-fairy-c31',
     imageUrl: '/images/DragonAndFairy_C31/Dragon_And_Fairy_C31_Tile_M.jpg',
     hasDragon: true,
     segments: [
@@ -824,9 +824,9 @@ export const DF_TILES: TileDefinition[] = [
   },
   // df_N
   {
-    id: 'df_N',
+    id: 'df31_N',
     count: 1,
-    expansionId: 'dragon-fairy',
+    expansionId: 'dragon-fairy-c31',
     imageUrl: '/images/DragonAndFairy_C31/Dragon_And_Fairy_C31_Tile_N.jpg',
     segments: [
       {
@@ -884,9 +884,9 @@ export const DF_TILES: TileDefinition[] = [
   },
   // df_O
   {
-    id: 'df_O',
+    id: 'df31_O',
     count: 1,
-    expansionId: 'dragon-fairy',
+    expansionId: 'dragon-fairy-c31',
     imageUrl: '/images/DragonAndFairy_C31/Dragon_And_Fairy_C31_Tile_O.jpg',
     hasDragon: true,
     segments: [
@@ -1021,9 +1021,9 @@ export const DF_TILES: TileDefinition[] = [
   },
   // df_P
   {
-    id: 'df_P',
+    id: 'df31_P',
     count: 1,
-    expansionId: 'dragon-fairy',
+    expansionId: 'dragon-fairy-c31',
     imageUrl: '/images/DragonAndFairy_C31/Dragon_And_Fairy_C31_Tile_P.jpg',
     segments: [
       {
@@ -1098,9 +1098,9 @@ export const DF_TILES: TileDefinition[] = [
   },
   // df_Q
   {
-    id: 'df_Q',
+    id: 'df31_Q',
     count: 1,
-    expansionId: 'dragon-fairy',
+    expansionId: 'dragon-fairy-c31',
     imageUrl: '/images/DragonAndFairy_C31/Dragon_And_Fairy_C31_Tile_Q.jpg',
     hasMagicPortal: true,
     segments: [
@@ -1202,9 +1202,9 @@ export const DF_TILES: TileDefinition[] = [
   },
   // df_R
   {
-    id: 'df_R',
+    id: 'df31_R',
     count: 1,
-    expansionId: 'dragon-fairy',
+    expansionId: 'dragon-fairy-c31',
     imageUrl: '/images/DragonAndFairy_C31/Dragon_And_Fairy_C31_Tile_R.jpg',
     hasMagicPortal: true,
     segments: [
@@ -1250,9 +1250,9 @@ export const DF_TILES: TileDefinition[] = [
   },
   // df_S
   {
-    id: 'df_S',
+    id: 'df31_S',
     count: 1,
-    expansionId: 'dragon-fairy',
+    expansionId: 'dragon-fairy-c31',
     imageUrl: '/images/DragonAndFairy_C31/Dragon_And_Fairy_C31_Tile_S.jpg',
     hasMagicPortal: true,
     segments: [
@@ -1324,9 +1324,9 @@ export const DF_TILES: TileDefinition[] = [
   },
   // df_T
   {
-    id: 'df_T',
+    id: 'df31_T',
     count: 1,
-    expansionId: 'dragon-fairy',
+    expansionId: 'dragon-fairy-c31',
     imageUrl: '/images/DragonAndFairy_C31/Dragon_And_Fairy_C31_Tile_T.jpg',
     hasMagicPortal: true,
     segments: [
@@ -1398,9 +1398,9 @@ export const DF_TILES: TileDefinition[] = [
   },
   // df_U
   {
-    id: 'df_U',
+    id: 'df31_U',
     count: 1,
-    expansionId: 'dragon-fairy',
+    expansionId: 'dragon-fairy-c31',
     imageUrl: '/images/DragonAndFairy_C31/Dragon_And_Fairy_C31_Tile_U.jpg',
     hasMagicPortal: true,
     segments: [
@@ -1472,9 +1472,9 @@ export const DF_TILES: TileDefinition[] = [
   },
   // df_V
   {
-    id: 'df_V',
+    id: 'df31_V',
     count: 1,
-    expansionId: 'dragon-fairy',
+    expansionId: 'dragon-fairy-c31',
     imageUrl: '/images/DragonAndFairy_C31/Dragon_And_Fairy_C31_Tile_V.jpg',
     hasMagicPortal: true,
     segments: [
@@ -1559,9 +1559,9 @@ export const DF_TILES: TileDefinition[] = [
   },
   // df_W
   {
-    id: 'df_W',
+    id: 'df31_W',
     count: 1,
-    expansionId: 'dragon-fairy',
+    expansionId: 'dragon-fairy-c31',
     imageUrl: '/images/DragonAndFairy_C31/Dragon_And_Fairy_C31_Tile_W.jpg',
     isDragonHoard: true,
     segments: [
@@ -1620,9 +1620,9 @@ export const DF_TILES: TileDefinition[] = [
   },
   // df_X
   {
-    id: 'df_X',
+    id: 'df31_X',
     count: 1,
-    expansionId: 'dragon-fairy',
+    expansionId: 'dragon-fairy-c31',
     imageUrl: '/images/DragonAndFairy_C31/Dragon_And_Fairy_C31_Tile_X.jpg',
     isDragonHoard: true,
     segments: [
@@ -1681,9 +1681,9 @@ export const DF_TILES: TileDefinition[] = [
   },
   // df_Y
   {
-    id: 'df_Y',
+    id: 'df31_Y',
     count: 1,
-    expansionId: 'dragon-fairy',
+    expansionId: 'dragon-fairy-c31',
     imageUrl: '/images/DragonAndFairy_C31/Dragon_And_Fairy_C31_Tile_Y.jpg',
     isDragonHoard: true,
     segments: [
@@ -1729,9 +1729,9 @@ export const DF_TILES: TileDefinition[] = [
   },
   // df_Z
   {
-    id: 'df_Z',
+    id: 'df31_Z',
     count: 1,
-    expansionId: 'dragon-fairy',
+    expansionId: 'dragon-fairy-c31',
     imageUrl: '/images/DragonAndFairy_C31/Dragon_And_Fairy_C31_Tile_Z.jpg',
     isDragonHoard: true,
     segments: [

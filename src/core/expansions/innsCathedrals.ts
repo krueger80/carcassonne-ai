@@ -9,6 +9,8 @@
 
 import { ScoringRule, countAdjacentCompletedCities } from '../engine/ScoreCalculator.ts'
 import { IC_TILES } from '../data/innsCathedralsTiles.ts'
+import { IC1_TILES } from '../data/innsCathedralsTilesC1.ts'
+import { IC2_TILES } from '../data/innsCathedralsTilesC2.ts'
 
 export const IC_SCORING_RULES: ScoringRule[] = [
   {
@@ -38,9 +40,26 @@ export const IC_SCORING_RULES: ScoringRule[] = [
   },
 ]
 
-export const INNS_CATHEDRALS_EXPANSION = {
-  id: 'inns-cathedrals' as const,
+export const INNS_CATHEDRALS_C1_EXPANSION = {
+  id: 'inns-cathedrals-c1' as const,
+  tiles: IC1_TILES,
+  scoringRules: IC_SCORING_RULES,
+  enableBigMeeple: true,
+}
+
+export const INNS_CATHEDRALS_C2_EXPANSION = {
+  id: 'inns-cathedrals-c2' as const,
+  tiles: IC2_TILES,
+  scoringRules: IC_SCORING_RULES,
+  enableBigMeeple: true,
+}
+
+export const INNS_CATHEDRALS_C3_EXPANSION = {
+  id: 'inns-cathedrals-c3' as const,
   tiles: IC_TILES,
   scoringRules: IC_SCORING_RULES,
   enableBigMeeple: true,
 }
+
+/** @deprecated use INNS_CATHEDRALS_C3_EXPANSION */
+export const INNS_CATHEDRALS_EXPANSION = INNS_CATHEDRALS_C3_EXPANSION

@@ -76,10 +76,13 @@ export const DF_SCORING_RULES: ScoringRule[] = [
 
 // ─── Expansion config ────────────────────────────────────────────────────────
 
-export const DRAGON_FAIRY_EXPANSION = {
-  id: 'dragon-fairy' as const,
+export const DRAGON_FAIRY_C31_EXPANSION = {
+  id: 'dragon-fairy-c31' as const,
   tiles: DF_TILES,
   scoringRules: DF_SCORING_RULES,
   enableBigMeeple: false,
   enableDragonAndFairy: true,
 }
+
+/** @deprecated use DRAGON_FAIRY_C31_EXPANSION */
+export const DRAGON_FAIRY_EXPANSION = DRAGON_FAIRY_C31_EXPANSION

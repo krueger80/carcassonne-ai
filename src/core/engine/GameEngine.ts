@@ -9,11 +9,12 @@ import type { GameState, ScoreEvent } from '../types/game.ts'
 import type { Coordinate } from '../types/board.ts'
 import type { TileDefinition, Rotation, Direction } from '../types/tile.ts'
 import type { Player, MeepleType } from '../types/player.ts'
+import type { ExpansionSelection } from '../types/setup.ts'
 import { coordKey, emptyBoard, keyToCoord } from '../types/board.ts'
 import { emptyUnionFindState } from '../types/feature.ts'
 import { createPlayer, PLAYER_COLORS } from '../types/player.ts'
 import { getFallbackBaseTiles } from '../../services/tileRegistry.ts'
-import { getExpansionConfig } from '../expansions/registry.ts'
+import { getExpansionConfig, buildExpansionConfig } from '../expansions/registry.ts'
 import { buildCombinedIcTbRules } from '../expansions/tradersBuilders.ts'
 import { createInitialDragonFairyState, type DragonFairyState } from '../expansions/dragonFairy.ts'
 import { createTileBag, drawTile as drawFromBag } from './TileBag.ts'
@@ -53,7 +54,10 @@ export interface GameConfig {
   extraTileDefinitions?: TileDefinition[]
   baseDefinitions?: TileDefinition[]
   scoringRules?: ScoringRule[]
+  /** Legacy: versioned expansion ID strings. Prefer expansionSelections for new code. */
   expansions?: string[]
+  /** Structured per-expansion setup config (rules version + tile edition). */
+  expansionSelections?: ExpansionSelection[]
   debugPrioritizeExpansions?: boolean
 }
 
@@ -64,6 +68,7 @@ export function initGame(config: GameConfig): GameState {
     baseDefinitions = getFallbackBaseTiles(),
     scoringRules = BASE_SCORING_RULES,
     expansions = [],
+    expansionSelections,
     debugPrioritizeExpansions = false,
   } = config
 
@@ -71,57 +76,101 @@ export function initGame(config: GameConfig): GameState {
     throw new Error('Carcassonne supports 2–6 players')
   }
 
-  // Resolve expansion configs
-  const hasIc = expansions.includes('inns-cathedrals') || expansions.includes('inns-cathedrals-c31')
-  const hasTb = expansions.includes('traders-builders') || expansions.includes('traders-builders-c31')
-  const hasDf = expansions.includes('dragon-fairy')
+  // Detect which expansions are active (supports both new selections and legacy ID strings)
+  const hasIc = expansionSelections
+    ? expansionSelections.some(s => s.id === 'inns-cathedrals')
+    : expansions.includes('inns-cathedrals') ||
+      expansions.includes('inns-cathedrals-c3') ||
+      expansions.includes('inns-cathedrals-c31')
+  const hasTb = expansionSelections
+    ? expansionSelections.some(s => s.id === 'traders-builders')
+    : expansions.includes('traders-builders') ||
+      expansions.includes('traders-builders-c2') ||
+      expansions.includes('traders-builders-c31')
+  const hasDf = expansionSelections
+    ? expansionSelections.some(s => s.id === 'dragon-fairy')
+    : expansions.includes('dragon-fairy') ||
+      expansions.includes('dragon-fairy-c31')
+
   const enableBigMeeple = hasIc
   const enableBuilderAndPig = hasTb
 
-  // Filter extra tiles to only include tiles from enabled expansions
-  let allExtraTiles = extraTileDefinitions.filter(
-    t => !t.expansionId || expansions.includes(t.expansionId)
-  )
+  // Canonical expansion IDs stored in game state (edition-agnostic, for runtime checks)
+  const canonicalExpansions: string[] = [
+    ...(hasIc ? ['inns-cathedrals'] : []),
+    ...(hasTb ? ['traders-builders'] : []),
+    ...(hasDf ? ['dragon-fairy'] : []),
+  ]
+
+  let allExtraTiles: TileDefinition[] = []
   let activeRules = scoringRules
 
-  if (hasIc) {
-    const icId = expansions.includes('inns-cathedrals-c31') ? 'inns-cathedrals-c31' : 'inns-cathedrals'
-    const ic = getExpansionConfig(icId)
-    if (ic) {
-      // Only add hardcoded IC tiles if none were provided via extraTileDefinitions (DB)
-      const hasDbIcTiles = allExtraTiles.some(t => t.expansionId === icId)
-      if (!hasDbIcTiles) {
-        allExtraTiles = [...allExtraTiles, ...ic.tiles]
-      }
-      activeRules = ic.scoringRules
-    }
-  }
+  if (expansionSelections) {
+    // ── New path: structured ExpansionSelection array ────────────────────────
+    const icSel = expansionSelections.find(s => s.id === 'inns-cathedrals')
+    const tbSel = expansionSelections.find(s => s.id === 'traders-builders')
 
-  if (hasTb) {
-    const tbId = expansions.includes('traders-builders-c31') ? 'traders-builders-c31' : 'traders-builders'
-    const tb = getExpansionConfig(tbId)
-    if (tb) {
-      const hasDbTbTiles = allExtraTiles.some(t => t.expansionId === tbId)
-      if (!hasDbTbTiles) {
-        allExtraTiles = [...allExtraTiles, ...tb.tiles]
-      }
-      if (hasIc) {
-        // Both expansions: IC rules for ROAD/CITY/CLOISTER + pig-aware FIELD
-        activeRules = buildCombinedIcTbRules(activeRules)
-      } else {
-        activeRules = tb.scoringRules
+    for (const sel of expansionSelections) {
+      const expConfig = buildExpansionConfig(sel)
+      // Use DB tiles (extraTileDefinitions) when available, otherwise hardcoded
+      const versionedId = expConfig.id === sel.id
+        ? (sel.id === 'inns-cathedrals'
+            ? (sel.tileEdition === 'C3.1' ? 'inns-cathedrals-c31' : 'inns-cathedrals-c3')
+            : sel.id === 'traders-builders'
+              ? (sel.tileEdition === 'C3.1' ? 'traders-builders-c31' : 'traders-builders-c2')
+              : 'dragon-fairy-c31')
+        : expConfig.id
+      const hasDbTiles = extraTileDefinitions.some(t => t.expansionId === versionedId)
+      if (!hasDbTiles) {
+        allExtraTiles = [...allExtraTiles, ...expConfig.tiles]
       }
     }
-  }
+    // Also include DB extra tiles that matched a versioned expansion ID
+    allExtraTiles = [
+      ...allExtraTiles,
+      ...extraTileDefinitions.filter(t => t.expansionId && t.expansionId !== 'base-c2' && t.expansionId !== 'base-c31'),
+    ]
 
-  if (hasDf) {
-    const df = getExpansionConfig('dragon-fairy')
-    if (df) {
-      const hasDbDfTiles = allExtraTiles.some(t => t.expansionId === 'dragon-fairy')
-      if (!hasDbDfTiles) {
-        allExtraTiles = [...allExtraTiles, ...df.tiles]
+    if (icSel) {
+      activeRules = buildExpansionConfig(icSel).scoringRules
+    }
+    if (tbSel) {
+      const tbRules = buildExpansionConfig(tbSel).scoringRules
+      activeRules = hasIc ? buildCombinedIcTbRules(activeRules) : tbRules
+    }
+  } else {
+    // ── Legacy path: expansion ID string array ───────────────────────────────
+    allExtraTiles = extraTileDefinitions.filter(
+      t => !t.expansionId || expansions.includes(t.expansionId)
+    )
+
+    if (hasIc) {
+      const icId = expansions.includes('inns-cathedrals-c31') ? 'inns-cathedrals-c31' : 'inns-cathedrals-c3'
+      const ic = getExpansionConfig(icId)
+      if (ic) {
+        const hasDbIcTiles = allExtraTiles.some(t => t.expansionId === icId)
+        if (!hasDbIcTiles) allExtraTiles = [...allExtraTiles, ...ic.tiles]
+        activeRules = ic.scoringRules
       }
-      // D&F doesn't change scoring rules — fairy +3 is handled separately
+    }
+
+    if (hasTb) {
+      const tbId = expansions.includes('traders-builders-c31') ? 'traders-builders-c31' : 'traders-builders-c2'
+      const tb = getExpansionConfig(tbId)
+      if (tb) {
+        const hasDbTbTiles = allExtraTiles.some(t => t.expansionId === tbId)
+        if (!hasDbTbTiles) allExtraTiles = [...allExtraTiles, ...tb.tiles]
+        activeRules = hasIc ? buildCombinedIcTbRules(activeRules) : tb.scoringRules
+      }
+    }
+
+    if (hasDf) {
+      const dfId = 'dragon-fairy-c31'
+      const df = getExpansionConfig(dfId)
+      if (df) {
+        const hasDbDfTiles = allExtraTiles.some(t => t.expansionId === dfId)
+        if (!hasDbDfTiles) allExtraTiles = [...allExtraTiles, ...df.tiles]
+      }
     }
   }
 
@@ -162,7 +211,7 @@ export function initGame(config: GameConfig): GameState {
     boardMeeples: {},
     expansionData: {
       scoringRules: activeRules,
-      expansions,
+      expansions: canonicalExpansions,
       ...(hasTb ? { tradersBuilders: { isBuilderBonusTurn: false, pendingBuilderBonus: false } } : {}),
       ...(hasDf ? { dragonFairy: createInitialDragonFairyState() } : {}),
     },
@@ -482,35 +531,9 @@ export function skipMeeple(state: GameState): GameState {
   return { ...state, turnPhase: 'SCORE' }
 }
 
-// ─── Rule Resolution ──────────────────────────────────────────────────────────
-
-function resolveScoringRules(expansions: string[]): ScoringRule[] {
-  let activeRules = BASE_SCORING_RULES
-  const hasIc = expansions.includes('inns-cathedrals') || expansions.includes('inns-cathedrals-c31')
-  const hasTb = expansions.includes('traders-builders') || expansions.includes('traders-builders-c31')
-
-  if (hasIc) {
-    const icId = expansions.includes('inns-cathedrals-c31') ? 'inns-cathedrals-c31' : 'inns-cathedrals'
-    const ic = getExpansionConfig(icId)
-    if (ic) activeRules = ic.scoringRules
-  }
-
-  if (hasTb) {
-    const tbId = expansions.includes('traders-builders-c31') ? 'traders-builders-c31' : 'traders-builders'
-    const tb = getExpansionConfig(tbId)
-    if (tb) {
-      if (hasIc) {
-        activeRules = buildCombinedIcTbRules(activeRules)
-      } else {
-        activeRules = tb.scoringRules
-      }
-    }
-  }
-  return activeRules
-}
 
 export function scoreFeatureCompletion(state: GameState, featureId: string): { state: GameState; event: ScoreEvent | null } {
-  const rules = resolveScoringRules(state.expansionData.expansions as string[] ?? [])
+  const rules = (state.expansionData.scoringRules as ScoringRule[] | undefined) ?? BASE_SCORING_RULES
   const events = scoreCompletedFeatures([featureId], state.featureUnionFind, state.players, rules)
   if (events.length === 0) return { state, event: null }
 
@@ -738,7 +761,7 @@ export function endGame(state: GameState): GameState {
     )
   )
 
-  const rules = resolveScoringRules(state.expansionData.expansions as string[] ?? [])
+  const rules = (state.expansionData.scoringRules as ScoringRule[] | undefined) ?? BASE_SCORING_RULES
   const endGameEvents = scoreAllRemainingFeatures(
     state.featureUnionFind,
     completedFeatureIds,

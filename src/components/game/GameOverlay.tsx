@@ -3,7 +3,7 @@ import { useUIStore } from '../../store/uiStore.ts'
 import { getAllPotentialPlacements, getValidMeepleTypes } from '../../core/engine/GameEngine.ts'
 import { motion, AnimatePresence } from 'framer-motion'
 import { useEffect, useState, useMemo } from 'react'
-import { NewGameScreen } from './NewGameScreen.tsx'
+import { SetupScreen } from '../setup/SetupScreen.tsx'
 import { PlayerCard } from '../ui/PlayerCard.tsx'
 
 export function GameOverlay() {
@@ -166,17 +166,11 @@ export function GameOverlay() {
             <AnimatePresence>
                 {showNewGameScreen && (
                     <div style={{ pointerEvents: 'auto' }}>
-                        <NewGameScreen
-                            currentConfig={{
-                                playerCount: gameState.players.length,
-                                expansions: (gameState.expansionData?.expansions as string[]) || []
-                            }}
-                            onStart={(config) => {
-                                useGameStore.getState().newGame(config)
+                        <SetupScreen
+                            onCancel={() => {
                                 setShowNewGameScreen(false)
                                 setIsMenuOpen(false)
                             }}
-                            onCancel={() => setShowNewGameScreen(false)}
                         />
                     </div>
                 )}

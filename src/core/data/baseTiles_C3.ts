@@ -1,10 +1,10 @@
 import type { TileDefinition } from '../types/tile.ts'
 
 export const BASE_TILES_C3: TileDefinition[] = [
-  // base_c3_A
+  // base31_A
   {
-    id: 'base_c3_A',
-    count: 2, expansionId: 'base-c3',
+    id: 'base31_A',
+    count: 2, expansionId: 'base-c31',
     imageUrl: '/images/BaseGame_C3/Base_Game_C3_Tile_A.png',
     segments: [
       {
@@ -64,10 +64,10 @@ export const BASE_TILES_C3: TileDefinition[] = [
       ]
     ]
   },
-  // base_c3_B
+  // base31_B
   {
-    id: 'base_c3_B',
-    count: 4, expansionId: 'base-c3',
+    id: 'base31_B',
+    count: 4, expansionId: 'base-c31',
     imageUrl: '/images/BaseGame_C3/Base_Game_C3_Tile_B.png',
     segments: [
       {
@@ -110,10 +110,10 @@ export const BASE_TILES_C3: TileDefinition[] = [
       ]
     ]
   },
-  // base_c3_C
+  // base31_C
   {
-    id: 'base_c3_C',
-    count: 1, expansionId: 'base-c3',
+    id: 'base31_C',
+    count: 1, expansionId: 'base-c31',
     imageUrl: '/images/BaseGame_C3/Base_Game_C3_Tile_C.png',
     segments: [
       {
@@ -142,10 +142,10 @@ export const BASE_TILES_C3: TileDefinition[] = [
       WEST_RIGHT: 'city0'
     }
   },
-  // base_c3_D
+  // base31_D
   {
-    id: 'base_c3_D',
-    count: 4, expansionId: 'base-c3',
+    id: 'base31_D',
+    count: 4, expansionId: 'base-c31',
     imageUrl: '/images/BaseGame_C3/Base_Game_C3_Tile_D.png',
     startingTile: true,
     segments: [
@@ -215,10 +215,10 @@ export const BASE_TILES_C3: TileDefinition[] = [
       ]
     ]
   },
-  // base_c3_E
+  // base31_E
   {
-    id: 'base_c3_E',
-    count: 5, expansionId: 'base-c3',
+    id: 'base31_E',
+    count: 5, expansionId: 'base-c31',
     imageUrl: '/images/BaseGame_C3/Base_Game_C3_Tile_E.png',
     segments: [
       {
@@ -261,10 +261,10 @@ export const BASE_TILES_C3: TileDefinition[] = [
       ]
     ]
   },
-  // base_c3_F
+  // base31_F
   {
-    id: 'base_c3_F',
-    count: 2, expansionId: 'base-c3',
+    id: 'base31_F',
+    count: 2, expansionId: 'base-c31',
     imageUrl: '/images/BaseGame_C3/Base_Game_C3_Tile_F.png',
     segments: [
       {
@@ -321,10 +321,10 @@ export const BASE_TILES_C3: TileDefinition[] = [
       ]
     ]
   },
-  // base_c3_G
+  // base31_G
   {
-    id: 'base_c3_G',
-    count: 1, expansionId: 'base-c3',
+    id: 'base31_G',
+    count: 1, expansionId: 'base-c31',
     imageUrl: '/images/BaseGame_C3/Base_Game_C3_Tile_G.png',
     segments: [
       {
@@ -380,10 +380,10 @@ export const BASE_TILES_C3: TileDefinition[] = [
       ]
     ]
   },
-  // base_c3_H
+  // base31_H
   {
-    id: 'base_c3_H',
-    count: 3, expansionId: 'base-c3',
+    id: 'base31_H',
+    count: 3, expansionId: 'base-c31',
     imageUrl: '/images/BaseGame_C3/Base_Game_C3_Tile_H.png',
     segments: [
       {
@@ -439,10 +439,10 @@ export const BASE_TILES_C3: TileDefinition[] = [
       ]
     ]
   },
-  // base_c3_I
+  // base31_I
   {
-    id: 'base_c3_I',
-    count: 2, expansionId: 'base-c3',
+    id: 'base31_I',
+    count: 2, expansionId: 'base-c31',
     imageUrl: '/images/BaseGame_C3/Base_Game_C3_Tile_I.png',
     segments: [
       {
@@ -498,10 +498,10 @@ export const BASE_TILES_C3: TileDefinition[] = [
       ]
     ]
   },
-  // base_c3_J
+  // base31_J
   {
-    id: 'base_c3_J',
-    count: 3, expansionId: 'base-c3',
+    id: 'base31_J',
+    count: 3, expansionId: 'base-c31',
     imageUrl: '/images/BaseGame_C3/Base_Game_C3_Tile_J.png',
     segments: [
       {
@@ -570,10 +570,10 @@ export const BASE_TILES_C3: TileDefinition[] = [
       ]
     ]
   },
-  // base_c3_K
+  // base31_K
   {
-    id: 'base_c3_K',
-    count: 3, expansionId: 'base-c3',
+    id: 'base31_K',
+    count: 3, expansionId: 'base-c31',
     imageUrl: '/images/BaseGame_C3/Base_Game_C3_Tile_K.png',
     segments: [
       {
@@ -642,10 +642,10 @@ export const BASE_TILES_C3: TileDefinition[] = [
       ]
     ]
   },
-  // base_c3_L
+  // base31_L
   {
-    id: 'base_c3_L',
-    count: 3, expansionId: 'base-c3',
+    id: 'base31_L',
+    count: 3, expansionId: 'base-c31',
     imageUrl: '/images/BaseGame_C3/Base_Game_C3_Tile_L.png',
     segments: [
       {
@@ -757,10 +757,10 @@ export const BASE_TILES_C3: TileDefinition[] = [
       ]
     ]
   },
-  // base_c3_M
+  // base31_M
   {
-    id: 'base_c3_M',
-    count: 2, expansionId: 'base-c3',
+    id: 'base31_M',
+    count: 2, expansionId: 'base-c31',
     imageUrl: '/images/BaseGame_C3/Base_Game_C3_Tile_M.png',
     segments: [
       {
@@ -804,10 +804,10 @@ export const BASE_TILES_C3: TileDefinition[] = [
       ]
     ]
   },
-  // base_c3_N
+  // base31_N
   {
-    id: 'base_c3_N',
-    count: 3, expansionId: 'base-c3',
+    id: 'base31_N',
+    count: 3, expansionId: 'base-c31',
     imageUrl: '/images/BaseGame_C3/Base_Game_C3_Tile_N.png',
     segments: [
       {
@@ -850,10 +850,10 @@ export const BASE_TILES_C3: TileDefinition[] = [
       ]
     ]
   },
-  // base_c3_O
+  // base31_O
   {
-    id: 'base_c3_O',
-    count: 2, expansionId: 'base-c3',
+    id: 'base31_O',
+    count: 2, expansionId: 'base-c31',
     imageUrl: '/images/BaseGame_C3/Base_Game_C3_Tile_O.png',
     segments: [
       {
@@ -923,10 +923,10 @@ export const BASE_TILES_C3: TileDefinition[] = [
       ]
     ]
   },
-  // base_c3_P
+  // base31_P
   {
-    id: 'base_c3_P',
-    count: 3, expansionId: 'base-c3',
+    id: 'base31_P',
+    count: 3, expansionId: 'base-c31',
     imageUrl: '/images/BaseGame_C3/Base_Game_C3_Tile_P.png',
     segments: [
       {
@@ -995,10 +995,10 @@ export const BASE_TILES_C3: TileDefinition[] = [
       ]
     ]
   },
-  // base_c3_Q
+  // base31_Q
   {
-    id: 'base_c3_Q',
-    count: 1, expansionId: 'base-c3',
+    id: 'base31_Q',
+    count: 1, expansionId: 'base-c31',
     imageUrl: '/images/BaseGame_C3/Base_Game_C3_Tile_Q.png',
     segments: [
       {
@@ -1042,10 +1042,10 @@ export const BASE_TILES_C3: TileDefinition[] = [
       ]
     ]
   },
-  // base_c3_R
+  // base31_R
   {
-    id: 'base_c3_R',
-    count: 3, expansionId: 'base-c3',
+    id: 'base31_R',
+    count: 3, expansionId: 'base-c31',
     imageUrl: '/images/BaseGame_C3/Base_Game_C3_Tile_R.png',
     segments: [
       {
@@ -1088,10 +1088,10 @@ export const BASE_TILES_C3: TileDefinition[] = [
       ]
     ]
   },
-  // base_c3_S
+  // base31_S
   {
-    id: 'base_c3_S',
-    count: 2, expansionId: 'base-c3',
+    id: 'base31_S',
+    count: 2, expansionId: 'base-c31',
     imageUrl: '/images/BaseGame_C3/Base_Game_C3_Tile_S.png',
     segments: [
       {
@@ -1169,10 +1169,10 @@ export const BASE_TILES_C3: TileDefinition[] = [
       ]
     ]
   },
-  // base_c3_T
+  // base31_T
   {
-    id: 'base_c3_T',
-    count: 1, expansionId: 'base-c3',
+    id: 'base31_T',
+    count: 1, expansionId: 'base-c31',
     imageUrl: '/images/BaseGame_C3/Base_Game_C3_Tile_T.png',
     segments: [
       {
@@ -1249,10 +1249,10 @@ export const BASE_TILES_C3: TileDefinition[] = [
       ]
     ]
   },
-  // base_c3_U
+  // base31_U
   {
-    id: 'base_c3_U',
-    count: 8, expansionId: 'base-c3',
+    id: 'base31_U',
+    count: 8, expansionId: 'base-c31',
     imageUrl: '/images/BaseGame_C3/Base_Game_C3_Tile_U.png',
     segments: [
       {
@@ -1308,10 +1308,10 @@ export const BASE_TILES_C3: TileDefinition[] = [
       ]
     ]
   },
-  // base_c3_V
+  // base31_V
   {
-    id: 'base_c3_V',
-    count: 9, expansionId: 'base-c3',
+    id: 'base31_V',
+    count: 9, expansionId: 'base-c31',
     imageUrl: '/images/BaseGame_C3/Base_Game_C3_Tile_V.png',
     segments: [
       {
@@ -1367,10 +1367,10 @@ export const BASE_TILES_C3: TileDefinition[] = [
       ]
     ]
   },
-  // base_c3_W
+  // base31_W
   {
-    id: 'base_c3_W',
-    count: 4, expansionId: 'base-c3',
+    id: 'base31_W',
+    count: 4, expansionId: 'base-c31',
     imageUrl: '/images/BaseGame_C3/Base_Game_C3_Tile_W.png',
     segments: [
       {
@@ -1469,10 +1469,10 @@ export const BASE_TILES_C3: TileDefinition[] = [
       ]
     ]
   },
-  // base_c3_X
+  // base31_X
   {
-    id: 'base_c3_X',
-    count: 1, expansionId: 'base-c3',
+    id: 'base31_X',
+    count: 1, expansionId: 'base-c31',
     imageUrl: '/images/BaseGame_C3/Base_Game_C3_Tile_X.png',
     segments: [
       {
