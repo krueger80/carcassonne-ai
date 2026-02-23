@@ -1,3 +1,4 @@
+import { useState } from "react";
 import { Player, MeepleType } from "../../core/types/player";
 import { MeepleSVG } from "../svg/MeepleSVG";
 import { TileSVG } from "../svg/TileSVG";
@@ -69,46 +70,84 @@ const MeepleIcon = ({ type, count, tooltip, color, onClick, isSelected, disabled
     const isAvailable = count > 0;
     const isInteractive = !!onClick;
     const size = isCompact ? 20 : 24;
+    const [isFocused, setIsFocused] = useState(false);
+
+    const commonStyle: React.CSSProperties = {
+        display: 'flex',
+        flexDirection: 'column',
+        alignItems: 'center',
+        opacity: isAvailable ? (isInteractive && disabled ? 0.4 : 1) : 0.3,
+        cursor: isInteractive && !disabled ? 'pointer' : 'default',
+        background: isSelected ? 'rgba(255,255,255,0.1)' : 'transparent',
+        padding: isCompact ? 2 : 4,
+        borderRadius: 6,
+        transition: 'all 0.2s',
+        // Button reset styles
+        outline: 'none',
+        borderStyle: 'solid',
+        borderWidth: 1,
+        borderColor: isSelected ? color : 'transparent',
+        color: 'inherit',
+        font: 'inherit',
+        textAlign: 'center',
+    };
+
+    const content = (
+        <div style={{ width: size, height: size, position: 'relative' }}>
+            <svg width={size} height={size} viewBox="0 0 24 24" style={{ filter: 'drop-shadow(0 1px 2px rgba(0,0,0,0.5))', overflow: 'visible' }}>
+                <MeepleSVG
+                    color={color}
+                    x={12} y={20}
+                    size={type === 'BIG' ? 9 : 8}
+                    isBig={type === 'BIG'}
+                    isBuilder={type === 'BUILDER'}
+                    isPig={type === 'PIG'}
+                />
+            </svg>
+            <div style={{
+                position: 'absolute', bottom: isCompact ? -4 : -2, right: isCompact ? -6 : -4,
+                background: '#222', color: '#fff',
+                fontSize: isCompact ? 8 : 9, fontWeight: 'bold',
+                padding: '1px 3px', borderRadius: 4,
+                border: '1px solid #555',
+                pointerEvents: 'none',
+            }}>
+                {count}
+            </div>
+        </div>
+    );
+
+    if (isInteractive) {
+        return (
+            <button
+                type="button"
+                onClick={!disabled && onClick ? onClick : undefined}
+                onFocus={() => setIsFocused(true)}
+                onBlur={() => setIsFocused(false)}
+                disabled={disabled}
+                style={{
+                    ...commonStyle,
+                    background: isSelected ? 'rgba(255,255,255,0.1)' : 'transparent',
+                    boxShadow: isFocused ? `0 0 0 2px ${color}, 0 0 0 4px rgba(0,0,0,0.5)` : 'none',
+                    zIndex: isFocused ? 1 : 0,
+                }}
+                title={tooltip}
+                aria-label={`${tooltip} meeple, ${count} remaining${isSelected ? ', selected' : ''}`}
+                aria-pressed={isSelected}
+            >
+                {content}
+            </button>
+        );
+    }
 
     return (
         <div
-            onClick={!disabled && onClick ? onClick : undefined}
-            style={{
-                display: 'flex',
-                flexDirection: 'column',
-                alignItems: 'center',
-                opacity: isAvailable ? (isInteractive && disabled ? 0.4 : 1) : 0.3,
-                cursor: isInteractive && !disabled ? 'pointer' : 'default',
-                background: isSelected ? 'rgba(255,255,255,0.1)' : 'transparent',
-                padding: isCompact ? 2 : 4,
-                borderRadius: 6,
-                border: isSelected ? `1px solid ${color}` : '1px solid transparent',
-                transition: 'all 0.2s'
-            }}
+            style={commonStyle}
             title={tooltip}
+            role="img"
+            aria-label={`${tooltip} meeple, ${count} remaining`}
         >
-            <div style={{ width: size, height: size, position: 'relative' }}>
-                <svg width={size} height={size} viewBox="0 0 24 24" style={{ filter: 'drop-shadow(0 1px 2px rgba(0,0,0,0.5))', overflow: 'visible' }}>
-                    <MeepleSVG
-                        color={color}
-                        x={12} y={20}
-                        size={type === 'BIG' ? 9 : 8}
-                        isBig={type === 'BIG'}
-                        isBuilder={type === 'BUILDER'}
-                        isPig={type === 'PIG'}
-                    />
-                </svg>
-                <div style={{
-                    position: 'absolute', bottom: isCompact ? -4 : -2, right: isCompact ? -6 : -4,
-                    background: '#222', color: '#fff',
-                    fontSize: isCompact ? 8 : 9, fontWeight: 'bold',
-                    padding: '1px 3px', borderRadius: 4,
-                    border: '1px solid #555',
-                    pointerEvents: 'none',
-                }}>
-                    {count}
-                </div>
-            </div>
+            {content}
         </div>
     );
 };
