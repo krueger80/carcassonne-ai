@@ -11,6 +11,7 @@ export function GameOverlay() {
         gameState,
         interactionState,
         tentativeMeepleType,
+        tentativeSecondaryMeepleType,
         rotateTentativeTile,
         confirmTilePlacement,
         cancelTilePlacement,
@@ -30,12 +31,14 @@ export function GameOverlay() {
         dragonOrientations,
         dragonPlaceTargets,
         placeDragonOnHoard,
+        resolveFarmerReturn,
     } = useGameStore()
 
     const { selectedMeepleType, setSelectedMeepleType } = useUIStore()
 
     const [isMenuOpen, setIsMenuOpen] = useState(false)
     const [showNewGameScreen, setShowNewGameScreen] = useState(false)
+    const [showOpponents, setShowOpponents] = useState(true)
 
     // Reset meeple type selection when turn changes
     useEffect(() => {
@@ -105,8 +108,13 @@ export function GameOverlay() {
     const hasInnsCathedrals = expansionList.includes('inns-cathedrals')
     const hasTradersBuilders = expansionList.includes('traders-builders')
     const hasDragonFairy = expansionList.includes('dragon-fairy')
-    const tbData = gameState.expansionData?.['tradersBuilders'] as { isBuilderBonusTurn?: boolean } | undefined
+    const tbData = gameState.expansionData?.['tradersBuilders'] as {
+        isBuilderBonusTurn?: boolean;
+        useModernTerminology?: boolean;
+        pendingFarmerReturns?: { playerId: string; pigNodeKey: string; fieldFeatureId: string; points: number }[];
+    } | undefined
     const isBuilderBonusTurn = tbData?.isBuilderBonusTurn ?? false
+    const useModernTerminology = tbData?.useModernTerminology ?? false
     const dfData = gameState.expansionData?.['dragonFairy'] as {
         dragonPosition?: { x: number; y: number } | null;
         dragonInPlay?: boolean;
@@ -114,6 +122,9 @@ export function GameOverlay() {
         dragonHeldBy?: string | null;
         dragonMovement?: { movesRemaining: number; nextPhase: string } | null;
     } | undefined
+
+    const pendingFarmerReturns = tbData?.pendingFarmerReturns as { playerId: string; pigNodeKey: string; fieldFeatureId: string; points: number }[] | undefined
+    const activeFarmerPrompt = turnPhase === 'RETURN_FARMER' && pendingFarmerReturns && pendingFarmerReturns.length > 0 ? pendingFarmerReturns[0] : null
 
     // Determine status text
     let statusText = isBuilderBonusTurn
@@ -150,6 +161,8 @@ export function GameOverlay() {
         instructionText = '🐉 Dragon Moving...'
     } else if (turnPhase === 'FAIRY_MOVE') {
         instructionText = '✨ Place Fairy on a Meeple'
+    } else if (turnPhase === 'RETURN_FARMER') {
+        instructionText = 'Returning Farmers...'
     } else if (turnPhase === 'SCORE') {
         instructionText = 'Turn ending...'
     }
@@ -189,6 +202,67 @@ export function GameOverlay() {
                 />
             )}
 
+            {/* ── Farmer Return Prompt (C3.1) ────────────────────────────── */}
+            <AnimatePresence>
+                {activeFarmerPrompt && (
+                    <motion.div
+                        initial={{ opacity: 0, scale: 0.9, x: '-50%', y: '-50%' }}
+                        animate={{ opacity: 1, scale: 1, x: '-50%', y: '-50%' }}
+                        exit={{ opacity: 0, scale: 0.9, x: '-50%', y: '-50%' }}
+                        style={{
+                            position: 'absolute',
+                            top: '50%',
+                            left: '50%',
+                            background: 'rgba(30, 30, 40, 0.95)',
+                            border: '1px solid #555',
+                            borderRadius: 12,
+                            padding: 24,
+                            display: 'flex',
+                            flexDirection: 'column',
+                            alignItems: 'center',
+                            gap: 16,
+                            backdropFilter: 'blur(10px)',
+                            boxShadow: '0 8px 32px rgba(0,0,0,0.6)',
+                            pointerEvents: 'auto',
+                            zIndex: 100,
+                            maxWidth: 400,
+                            textAlign: 'center'
+                        }}
+                    >
+                        <h2 style={{ margin: 0, color: '#fff', fontSize: 20 }}>Return Farmer?</h2>
+                        <p style={{ margin: 0, color: '#ccc', fontSize: 14 }}>
+                            <strong style={{ color: players.find(p => p.id === activeFarmerPrompt.playerId)?.color }}>{players.find(p => p.id === activeFarmerPrompt.playerId)?.name}</strong>, your Pig just scored {activeFarmerPrompt.points} points and was returned. Do you want to return the farmer assigned to this pig as well?
+                        </p>
+                        <div style={{ display: 'flex', gap: 12, width: '100%', marginTop: 8 }}>
+                            <button
+                                onClick={() => resolveFarmerReturn(true)}
+                                style={{
+                                    flex: 1, padding: '10px 0', borderRadius: 6, border: 'none',
+                                    background: '#2ecc71', color: '#fff', fontWeight: 'bold', cursor: 'pointer',
+                                    transition: 'background 0.2s',
+                                }}
+                                onMouseEnter={(e) => e.currentTarget.style.background = '#27ae60'}
+                                onMouseLeave={(e) => e.currentTarget.style.background = '#2ecc71'}
+                            >
+                                Yes, Return Farmer
+                            </button>
+                            <button
+                                onClick={() => resolveFarmerReturn(false)}
+                                style={{
+                                    flex: 1, padding: '10px 0', borderRadius: 6, border: 'none',
+                                    background: '#7f8c8d', color: '#fff', fontWeight: 'bold', cursor: 'pointer',
+                                    transition: 'background 0.2s',
+                                }}
+                                onMouseEnter={(e) => e.currentTarget.style.background = '#95a5a6'}
+                                onMouseLeave={(e) => e.currentTarget.style.background = '#7f8c8d'}
+                            >
+                                No, Keep Farmer
+                            </button>
+                        </div>
+                    </motion.div>
+                )}
+            </AnimatePresence>
+
             {/* ── Game Info (Tiles Left) ────────────────────────────────────── */}
             <div style={{
                 position: 'absolute',
@@ -220,11 +294,13 @@ export function GameOverlay() {
                     top: 0,
                     left: 0,
                     bottom: 0,
-                    width: 320, // Increased width for the expanded card
+                    width: '100%',
+                    maxWidth: 320, // Limit width to 320 on larger screens
                     display: 'flex',
                     flexDirection: 'column',
                     justifyContent: 'space-between',
-                    padding: 24,
+                    padding: '24px 16px', // Better padding for mobile
+                    boxSizing: 'border-box',
                     zIndex: 50,
                     pointerEvents: 'none',
                 }}
@@ -367,14 +443,37 @@ export function GameOverlay() {
                     alignItems: 'flex-start', // Don't stretch cards to sidebar width
                     gap: 8,
                     width: '100%',
-                    pointerEvents: 'auto',
+                    pointerEvents: 'none',
                     marginTop: 'auto', // Keep players at bottom of sidebar
                 }}
-                    onPointerDown={(e) => e.stopPropagation()}
                 >
+                    {orderedPlayers.length > 1 && (
+                        <div style={{ pointerEvents: 'auto', alignSelf: 'flex-start', marginBottom: 0 }}>
+                            <button
+                                onClick={(e) => { e.stopPropagation(); setShowOpponents(!showOpponents); }}
+                                style={{
+                                    background: 'rgba(30, 30, 40, 0.85)',
+                                    border: '1px solid #444',
+                                    borderRadius: 16,
+                                    color: '#ccc',
+                                    padding: '4px 10px',
+                                    fontSize: 11,
+                                    cursor: 'pointer',
+                                    fontWeight: 'bold',
+                                    boxShadow: '0 2px 4px rgba(0,0,0,0.3)',
+                                    transition: 'background 0.2s',
+                                }}
+                                onMouseEnter={(e) => e.currentTarget.style.background = 'rgba(50, 50, 60, 0.95)'}
+                                onMouseLeave={(e) => e.currentTarget.style.background = 'rgba(30, 30, 40, 0.85)'}
+                            >
+                                {showOpponents ? '▼ Hide Opponents' : '▲ Show Opponents'}
+                            </button>
+                        </div>
+                    )}
                     <AnimatePresence mode="popLayout">
                         {orderedPlayers.map((p) => {
-                            const isCurrent = p.id === currentPlayer.id
+                            const isCurrent = p.id === currentPlayer.id;
+                            if (!isCurrent && !showOpponents) return null;
 
                             // Construct TurnState for the active player
                             let turnState = undefined;
@@ -394,9 +493,35 @@ export function GameOverlay() {
                                         skip: skipMeeple,
                                         undo: undoTilePlacement,
                                         selectMeeple: (type: any) => {
-                                            setSelectedMeepleType(type)
-                                            if (interactionState === 'MEEPLE_SELECTED_TENTATIVELY') {
-                                                setTentativeMeepleType(type)
+                                            const useModernTerminology = tbData?.useModernTerminology ?? false
+                                            console.log('--- selectMeeple ---')
+                                            console.log('type clicked: ', type)
+                                            console.log('modern rules: ', useModernTerminology)
+
+                                            if (useModernTerminology && (type === 'BUILDER' || type === 'PIG')) {
+                                                const currentSecondary = useGameStore.getState().tentativeSecondaryMeepleType
+                                                if (currentSecondary === type) {
+                                                    // Toggle off
+                                                    useGameStore.setState({ tentativeSecondaryMeepleType: null })
+                                                } else {
+                                                    // Set secondary directly
+                                                    useGameStore.setState({ tentativeSecondaryMeepleType: type })
+
+                                                    // If normal or big isn't already selected, default to normal
+                                                    const currentPrimary = useUIStore.getState().selectedMeepleType
+                                                    if (currentPrimary !== 'NORMAL' && currentPrimary !== 'BIG') {
+                                                        const primaryType = 'NORMAL'
+                                                        setSelectedMeepleType(primaryType)
+                                                        if (interactionState === 'MEEPLE_SELECTED_TENTATIVELY') {
+                                                            setTentativeMeepleType(primaryType)
+                                                        }
+                                                    }
+                                                }
+                                            } else {
+                                                setSelectedMeepleType(type)
+                                                if (interactionState === 'MEEPLE_SELECTED_TENTATIVELY') {
+                                                    setTentativeMeepleType(type)
+                                                }
                                             }
                                         },
                                         confirmMeeple: confirmMeeplePlacement,
@@ -410,6 +535,7 @@ export function GameOverlay() {
                                     },
                                     selectedMeepleType: selectedMeepleType,
                                     tentativeMeepleType: tentativeMeepleType,
+                                    tentativeSecondaryMeepleType: tentativeSecondaryMeepleType,
                                     validMeepleTypes,
                                     dragonOrientations,
                                     tentativeDragonFacing,
@@ -433,7 +559,9 @@ export function GameOverlay() {
                                     style={{
                                         position: 'relative',
                                         zIndex: isCurrent ? 10 : 1,
+                                        pointerEvents: 'auto',
                                     }}
+                                    onPointerDown={(e) => e.stopPropagation()}
                                 >
                                     <PlayerCard
                                         player={p}
@@ -441,6 +569,7 @@ export function GameOverlay() {
                                         hasTradersBuilders={hasTradersBuilders}
                                         hasInnsCathedrals={hasInnsCathedrals}
                                         hasDragonHeldBy={dfData?.dragonHeldBy ?? null}
+                                        useModernTerminology={useModernTerminology}
                                         turnState={turnState}
                                     />
                                 </motion.div>
