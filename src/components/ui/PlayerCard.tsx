@@ -70,45 +70,77 @@ const MeepleIcon = ({ type, count, tooltip, color, onClick, isSelected, disabled
     const isInteractive = !!onClick;
     const size = isCompact ? 20 : 24;
 
+    const style: React.CSSProperties = {
+        display: 'flex',
+        flexDirection: 'column',
+        alignItems: 'center',
+        opacity: isAvailable ? (isInteractive && disabled ? 0.4 : 1) : 0.3,
+        cursor: isInteractive && !disabled ? 'pointer' : 'default',
+        background: isSelected ? 'rgba(255,255,255,0.1)' : 'transparent',
+        padding: isCompact ? 2 : 4,
+        borderRadius: 6,
+        border: isSelected ? `1px solid ${color}` : '1px solid transparent',
+        transition: 'all 0.2s',
+        // Button resets
+        appearance: 'none',
+        WebkitAppearance: 'none',
+        textAlign: 'inherit',
+        fontFamily: 'inherit',
+        fontSize: 'inherit',
+        lineHeight: 'inherit',
+        color: 'inherit',
+        margin: 0,
+    }
+
+    const content = (
+        <div style={{ width: size, height: size, position: 'relative' }}>
+            <svg width={size} height={size} viewBox="0 0 24 24" style={{ filter: 'drop-shadow(0 1px 2px rgba(0,0,0,0.5))', overflow: 'visible' }}>
+                <MeepleSVG
+                    color={color}
+                    x={12} y={20}
+                    size={type === 'BIG' ? 9 : 8}
+                    isBig={type === 'BIG'}
+                    isBuilder={type === 'BUILDER'}
+                    isPig={type === 'PIG'}
+                />
+            </svg>
+            <div style={{
+                position: 'absolute', bottom: isCompact ? -4 : -2, right: isCompact ? -6 : -4,
+                background: '#222', color: '#fff',
+                fontSize: isCompact ? 8 : 9, fontWeight: 'bold',
+                padding: '1px 3px', borderRadius: 4,
+                border: '1px solid #555',
+                pointerEvents: 'none',
+            }}>
+                {count}
+            </div>
+        </div>
+    )
+
+    if (isInteractive) {
+        return (
+            <button
+                type="button"
+                onClick={disabled ? undefined : onClick}
+                disabled={disabled}
+                aria-label={`${tooltip}, quantity: ${count}`}
+                aria-pressed={isSelected}
+                style={style}
+                title={tooltip}
+            >
+                {content}
+            </button>
+        )
+    }
+
     return (
         <div
-            onClick={!disabled && onClick ? onClick : undefined}
-            style={{
-                display: 'flex',
-                flexDirection: 'column',
-                alignItems: 'center',
-                opacity: isAvailable ? (isInteractive && disabled ? 0.4 : 1) : 0.3,
-                cursor: isInteractive && !disabled ? 'pointer' : 'default',
-                background: isSelected ? 'rgba(255,255,255,0.1)' : 'transparent',
-                padding: isCompact ? 2 : 4,
-                borderRadius: 6,
-                border: isSelected ? `1px solid ${color}` : '1px solid transparent',
-                transition: 'all 0.2s'
-            }}
+            style={style}
             title={tooltip}
+            role="img"
+            aria-label={`${tooltip}, quantity: ${count}`}
         >
-            <div style={{ width: size, height: size, position: 'relative' }}>
-                <svg width={size} height={size} viewBox="0 0 24 24" style={{ filter: 'drop-shadow(0 1px 2px rgba(0,0,0,0.5))', overflow: 'visible' }}>
-                    <MeepleSVG
-                        color={color}
-                        x={12} y={20}
-                        size={type === 'BIG' ? 9 : 8}
-                        isBig={type === 'BIG'}
-                        isBuilder={type === 'BUILDER'}
-                        isPig={type === 'PIG'}
-                    />
-                </svg>
-                <div style={{
-                    position: 'absolute', bottom: isCompact ? -4 : -2, right: isCompact ? -6 : -4,
-                    background: '#222', color: '#fff',
-                    fontSize: isCompact ? 8 : 9, fontWeight: 'bold',
-                    padding: '1px 3px', borderRadius: 4,
-                    border: '1px solid #555',
-                    pointerEvents: 'none',
-                }}>
-                    {count}
-                </div>
-            </div>
+            {content}
         </div>
     );
 };

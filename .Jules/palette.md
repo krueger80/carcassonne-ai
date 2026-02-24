@@ -1,0 +1,3 @@
+## 2025-05-20 - Accessible Interactive Icons
+**Learning:** Interactive icons implemented as `div`s with `onClick` are a common pattern in this codebase. They lack keyboard accessibility and screen reader support. Converting them to `button` elements requires careful style resets to preserve the visual design while gaining native accessibility features.
+**Action:** When identifying "icon buttons", check if they are semantic `<button>` elements. If not, refactor to `<button>` with `type="button"`, `aria-label`, and appropriate disabled states. Use CSS resets to match the original `div` appearance.

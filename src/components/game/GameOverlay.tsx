@@ -238,6 +238,8 @@ export function GameOverlay() {
                 {/* ── Hamburger Menu (Top Left) ─────────────────────────────── */}
                 <div style={{ position: 'relative', pointerEvents: 'auto', alignSelf: 'flex-start', marginBottom: 20 }} onPointerDown={(e) => e.stopPropagation()}>
                     <button
+                        aria-label={isMenuOpen ? "Close menu" : "Open menu"}
+                        aria-expanded={isMenuOpen}
                         onClick={(e) => { e.stopPropagation(); setIsMenuOpen(!isMenuOpen) }}
                         style={{
                             background: 'rgba(0,0,0,0.6)',
