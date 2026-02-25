@@ -238,7 +238,12 @@ export function GameOverlay() {
                 {/* ── Hamburger Menu (Top Left) ─────────────────────────────── */}
                 <div style={{ position: 'relative', pointerEvents: 'auto', alignSelf: 'flex-start', marginBottom: 20 }} onPointerDown={(e) => e.stopPropagation()}>
                     <button
+                        id="game-menu-button"
                         onClick={(e) => { e.stopPropagation(); setIsMenuOpen(!isMenuOpen) }}
+                        aria-label={isMenuOpen ? "Close menu" : "Open menu"}
+                        aria-expanded={isMenuOpen}
+                        aria-haspopup="true"
+                        aria-controls="game-menu-dropdown"
                         style={{
                             background: 'rgba(0,0,0,0.6)',
                             border: '1px solid #555',
@@ -251,7 +256,7 @@ export function GameOverlay() {
                             justifyContent: 'center',
                         }}
                     >
-                        <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                        <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
                             <line x1="3" y1="12" x2="21" y2="12"></line>
                             <line x1="3" y1="6" x2="21" y2="6"></line>
                             <line x1="3" y1="18" x2="21" y2="18"></line>
@@ -261,6 +266,9 @@ export function GameOverlay() {
                     <AnimatePresence>
                         {isMenuOpen && (
                             <motion.div
+                                id="game-menu-dropdown"
+                                role="menu"
+                                aria-labelledby="game-menu-button"
                                 initial={{ opacity: 0, y: -10, scale: 0.95 }}
                                 animate={{ opacity: 1, y: 0, scale: 1 }}
                                 exit={{ opacity: 0, y: -10, scale: 0.95 }}
@@ -288,6 +296,7 @@ export function GameOverlay() {
                                 </div>
 
                                 <button
+                                    role="menuitem"
                                     onClick={(e) => {
                                         e.stopPropagation()
                                         setShowNewGameScreen(true)
@@ -309,10 +318,11 @@ export function GameOverlay() {
                                     onMouseEnter={(e) => (e.currentTarget.style.background = '#4a4a5a')}
                                     onMouseLeave={(e) => (e.currentTarget.style.background = '#3a3a4a')}
                                 >
-                                    <span>🔄</span> New Game
+                                    <span aria-hidden="true">🔄</span> New Game
                                 </button>
 
                                 <button
+                                    role="menuitem"
                                     onClick={(e) => {
                                         e.stopPropagation()
                                         window.location.hash = '#catalog'
@@ -334,10 +344,11 @@ export function GameOverlay() {
                                     onMouseEnter={(e) => (e.currentTarget.style.background = '#4a4a5a')}
                                     onMouseLeave={(e) => (e.currentTarget.style.background = '#3a3a4a')}
                                 >
-                                    <span>📚</span> Extension Catalog
+                                    <span aria-hidden="true">📚</span> Extension Catalog
                                 </button>
 
                                 <button
+                                    role="menuitem"
                                     onClick={(e) => {
                                         e.stopPropagation()
                                         window.location.hash = '#debug'
@@ -359,7 +370,7 @@ export function GameOverlay() {
                                     onMouseEnter={(e) => (e.currentTarget.style.background = '#4a5a4a')}
                                     onMouseLeave={(e) => (e.currentTarget.style.background = '#3a4a3a')}
                                 >
-                                    <span>🔧</span> Debug Configurator
+                                    <span aria-hidden="true">🔧</span> Debug Configurator
                                 </button>
                             </motion.div>
                         )}
