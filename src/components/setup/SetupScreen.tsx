@@ -53,9 +53,9 @@ interface ExpansionState {
 }
 
 const DEFAULT_EXP_STATE: Record<ExpId, ExpansionState> = {
-  'inns-cathedrals':  { enabled: false, rulesVersion: 'modern',   tileEdition: 'C3.1' },
-  'traders-builders': { enabled: false, rulesVersion: 'modern',   tileEdition: 'C3.1' },
-  'dragon-fairy':     { enabled: false, rulesVersion: 'modern',   tileEdition: 'C3.1' },
+  'inns-cathedrals': { enabled: false, rulesVersion: 'modern', tileEdition: 'C3.1' },
+  'traders-builders': { enabled: false, rulesVersion: 'modern', tileEdition: 'C3.1' },
+  'dragon-fairy': { enabled: false, rulesVersion: 'modern', tileEdition: 'C3.1' },
 }
 
 // ─── Sub-components ──────────────────────────────────────────────────────────
@@ -153,11 +153,13 @@ export function SetupScreen({ onCancel }: SetupScreenProps) {
       background: onCancel ? 'rgba(30,30,40,0.97)' : '#252535',
       border: '1px solid #444',
       borderRadius: 16,
-      padding: 32,
-      width: 420,
+      padding: 24,
+      width: '100%',
+      maxWidth: 420,
+      boxSizing: 'border-box',
       display: 'flex',
       flexDirection: 'column',
-      gap: 20,
+      gap: 16,
     }}>
       <h2 style={{ margin: 0, color: '#e8d8a0', fontFamily: 'serif', fontSize: onCancel ? 22 : 28, textAlign: 'center' }}>
         {onCancel ? 'New Game' : 'Carcassonne'}
@@ -325,7 +327,8 @@ export function SetupScreen({ onCancel }: SetupScreenProps) {
     return (
       <div style={{
         display: 'flex', flexDirection: 'column', alignItems: 'center',
-        justifyContent: 'center', height: '100vh', background: '#1a1a2e', color: '#f0f0f0',
+        justifyContent: 'center', minHeight: '100vh', background: '#1a1a2e', color: '#f0f0f0',
+        padding: 16, boxSizing: 'border-box'
       }}>
         {card}
         <div style={{ marginTop: 32, display: 'flex', gap: 24, fontSize: 13, opacity: 0.6 }}>
@@ -350,6 +353,7 @@ export function SetupScreen({ onCancel }: SetupScreenProps) {
       position: 'fixed', inset: 0,
       background: 'rgba(0,0,0,0.85)', backdropFilter: 'blur(8px)',
       display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 100,
+      padding: 16, overflowY: 'auto', boxSizing: 'border-box'
     }}
       onPointerDown={e => { if (e.target === e.currentTarget) onCancel() }}
     >

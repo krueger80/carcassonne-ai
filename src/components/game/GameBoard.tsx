@@ -1,4 +1,5 @@
 import { useRef, useState, useCallback, useEffect, useMemo, memo } from 'react'
+import { motion, AnimatePresence } from 'framer-motion'
 import { TileCell } from './TileCell.tsx'
 import { PlaceholderCell } from './PlaceholderCell.tsx'
 import { DragonPiece } from './DragonPiece.tsx'
@@ -119,8 +120,10 @@ const BoardGrid = memo(({
                   if (isFairyPhase) return fairyTargetMap[key] ?? []
                   if (!inMeeplePhaseBrowsing) return []
                   const fromLast = key === lastKey ? placeableSegments : []
-                  const builderOpts = builderSegmentsMap[key] ?? []
-                  const pigOpts = pigSegmentsMap[key] ?? []
+                  // Only show builder/pig circles when that meeple type is actually selected,
+                  // otherwise occupied features confusingly show as placeable for normal meeples.
+                  const builderOpts = selectedMeepleType === 'BUILDER' ? (builderSegmentsMap[key] ?? []) : []
+                  const pigOpts = selectedMeepleType === 'PIG' ? (pigSegmentsMap[key] ?? []) : []
                   const portalOpts = portalTargetsMap[key] ?? []
                   return [...new Set([...fromLast, ...builderOpts, ...pigOpts, ...portalOpts])]
                 })()
@@ -422,6 +425,12 @@ export function GameBoard() {
   // ── Builder/Pig segment map ────────────────
 
   const currentPlayer = gameState?.players[gameState.currentPlayerIndex]
+  const tbData = gameState?.expansionData?.['tradersBuilders'] as { isBuilderBonusTurn?: boolean } | undefined
+  const isBuilderBonusTurn = tbData?.isBuilderBonusTurn ?? false
+
+  useEffect(() => {
+    console.log("[GameBoard] Render isBuilderBonusTurn:", isBuilderBonusTurn, "Player:", currentPlayer?.color, "Phase:", gameState?.turnPhase);
+  }, [isBuilderBonusTurn, currentPlayer?.color, gameState?.turnPhase])
 
   const builderSegmentsMap = useMemo<Record<string, string[]>>(() => {
     if (!gameState || !currentPlayer || !gameState.lastPlacedCoord) return {}
@@ -645,6 +654,26 @@ export function GameBoard() {
           title="Zoom out"
         >−</button>
       </div>
+
+      {/* ── Bonus Turn Edge Glow ────────────────────────────────────────── */}
+      <AnimatePresence>
+        {isBuilderBonusTurn && currentPlayer && (
+          <motion.div
+            key="bonus-glow"
+            initial={{ opacity: 0 }}
+            animate={{ opacity: [0.4, 1, 0.4] }}
+            exit={{ opacity: 0 }}
+            transition={{ duration: 2, repeat: Infinity, ease: 'easeInOut' }}
+            style={{
+              position: 'absolute',
+              inset: 0,
+              pointerEvents: 'none',
+              zIndex: 5,
+              boxShadow: `inset 0 0 80px ${currentPlayer.color}25, inset 0 0 200px ${currentPlayer.color}15`,
+            }}
+          />
+        )}
+      </AnimatePresence>
 
       <GameOverlay />
     </div>

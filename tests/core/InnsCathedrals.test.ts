@@ -106,9 +106,8 @@ describe('IC tile definitions', () => {
       if (tile.segments.some(s => s.hasCathedral)) cathedralTiles++
       innSegments += tile.segments.filter(s => s.hasInn).length
     }
-    expect(cathedralTiles).toBe(2) // ic_A and ic_B
-    // ic_E, ic_F, ic_I, ic_J each have 1 inn segment, ic_O has 4 = 8 total
-    expect(innSegments).toBe(8)
+    expect(cathedralTiles).toBe(2) // ic3_Ka and ic3_Kb
+    expect(innSegments).toBe(6)
   })
 })
 
@@ -239,7 +238,7 @@ describe('Feature metadata propagation', () => {
     const board = emptyBoard()
     const tile: PlacedTile = {
       coordinate: { x: 0, y: 0 },
-      definitionId: 'ic3_I',
+      definitionId: 'ic3_A',
       rotation: 0,
       meeples: {},
     }
@@ -253,11 +252,11 @@ describe('Feature metadata propagation', () => {
   })
 
   it('cathedral flag is propagated to feature metadata', () => {
-    // Place ic_A (full city with cathedral) at (0,0)
+    // Place ic3_Ka (full city with cathedral) at (0,0)
     const board = emptyBoard()
     const tile: PlacedTile = {
       coordinate: { x: 0, y: 0 },
-      definitionId: 'ic3_A',
+      definitionId: 'ic3_Ka',
       rotation: 0,
       meeples: {},
     }
@@ -274,7 +273,7 @@ describe('Feature metadata propagation', () => {
     let board = emptyBoard()
     const tile1: PlacedTile = {
       coordinate: { x: 0, y: 0 },
-      definitionId: 'ic3_I',
+      definitionId: 'ic3_A',
       rotation: 0,
       meeples: {},
     }

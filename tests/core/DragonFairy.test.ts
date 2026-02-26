@@ -121,14 +121,14 @@ describe('D&F tile definitions', () => {
     expect(hoards.length).toBeGreaterThanOrEqual(6)
   })
 
-  it('has 12 Dragon tiles', () => {
+  it('has 10 Dragon tiles', () => {
     const dragons = DF_TILES.filter(t => t.hasDragon)
-    expect(dragons.length).toBe(12)
+    expect(dragons.length).toBe(10)
   })
 
-  it('has 4 magic portal tiles', () => {
+  it('has 6 magic portal tiles', () => {
     const portals = DF_TILES.filter(t => t.hasMagicPortal)
-    expect(portals.length).toBe(4)
+    expect(portals.length).toBe(6)
   })
 
   it('Dragon Hoard tiles do NOT have dragon or magic portal flags', () => {

@@ -47,6 +47,44 @@ import {
   type ScoringRule,
 } from './ScoreCalculator.ts'
 import { nodeKey } from '../types/feature.ts'
+import { IC_SCORING_RULES } from '../expansions/innsCathedrals.ts'
+import { IC_C31_SCORING_RULES } from '../expansions/innsCathedralsC31.ts'
+import { TB_SCORING_RULES } from '../expansions/tradersBuilders.ts'
+
+// ─── Scoring-rules resolution ─────────────────────────────────────────────────
+// Scoring rules contain functions that are stripped by JSON.stringify (Zustand
+// persist). We store a serialisable key and resolve to live rules at runtime.
+
+const RULES_REGISTRY: Record<string, ScoringRule[]> = {
+  'base': BASE_SCORING_RULES,
+  'ic': IC_SCORING_RULES,
+  'ic-c31': IC_C31_SCORING_RULES,
+  'tb': TB_SCORING_RULES,
+  'ic-tb': buildCombinedIcTbRules(IC_SCORING_RULES),
+  'ic-c31-tb': buildCombinedIcTbRules(IC_C31_SCORING_RULES),
+}
+
+export function resolveScoringRules(state: GameState): ScoringRule[] {
+  // Fast path: key is stored — look up live rules
+  const key = state.expansionData.scoringRulesKey as string | undefined
+  if (key && RULES_REGISTRY[key]) return RULES_REGISTRY[key]
+
+  // Legacy path: rules might still have functions (in-memory, not yet rehydrated)
+  const stored = state.expansionData.scoringRules as ScoringRule[] | undefined
+  if (stored?.[0] && typeof stored[0].scoreComplete === 'function') return stored
+
+  // Fallback: best-effort reconstruction from expansion list
+  const expansions = (state.expansionData.expansions as string[]) ?? []
+  const hasIc = expansions.includes('inns-cathedrals')
+  const hasTb = expansions.includes('traders-builders')
+  const tbData = state.expansionData['tradersBuilders'] as { useModernTerminology?: boolean } | undefined
+  const isModern = tbData?.useModernTerminology ?? false
+
+  if (hasIc && hasTb) return isModern ? RULES_REGISTRY['ic-c31-tb'] : RULES_REGISTRY['ic-tb']
+  if (hasIc) return isModern ? IC_C31_SCORING_RULES : IC_SCORING_RULES
+  if (hasTb) return TB_SCORING_RULES
+  return BASE_SCORING_RULES
+}
 
 // ─── Initialization ───────────────────────────────────────────────────────────
 
@@ -179,6 +217,16 @@ export function initGame(config: GameConfig): GameState {
     }
   }
 
+  // Compute a serialisable key for the active scoring rules so they survive
+  // JSON round-trips (Zustand persist) and can be resolved at runtime.
+  const isModernIc = expansionSelections
+    ? expansionSelections.some(s => s.id === 'inns-cathedrals' && s.rulesVersion === 'modern')
+    : expansions.includes('inns-cathedrals-c31')
+  let scoringRulesKey = 'base'
+  if (hasIc && hasTb) scoringRulesKey = isModernIc ? 'ic-c31-tb' : 'ic-tb'
+  else if (hasIc) scoringRulesKey = isModernIc ? 'ic-c31' : 'ic'
+  else if (hasTb) scoringRulesKey = 'tb'
+
   const players: Player[] = playerNames.map((name, i) =>
     createPlayer(`player_${i}`, name, PLAYER_COLORS[i], enableBigMeeple, enableBuilderAndPig)
   )
@@ -216,6 +264,7 @@ export function initGame(config: GameConfig): GameState {
     boardMeeples: {},
     expansionData: {
       scoringRules: activeRules,
+      scoringRulesKey,
       expansions: canonicalExpansions,
       ...(hasTb ? { tradersBuilders: { isBuilderBonusTurn: false, pendingBuilderBonus: false, useModernTerminology: usesC31TbTiles } } : {}),
       ...(hasDf ? { dragonFairy: createInitialDragonFairyState() } : {}),
@@ -437,8 +486,7 @@ export function placeMeeple(
   }
 
   // Update the union-find feature's meeples list
-  const feature = state.featureUnionFind.featureData[nKey]
-    ?? state.featureUnionFind.featureData[state.featureUnionFind.parent[nKey]]
+  const feature = getFeature(state.featureUnionFind, nKey)
   const updatedMeeples = [...(feature?.meeples ?? []), meepleData]
   if (secondaryMeepleData) {
     updatedMeeples.push(secondaryMeepleData)
@@ -586,7 +634,7 @@ export function skipMeeple(state: GameState): GameState {
 
 
 export function scoreFeatureCompletion(state: GameState, featureId: string): { state: GameState; event: ScoreEvent | null } {
-  const rules = (state.expansionData.scoringRules as ScoringRule[] | undefined) ?? BASE_SCORING_RULES
+  const rules = resolveScoringRules(state)
   const events = scoreCompletedFeatures([featureId], state.featureUnionFind, state.players, rules)
   if (events.length === 0) return { state, event: null }
 
@@ -678,17 +726,23 @@ export function scoreFeatureCompletion(state: GameState, featureId: string): { s
   }
 }
 
-export function endTurn(state: GameState): GameState {
+export function endTurn(state: GameState, preScoredFeatureIds?: string[]): GameState {
   if (state.turnPhase !== 'SCORE') return state
 
   let currentState = state
-  const featureIds = [...state.completedFeatureIds]
   const allEvents: ScoreEvent[] = []
 
-  for (const id of featureIds) {
-    const { state: nextState, event } = scoreFeatureCompletion(currentState, id)
-    currentState = nextState
-    if (event) allEvents.push(event)
+  // When called from the store's processScoringSequence, features are already
+  // scored with animations.  preScoredFeatureIds carries the original IDs so
+  // pig detection still knows which cities just completed.
+  const featureIds = preScoredFeatureIds ?? [...state.completedFeatureIds]
+
+  if (!preScoredFeatureIds) {
+    for (const id of featureIds) {
+      const { state: nextState, event } = scoreFeatureCompletion(currentState, id)
+      currentState = nextState
+      if (event) allEvents.push(event)
+    }
   }
 
   // ── Pig Sequence (C3.1) ───────────────────────────────────────
@@ -705,13 +759,17 @@ export function endTurn(state: GameState): GameState {
 
     if (pennantedCityFeatureIds.length > 0) {
       // 2. Find all fields touching these cities
+      //    touchingCityIds stores original node keys which may differ from the
+      //    root keys in featureIds after union-find merges — resolve through UF.
+      const pennantedCitySet = new Set(pennantedCityFeatureIds)
       const triggeredFieldIds = new Set<string>()
-      for (const cityId of pennantedCityFeatureIds) {
-        for (const [fId, f] of Object.entries(currentState.featureUnionFind.featureData)) {
-          if (f.type === 'FIELD' && f.touchingCityIds.includes(cityId)) {
-            triggeredFieldIds.add(fId)
-          }
-        }
+      for (const [fId, f] of Object.entries(currentState.featureUnionFind.featureData)) {
+        if (f.type !== 'FIELD') continue
+        const touches = f.touchingCityIds.some(touchKey => {
+          const root = findRoot(currentState.featureUnionFind, touchKey)
+          return pennantedCitySet.has(root)
+        })
+        if (touches) triggeredFieldIds.add(fId)
       }
 
       // 3. For every triggered field, score Pigs and return them
@@ -796,7 +854,8 @@ export function endTurn(state: GameState): GameState {
           const existingTile = currentState.board.tiles[tileKey]
           if (existingTile) {
             const newTileMeeples = { ...existingTile.meeples }
-            delete newTileMeeples[pigNodeKey]
+            // tile.meeples uses "segmentId_PIG" format (not the full node key "x,y:segmentId_PIG")
+            delete newTileMeeples[`${meeple.segmentId}_PIG`]
             currentState = { ...currentState, board: { ...currentState.board, tiles: { ...currentState.board.tiles, [tileKey]: { ...existingTile, meeples: newTileMeeples } } } }
           }
 
@@ -852,6 +911,7 @@ export function completeTurnTransition(currentState: GameState, allEvents: Score
 
   let stateAfterBuilderReturn = currentState
   if (pendingBonus && !isAlreadyBonusTurn) {
+    console.log('[GameEngine] completeTurnTransition: STARTING double turn for player', currentState.currentPlayerIndex);
     nextPlayerIndex = currentState.currentPlayerIndex
     nextTbData = { isBuilderBonusTurn: true, pendingBuilderBonus: false, useModernTerminology: tbData?.useModernTerminology }
 
@@ -894,12 +954,13 @@ export function completeTurnTransition(currentState: GameState, allEvents: Score
         })
 
         // Remove from tile
+        // tile.meeples uses "segmentId_BUILDER" format (not the full node key "x,y:segmentId_BUILDER")
         const tileKey = coordKey(builderPlacement.coordinate)
         const tile = currentState.board.tiles[tileKey]
         let newBoardTiles = currentState.board.tiles
         if (tile) {
           const updatedMeeples = { ...tile.meeples }
-          delete updatedMeeples[builderNodeKey]
+          delete updatedMeeples[`${builderPlacement.segmentId}_BUILDER`]
           newBoardTiles = { ...newBoardTiles, [tileKey]: { ...tile, meeples: updatedMeeples } }
         }
 
@@ -913,9 +974,11 @@ export function completeTurnTransition(currentState: GameState, allEvents: Score
       }
     }
   } else {
+    console.log('[GameEngine] Ending turn (shifting to next player)', { pendingBonus, isAlreadyBonusTurn });
     nextPlayerIndex = (currentState.currentPlayerIndex + 1) % currentState.players.length
-    nextTbData = tbData ? { isBuilderBonusTurn: false, pendingBuilderBonus: false, useModernTerminology: tbData?.useModernTerminology } : undefined
+    nextTbData = tbData ? { ...tbData, isBuilderBonusTurn: false, pendingBuilderBonus: false } : undefined
   }
+
 
   // ── Dragon & Fairy: fairy scoring & fairy move opportunity ──────────────
   const dfData = currentState.expansionData['dragonFairy'] as DragonFairyState | undefined
@@ -972,6 +1035,13 @@ export function completeTurnTransition(currentState: GameState, allEvents: Score
     ...(tbData !== undefined ? { tradersBuilders: nextTbData } : {}),
     ...(dfUpdated ? { dragonFairy: dfUpdated } : {}),
   }
+
+  console.log('[GameEngine] completeTurnTransition: RESULTING state:', {
+    nextPlayerIndex,
+    isBuilderBonusTurn: (nextExpansionData.tradersBuilders as any)?.isBuilderBonusTurn,
+    pendingBuilderBonus: (nextExpansionData.tradersBuilders as any)?.pendingBuilderBonus,
+    numPlayers: currentState.players.length
+  });
 
   const updatedBoardTiles = stateAfterBuilderReturn.board.tiles
   const updatedPlayers = stateAfterBuilderReturn.players
@@ -1046,8 +1116,6 @@ export function resolveFarmerReturn(state: GameState, returnFarmer: boolean): Ga
 
     // Find one of the player's standard meeples (NORMAL or BIG) on this field
     const farmer = fieldFeature?.meeples.find(m => m.playerId === prompt.playerId && (m.meepleType === 'NORMAL' || m.meepleType === 'BIG'))
-
-    console.log('resolveFarmerReturn: farmer found=', farmer, 'fieldFeature meeples=', fieldFeature?.meeples)
 
     if (farmer) {
       const farmerNodeKey = nodeKey(farmer.coordinate, farmer.segmentId)
@@ -1124,7 +1192,7 @@ export function endGame(state: GameState): GameState {
     )
   )
 
-  const rules = (state.expansionData.scoringRules as ScoringRule[] | undefined) ?? BASE_SCORING_RULES
+  const rules = resolveScoringRules(state)
   const endGameEvents = scoreAllRemainingFeatures(
     state.featureUnionFind,
     completedFeatureIds,
@@ -1743,7 +1811,9 @@ function eatMeeplesOnTile(
           delete updatedBoardMeeples[sNodeKey]
           const sTile = updatedBoardTiles[sTileKey]
           if (sTile) {
-            const { [special.segmentId]: _removed, ...remMeeples } = sTile.meeples
+            // tile.meeples uses "segmentId_TYPE" for secondary meeples (BUILDER/PIG)
+            const tileMeepleKey = `${special.segmentId}_${special.meepleType}`
+            const { [tileMeepleKey]: _removed, ...remMeeples } = sTile.meeples
             updatedBoardTiles[sTileKey] = { ...sTile, meeples: remMeeples }
           }
         }

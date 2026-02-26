@@ -6,6 +6,7 @@ export const TERRAIN_COLORS: Record<string, string> = {
   ROAD: '#e8d8a0',
   FIELD: '#5a9e4b',
   CLOISTER: '#e8c8a0',
+  RIVER: '#00BFFF',
 }
 
 const TERRAIN_STROKE: Record<string, string> = {
@@ -13,6 +14,7 @@ const TERRAIN_STROKE: Record<string, string> = {
   ROAD: '#b0a060',
   FIELD: '#3a7e2b',
   CLOISTER: '#c0906a',
+  RIVER: '#0099CC',
 }
 
 interface SegmentPathProps {
@@ -51,6 +53,20 @@ export const SegmentPath = memo(({ segment, highlighted = false, dimmed = false 
         <path d={segment.svgPath} fill="none" stroke={roadBorder} strokeWidth="12" strokeLinecap="round" strokeLinejoin="round" />
         {/* Inner stroke (road surface) */}
         <path d={segment.svgPath} fill="none" stroke={roadColor} strokeWidth="8" strokeLinecap="round" strokeLinejoin="round" />
+      </g>
+    )
+  }
+
+  if (segment.type === 'RIVER') {
+    const riverColor = highlighted ? '#ccffff' : (TERRAIN_COLORS['RIVER'] ?? '#00BFFF')
+    const riverBorder = TERRAIN_STROKE['RIVER'] ?? '#0099CC'
+
+    return (
+      <g opacity={opacity}>
+        {/* Outer stroke (border) */}
+        <path d={segment.svgPath} fill="none" stroke={riverBorder} strokeWidth="14" strokeLinecap="round" strokeLinejoin="round" />
+        {/* Inner stroke (water surface) */}
+        <path d={segment.svgPath} fill="none" stroke={riverColor} strokeWidth="10" strokeLinecap="round" strokeLinejoin="round" />
       </g>
     )
   }

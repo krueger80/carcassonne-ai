@@ -11,6 +11,7 @@ import {
   placeTile,
   placeMeeple,
   placeMeepleOnExistingTile,
+  resolveFarmerReturn as engineResolveFarmerReturn,
   skipMeeple,
   endTurn,
   scoreFeatureCompletion,
@@ -35,6 +36,7 @@ import {
 import type { GameConfig } from '../core/engine/GameEngine.ts'
 import { loadAllTiles, loadTileMap, invalidateCache } from '../services/tileRegistry.ts'
 import { nodeKey } from '../core/types/feature.ts'
+import { getFeature } from '../core/engine/FeatureDetector.ts'
 import { useUIStore } from './uiStore.ts'
 
 // Re-export Rotation for convenience
@@ -56,6 +58,7 @@ interface GameStore {
   tentativeTileCoord: Coordinate | null
   tentativeMeepleSegment: string | null
   tentativeMeepleType: MeepleType | null
+  tentativeSecondaryMeepleType: 'PIG' | 'BUILDER' | null
 
   // Undo history (limit 1 for now, just to go back from meeple phase)
   prevGameState: GameState | null
@@ -82,10 +85,11 @@ interface GameStore {
   undoTilePlacement: () => void
 
   // Meeple Placement Phase
-  selectMeeplePlacement: (segmentId: string, meepleType?: MeepleType, coord?: Coordinate) => void
+  selectMeeplePlacement: (segmentId: string, meepleType?: MeepleType, coord?: Coordinate, secondaryMeepleType?: 'BUILDER' | 'PIG' | null) => void
   confirmMeeplePlacement: () => void
   cancelMeeplePlacement: () => void
   skipMeeple: () => void
+  resolveFarmerReturn: (returnFarmer: boolean) => void
   setTentativeMeepleType: (type: MeepleType) => void
   processScoringSequence: () => Promise<void>
 
@@ -117,6 +121,7 @@ export const useGameStore = create<GameStore>()(
       tentativeTileCoord: null,
       tentativeMeepleSegment: null,
       tentativeMeepleType: null,
+      tentativeSecondaryMeepleType: null,
       placeableSegments: [],
       dragonOrientations: [],
       tentativeDragonFacing: null,
@@ -163,6 +168,7 @@ export const useGameStore = create<GameStore>()(
           store.tentativeTileCoord = null
           store.tentativeMeepleSegment = null
           store.tentativeMeepleType = null
+          store.tentativeSecondaryMeepleType = null
           store.placeableSegments = []
           store.tentativeDragonFacing = null
           store.dragonPlaceTargets = []
@@ -190,11 +196,17 @@ export const useGameStore = create<GameStore>()(
         store.tentativeTileCoord = coord
         store.interactionState = 'TILE_PLACED_TENTATIVELY'
 
-        // 2. Auto-rotate to the first valid rotation at this spot
+        // 2. Keep current rotation if valid at the new spot; otherwise find the
+        //    next valid rotation starting from the current one.
         const { board, currentTile } = store.gameState
         const rotations: Rotation[] = [0, 90, 180, 270]
+        const currentIdx = rotations.indexOf(currentTile.rotation as Rotation)
+        const orderedRotations = [
+          ...rotations.slice(currentIdx),
+          ...rotations.slice(0, currentIdx),
+        ]
 
-        for (const r of rotations) {
+        for (const r of orderedRotations) {
           const testTile = { ...currentTile, rotation: r }
           if (isValidPlacement(board, store.gameState.staticTileMap, testTile, coord)) {
             store.gameState.currentTile.rotation = r
@@ -235,7 +247,8 @@ export const useGameStore = create<GameStore>()(
           store.tentativeTileCoord = null
           store.tentativeMeepleSegment = null
           store.tentativeMeepleType = null
-          store.validPlacements = []
+          store.tentativeSecondaryMeepleType = null
+          // Keep validPlacements so the user can see where they could have placed it and click to undo.
         })
 
         const { gameState } = get()
@@ -296,17 +309,19 @@ export const useGameStore = create<GameStore>()(
 
       // ── New Meeple Placement Workflow ────────────────────────────────────
 
-      selectMeeplePlacement: (segmentId, meepleType = 'NORMAL', coord?) => set((store) => {
+      selectMeeplePlacement: (segmentId, meepleType = 'NORMAL', coord?, secondaryMeepleType = null) => set((store) => {
         // Toggle off if clicking the same segment again
         if (store.tentativeMeepleSegment === segmentId && (!coord || (store.tentativeTileCoord?.x === coord.x && store.tentativeTileCoord?.y === coord.y))) {
           store.tentativeMeepleSegment = null
           store.tentativeMeepleType = null
+          store.tentativeSecondaryMeepleType = null
           store.interactionState = 'IDLE'
           return
         }
 
         store.tentativeMeepleSegment = segmentId
         store.tentativeMeepleType = meepleType
+        store.tentativeSecondaryMeepleType = secondaryMeepleType
         store.interactionState = 'MEEPLE_SELECTED_TENTATIVELY'
         if (coord) {
           store.tentativeTileCoord = coord
@@ -320,22 +335,32 @@ export const useGameStore = create<GameStore>()(
           // 1. Place or Skip Meeple
           if (store.tentativeMeepleSegment) {
             const meepleType = store.tentativeMeepleType ?? 'NORMAL'
-            if ((meepleType === 'BUILDER' || meepleType === 'PIG') && store.tentativeTileCoord) {
+            const isPortalTarget = store.tentativeTileCoord && store.magicPortalTargets.length > 0 &&
+              (store.tentativeTileCoord.x !== store.gameState.lastPlacedCoord?.x || store.tentativeTileCoord.y !== store.gameState.lastPlacedCoord?.y)
+
+            const isCurrentTile = !store.tentativeTileCoord || (store.gameState.lastPlacedCoord?.x === store.tentativeTileCoord.x && store.gameState.lastPlacedCoord?.y === store.tentativeTileCoord.y)
+
+            if (isPortalTarget) {
+              store.gameState = placeMeepleViaPortal(
+                store.gameState,
+                store.tentativeTileCoord!,
+                store.tentativeMeepleSegment,
+                meepleType,
+              )
+            } else if ((meepleType === 'BUILDER' || meepleType === 'PIG') && store.tentativeTileCoord && !isCurrentTile) {
+              // Placed on an existing tile (pre-C3.1 rule fallback)
               store.gameState = placeMeepleOnExistingTile(
                 store.gameState,
                 store.tentativeTileCoord,
                 store.tentativeMeepleSegment,
                 meepleType,
               )
-            } else if (store.tentativeTileCoord && store.magicPortalTargets.length > 0) {
-              store.gameState = placeMeepleViaPortal(
-                store.gameState,
-                store.tentativeTileCoord,
-                store.tentativeMeepleSegment,
-                meepleType,
-              )
             } else {
-              store.gameState = placeMeeple(store.gameState, store.tentativeMeepleSegment, meepleType)
+              // Standard placement on current tile (handles normal, big, farmer, AND standalone builders/pigs perfectly)
+              console.log('--- confirmMeeplePlacement ---')
+              console.log('meepleType:', meepleType)
+              console.log('tentativeSecondaryMeepleType:', store.tentativeSecondaryMeepleType)
+              store.gameState = placeMeeple(store.gameState, store.tentativeMeepleSegment, meepleType, store.tentativeSecondaryMeepleType || undefined)
             }
           } else {
             store.gameState = skipMeeple(store.gameState)
@@ -356,6 +381,7 @@ export const useGameStore = create<GameStore>()(
       cancelMeeplePlacement: () => set((store) => {
         store.tentativeMeepleSegment = null
         store.tentativeMeepleType = null
+        store.tentativeSecondaryMeepleType = null
         store.interactionState = 'IDLE'
       }),
 
@@ -370,6 +396,8 @@ export const useGameStore = create<GameStore>()(
 
           const dfData = (gameState.expansionData['dragonFairy'] as any)
           const dragonPos = dfData?.dragonPosition
+          const tbData = (gameState.expansionData['tradersBuilders'] as any)
+          const useModernTerminology = tbData?.useModernTerminology ?? false
 
           let isValid = false
           if (type === 'BUILDER' || type === 'PIG') {
@@ -381,6 +409,42 @@ export const useGameStore = create<GameStore>()(
               type,
               dragonPos
             )
+
+            if (useModernTerminology && !isValid) {
+              const nKey = nodeKey(coord, tentativeMeepleSegment)
+              const featureFromUf = getFeature(gameState.featureUnionFind, nKey)
+              const featureDef = Object.values(gameState.staticTileMap[gameState.board.tiles[`${coord.x},${coord.y}`]?.definitionId ?? '']?.segments ?? []).find(s => s.id === tentativeMeepleSegment)
+              const fType = featureFromUf ? featureFromUf.type : featureDef?.type
+
+              if (fType) {
+                const isCorrectType = (type === 'BUILDER' && (fType === 'CITY' || fType === 'ROAD')) || (type === 'PIG' && fType === 'FIELD')
+                if (isCorrectType && (player.meeples.available[type] ?? 0) > 0) {
+                  // If it CANNOT be placed standalone, it can ONLY be placed if accompanied by a NORMAL/BIG meeple mapping to the same feature type.
+                  const hasNormalOrBig = (player.meeples.available.NORMAL > 0) || ((player.meeples.available.BIG ?? 0) > 0)
+                  const validSimultaneousPlacement = hasNormalOrBig && canPlaceMeeple(
+                    gameState.featureUnionFind,
+                    player,
+                    coord,
+                    tentativeMeepleSegment,
+                    'NORMAL',
+                    dragonPos
+                  )
+
+                  if (validSimultaneousPlacement) {
+                    // It's allowed as a secondary meeple!
+                    if (store.tentativeSecondaryMeepleType === type) {
+                      store.tentativeSecondaryMeepleType = null
+                    } else {
+                      store.tentativeSecondaryMeepleType = type
+                      if (!store.tentativeMeepleType || store.tentativeMeepleType === 'BUILDER' || store.tentativeMeepleType === 'PIG') {
+                        store.tentativeMeepleType = 'NORMAL' // auto-select primary meeple
+                      }
+                    }
+                    return // bypass the standard isValid check
+                  }
+                }
+              }
+            }
           } else {
             isValid = canPlaceMeeple(
               gameState.featureUnionFind,
@@ -394,10 +458,13 @@ export const useGameStore = create<GameStore>()(
 
           if (isValid) {
             store.tentativeMeepleType = type
+            // Clear secondary if switching primary type
+            if (type !== 'NORMAL' && type !== 'BIG') store.tentativeSecondaryMeepleType = null;
           } else {
             // New type is invalid here: clear the tentative selection
             store.tentativeMeepleSegment = null
             store.tentativeMeepleType = null
+            store.tentativeSecondaryMeepleType = null
             store.interactionState = 'IDLE'
             // Keep the coord if it was a magic portal / builder target? 
             // Actually, if it's invalid, it's safer to clear everything but the last tile
@@ -416,6 +483,7 @@ export const useGameStore = create<GameStore>()(
         set(store => {
           store.tentativeMeepleSegment = null
           store.tentativeMeepleType = null
+          store.tentativeSecondaryMeepleType = null
           store.interactionState = 'IDLE'
         })
 
@@ -474,7 +542,34 @@ export const useGameStore = create<GameStore>()(
           set(store => { store.gameState = nextState })
         }
 
-        get().endTurn()
+        // Pass original IDs to endTurn so pig scoring can detect
+        // which pennanted cities just completed (they've been consumed
+        // from completedFeatureIds by the animation loop above).
+        set(store => {
+          if (!store.gameState) return
+          const newState = endTurn(store.gameState, featureIds)
+          console.log('[gameStore] processScoringSequence endTurn TB:', newState.expansionData?.tradersBuilders);
+          store.gameState = newState
+          store.interactionState = 'IDLE'
+          store.tentativeMeepleSegment = null
+          store.tentativeMeepleType = null
+          store.tentativeSecondaryMeepleType = null
+        })
+      },
+
+      resolveFarmerReturn: (returnFarmer: boolean) => {
+        set((store) => {
+          if (!store.gameState) return
+          store.gameState = engineResolveFarmerReturn(store.gameState, returnFarmer)
+        })
+
+        const { gameState } = get()
+        if (!gameState) return
+
+        if (gameState.turnPhase === 'SCORE') {
+          get().processScoringSequence()
+          return
+        }
       },
 
       // ── Legacy / Shared ──────────────────────────────────────────────────
@@ -503,6 +598,7 @@ export const useGameStore = create<GameStore>()(
         store.interactionState = 'IDLE'
         store.tentativeMeepleSegment = null
         store.tentativeMeepleType = null
+        store.tentativeSecondaryMeepleType = null
       }),
 
       resetGame: () => set((store) => {
@@ -512,6 +608,7 @@ export const useGameStore = create<GameStore>()(
         store.tentativeTileCoord = null
         store.tentativeMeepleSegment = null
         store.tentativeMeepleType = null
+        store.tentativeSecondaryMeepleType = null
         store.interactionState = 'IDLE'
       }),
 
@@ -719,6 +816,7 @@ export const useGameStore = create<GameStore>()(
         store.interactionState = 'IDLE'
         store.tentativeMeepleSegment = null
         store.tentativeMeepleType = null
+        store.tentativeSecondaryMeepleType = null
       }),
 
       cancelFairyMove: () => set((store) => {
@@ -764,6 +862,7 @@ export const useGameStore = create<GameStore>()(
         tentativeTileCoord: s.tentativeTileCoord,
         tentativeMeepleSegment: s.tentativeMeepleSegment,
         tentativeMeepleType: s.tentativeMeepleType,
+        tentativeSecondaryMeepleType: s.tentativeSecondaryMeepleType,
         placeableSegments: s.placeableSegments,
         fairyMoveTargets: s.fairyMoveTargets,
         magicPortalTargets: s.magicPortalTargets,

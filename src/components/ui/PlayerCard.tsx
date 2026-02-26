@@ -30,6 +30,7 @@ interface TurnState {
     };
     selectedMeepleType?: MeepleType;
     tentativeMeepleType?: MeepleType | null;
+    tentativeSecondaryMeepleType?: 'BUILDER' | 'PIG' | null;
     validMeepleTypes?: MeepleType[];
     dragonOrientations?: Direction[];
     tentativeDragonFacing?: Direction | null;
@@ -41,9 +42,11 @@ interface TurnState {
 interface PlayerCardProps {
     player: Player;
     isCurrentTurn: boolean;
+    isBuilderBonusTurn?: boolean;
     hasTradersBuilders: boolean;
     hasInnsCathedrals: boolean;
     hasDragonHeldBy?: string | null;
+    useModernTerminology?: boolean;
     turnState?: TurnState;
     style?: React.CSSProperties;
 }
@@ -116,13 +119,17 @@ const MeepleIcon = ({ type, count, tooltip, color, onClick, isSelected, disabled
 interface GoodIconProps {
     type: 'WINE' | 'WHEAT' | 'CLOTH';
     count: number;
+    useModernTerminology: boolean;
     isCompact?: boolean;
 }
 
-const GoodIcon = ({ type, count, isCompact }: GoodIconProps) => {
+const GoodIcon = ({ type, count, useModernTerminology, isCompact }: GoodIconProps) => {
     const size = isCompact ? 20 : 24;
+    const label = type === 'WINE' ? (useModernTerminology ? 'Chicken' : 'Wine') :
+        type === 'WHEAT' ? (useModernTerminology ? 'Grain' : 'Wheat') : 'Cloth';
+
     return (
-        <div style={{ position: 'relative', width: size, height: size, opacity: count > 0 ? 1 : 0.3 }} title={type}>
+        <div style={{ position: 'relative', width: size, height: size, opacity: count > 0 ? 1 : 0.3 }} title={label}>
             <img
                 src={COMMODITY_IMAGES[type]}
                 width={size} height={size}
@@ -143,7 +150,7 @@ const GoodIcon = ({ type, count, isCompact }: GoodIconProps) => {
     )
 }
 
-export function PlayerCard({ player, isCurrentTurn, hasTradersBuilders, hasInnsCathedrals, hasDragonHeldBy, turnState, style }: PlayerCardProps) {
+export function PlayerCard({ player, isCurrentTurn, isBuilderBonusTurn = false, hasTradersBuilders, hasInnsCathedrals, hasDragonHeldBy, useModernTerminology = false, turnState, style }: PlayerCardProps) {
     const { color, name, score, meeples, traderTokens } = player;
 
     // Interaction logic
@@ -158,19 +165,25 @@ export function PlayerCard({ player, isCurrentTurn, hasTradersBuilders, hasInnsC
                 borderRadius: 12,
                 padding: isCurrentTurn ? 12 : 6,
                 marginBottom: 8,
-                boxShadow: isCurrentTurn ? `0 4px 20px rgba(0,0,0,0.4)` : '0 2px 4px rgba(0,0,0,0.3)',
+                boxShadow: isBuilderBonusTurn
+                    ? `0 0 18px ${color}60, 0 4px 20px rgba(0,0,0,0.4)`
+                    : isCurrentTurn ? `0 4px 20px rgba(0,0,0,0.4)` : '0 2px 4px rgba(0,0,0,0.3)',
                 transition: 'all 0.3s ease',
                 display: 'flex',
-                flexDirection: 'column',
-                gap: isCurrentTurn ? 12 : 2,
-                width: isCurrentTurn ? 280 : 'fit-content',
-                minWidth: isCurrentTurn ? 280 : 100,
-                transform: isCurrentTurn ? 'scale(1.02) translateX(10px)' : 'none',
+                flexDirection: isCurrentTurn ? 'column' : 'row',
+                alignItems: isCurrentTurn ? 'stretch' : 'center',
+                flexWrap: isCurrentTurn ? 'nowrap' : 'wrap',
+                gap: isCurrentTurn ? 12 : 8,
+                width: isCurrentTurn ? '100%' : 'fit-content',
+                maxWidth: isCurrentTurn ? 280 : 'none',
+                minWidth: isCurrentTurn ? 'auto' : 'auto',
+                boxSizing: 'border-box',
+                transform: isCurrentTurn ? 'scale(1.02) translateX(4px)' : 'none',
                 zIndex: isCurrentTurn ? 10 : 1,
                 ...style
             }}>
             {/* 1. Header: Status (Active) or Name (Inactive) */}
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 6, width: isCurrentTurn ? 'auto' : 'auto', flexShrink: 0 }}>
                 <div style={{ display: 'flex', flexDirection: 'column' }}>
                     <div style={{
                         fontWeight: 'bold',
@@ -179,7 +192,7 @@ export function PlayerCard({ player, isCurrentTurn, hasTradersBuilders, hasInnsC
                         whiteSpace: 'nowrap',
                         overflow: 'hidden',
                         textOverflow: 'ellipsis',
-                        maxWidth: isCurrentTurn ? 'none' : '80px'
+                        maxWidth: isCurrentTurn ? 'none' : '70px'
                     }}>
                         {name}
                     </div>
@@ -199,9 +212,9 @@ export function PlayerCard({ player, isCurrentTurn, hasTradersBuilders, hasInnsC
             {isCurrentTurn && turnState && (
                 <div style={{
                     fontSize: 13, color: '#ddd',
-                    background: 'rgba(255,255,255,0.05)',
+                    background: isBuilderBonusTurn ? `${color}12` : 'rgba(255,255,255,0.05)',
                     padding: '6px 10px', borderRadius: 6,
-                    borderLeft: `2px solid #777`
+                    borderLeft: `2px solid ${isBuilderBonusTurn ? color : '#777'}`
                 }}>
                     {turnState.instructionText}
                 </div>
@@ -218,6 +231,9 @@ export function PlayerCard({ player, isCurrentTurn, hasTradersBuilders, hasInnsC
                             const getAdjustedCount = (type: MeepleType) => {
                                 let count = meeples.available[type] || 0;
                                 if (isCurrentTurn && turnState?.interactionState === 'MEEPLE_SELECTED_TENTATIVELY' && turnState.tentativeMeepleType === type) {
+                                    count = Math.max(0, count - 1);
+                                }
+                                if (isCurrentTurn && turnState?.interactionState === 'MEEPLE_SELECTED_TENTATIVELY' && turnState.tentativeSecondaryMeepleType === type) {
                                     count = Math.max(0, count - 1);
                                 }
                                 return count;
@@ -255,7 +271,7 @@ export function PlayerCard({ player, isCurrentTurn, hasTradersBuilders, hasInnsC
                                                 tooltip="Builder"
                                                 color={color}
                                                 onClick={isCurrentTurn && isMeeplePhase && turnState?.actions.selectMeeple ? () => turnState.actions.selectMeeple?.('BUILDER') : undefined}
-                                                isSelected={isMeeplePhase && turnState?.selectedMeepleType === 'BUILDER'}
+                                                isSelected={isMeeplePhase && (turnState?.selectedMeepleType === 'BUILDER' || turnState?.tentativeSecondaryMeepleType === 'BUILDER')}
                                                 disabled={!isCurrentTurn || !isMeeplePhase || (meeples.available.BUILDER ?? 0) <= 0 || (turnState?.validMeepleTypes && !turnState.validMeepleTypes.includes('BUILDER'))}
                                                 isCompact={!isCurrentTurn}
                                             />
@@ -265,7 +281,7 @@ export function PlayerCard({ player, isCurrentTurn, hasTradersBuilders, hasInnsC
                                                 tooltip="Pig"
                                                 color={color}
                                                 onClick={isCurrentTurn && isMeeplePhase && turnState?.actions.selectMeeple ? () => turnState.actions.selectMeeple?.('PIG') : undefined}
-                                                isSelected={isMeeplePhase && turnState?.selectedMeepleType === 'PIG'}
+                                                isSelected={isMeeplePhase && (turnState?.selectedMeepleType === 'PIG' || turnState?.tentativeSecondaryMeepleType === 'PIG')}
                                                 disabled={!isCurrentTurn || !isMeeplePhase || (meeples.available.PIG ?? 0) <= 0 || (turnState?.validMeepleTypes && !turnState.validMeepleTypes.includes('PIG'))}
                                                 isCompact={!isCurrentTurn}
                                             />
@@ -309,9 +325,9 @@ export function PlayerCard({ player, isCurrentTurn, hasTradersBuilders, hasInnsC
                             paddingLeft: !isCurrentTurn ? 4 : 0,
                             borderLeft: !isCurrentTurn ? '1px solid rgba(255,255,255,0.1)' : 'none',
                         }}>
-                            <GoodIcon type="WINE" count={traderTokens?.WINE ?? 0} isCompact={!isCurrentTurn} />
-                            <GoodIcon type="WHEAT" count={traderTokens?.WHEAT ?? 0} isCompact={!isCurrentTurn} />
-                            <GoodIcon type="CLOTH" count={traderTokens?.CLOTH ?? 0} isCompact={!isCurrentTurn} />
+                            <GoodIcon type="WINE" count={traderTokens?.WINE ?? 0} useModernTerminology={useModernTerminology} isCompact={!isCurrentTurn} />
+                            <GoodIcon type="WHEAT" count={traderTokens?.WHEAT ?? 0} useModernTerminology={useModernTerminology} isCompact={!isCurrentTurn} />
+                            <GoodIcon type="CLOTH" count={traderTokens?.CLOTH ?? 0} useModernTerminology={useModernTerminology} isCompact={!isCurrentTurn} />
                         </div>
                     )}
                 </div>

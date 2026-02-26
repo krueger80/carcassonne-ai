@@ -176,6 +176,57 @@ export function GameOverlay() {
             userSelect: 'none',
             WebkitUserSelect: 'none',
         }}>
+            {/* ── Bonus Turn Banner (Top Center) ─────────────────────────────── */}
+            <AnimatePresence>
+                {isBuilderBonusTurn && (
+                    <motion.div
+                        key="bonus-turn-banner"
+                        initial={{ opacity: 0, y: -30, scale: 0.9, x: '-50%' }}
+                        animate={{ opacity: 1, y: 0, scale: 1, x: '-50%' }}
+                        exit={{ opacity: 0, y: -20, scale: 0.95, x: '-50%' }}
+                        transition={{ type: 'spring', stiffness: 400, damping: 22 }}
+                        style={{
+                            position: 'absolute',
+                            top: 16,
+                            left: '50%',
+                            zIndex: 55,
+                            pointerEvents: 'none',
+                        }}
+                    >
+                        <motion.div
+                            animate={{ boxShadow: [
+                                `0 0 15px ${currentPlayer.color}60, 0 4px 20px rgba(0,0,0,0.5)`,
+                                `0 0 35px ${currentPlayer.color}90, 0 4px 20px rgba(0,0,0,0.5)`,
+                                `0 0 15px ${currentPlayer.color}60, 0 4px 20px rgba(0,0,0,0.5)`,
+                            ]}}
+                            transition={{ duration: 2, repeat: Infinity, ease: 'easeInOut' }}
+                            style={{
+                                background: 'rgba(20, 25, 35, 0.92)',
+                                backdropFilter: 'blur(8px)',
+                                border: `2px solid ${currentPlayer.color}`,
+                                borderRadius: 12,
+                                padding: '8px 28px',
+                                display: 'flex',
+                                alignItems: 'center',
+                                gap: 10,
+                            }}
+                        >
+                            <span style={{ fontSize: 20 }}>&#x2692;</span>
+                            <span style={{
+                                fontSize: 18,
+                                fontWeight: 900,
+                                letterSpacing: 2,
+                                textTransform: 'uppercase',
+                                color: currentPlayer.color,
+                            }}>
+                                Bonus Turn
+                            </span>
+                            <span style={{ fontSize: 20 }}>&#x2692;</span>
+                        </motion.div>
+                    </motion.div>
+                )}
+            </AnimatePresence>
+
             <AnimatePresence>
                 {showNewGameScreen && (
                     <div style={{ pointerEvents: 'auto' }}>
@@ -440,40 +491,16 @@ export function GameOverlay() {
                 <div style={{
                     display: 'flex',
                     flexDirection: 'column',
-                    alignItems: 'flex-start', // Don't stretch cards to sidebar width
-                    gap: 8,
+                    alignItems: 'flex-start',
+                    gap: showOpponents ? 8 : 0,
                     width: '100%',
                     pointerEvents: 'none',
-                    marginTop: 'auto', // Keep players at bottom of sidebar
+                    marginTop: 'auto',
                 }}
                 >
-                    {orderedPlayers.length > 1 && (
-                        <div style={{ pointerEvents: 'auto', alignSelf: 'flex-start', marginBottom: 0 }}>
-                            <button
-                                onClick={(e) => { e.stopPropagation(); setShowOpponents(!showOpponents); }}
-                                style={{
-                                    background: 'rgba(30, 30, 40, 0.85)',
-                                    border: '1px solid #444',
-                                    borderRadius: 16,
-                                    color: '#ccc',
-                                    padding: '4px 10px',
-                                    fontSize: 11,
-                                    cursor: 'pointer',
-                                    fontWeight: 'bold',
-                                    boxShadow: '0 2px 4px rgba(0,0,0,0.3)',
-                                    transition: 'background 0.2s',
-                                }}
-                                onMouseEnter={(e) => e.currentTarget.style.background = 'rgba(50, 50, 60, 0.95)'}
-                                onMouseLeave={(e) => e.currentTarget.style.background = 'rgba(30, 30, 40, 0.85)'}
-                            >
-                                {showOpponents ? '▼ Hide Opponents' : '▲ Show Opponents'}
-                            </button>
-                        </div>
-                    )}
                     <AnimatePresence mode="popLayout">
                         {orderedPlayers.map((p) => {
                             const isCurrent = p.id === currentPlayer.id;
-                            if (!isCurrent && !showOpponents) return null;
 
                             // Construct TurnState for the active player
                             let turnState = undefined;
@@ -550,22 +577,35 @@ export function GameOverlay() {
                                     key={p.id}
                                     layout
                                     initial={{ opacity: 0, x: -20 }}
-                                    animate={{
-                                        opacity: isCurrent ? 1 : 0.7,
-                                        scale: isCurrent ? 1.05 : 0.95,
-                                        x: 0,
-                                    }}
+                                    animate={
+                                        isCurrent
+                                            ? { opacity: 1, scale: 1.05, x: 0 }
+                                            : showOpponents
+                                                ? { opacity: 0.7, scale: 0.95, x: 0 }
+                                                : { opacity: 0.5, scale: 0.92, x: 0 }
+                                    }
                                     transition={{ type: 'spring', stiffness: 300, damping: 25 }}
                                     style={{
                                         position: 'relative',
                                         zIndex: isCurrent ? 10 : 1,
                                         pointerEvents: 'auto',
+                                        cursor: 'pointer',
+                                        ...(!isCurrent && !showOpponents ? {
+                                            height: 8,
+                                            overflow: 'hidden',
+                                            marginBottom: -4,
+                                        } : {}),
                                     }}
                                     onPointerDown={(e) => e.stopPropagation()}
+                                    onClick={(e) => {
+                                        if ((e.target as HTMLElement).closest('button')) return
+                                        setShowOpponents(!showOpponents)
+                                    }}
                                 >
                                     <PlayerCard
                                         player={p}
                                         isCurrentTurn={isCurrent}
+                                        isBuilderBonusTurn={isCurrent && isBuilderBonusTurn}
                                         hasTradersBuilders={hasTradersBuilders}
                                         hasInnsCathedrals={hasInnsCathedrals}
                                         hasDragonHeldBy={dfData?.dragonHeldBy ?? null}
