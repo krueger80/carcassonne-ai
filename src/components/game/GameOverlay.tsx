@@ -358,8 +358,13 @@ export function GameOverlay() {
             >
                 {/* ── Hamburger Menu (Top Left) ─────────────────────────────── */}
                 <div style={{ position: 'relative', pointerEvents: 'auto', alignSelf: 'flex-start', marginBottom: 20 }} onPointerDown={(e) => e.stopPropagation()}>
-                    <button
+                    <motion.button
                         onClick={(e) => { e.stopPropagation(); setIsMenuOpen(!isMenuOpen) }}
+                        whileHover={{ scale: 1.1, backgroundColor: 'rgba(255,255,255,0.1)' }}
+                        whileTap={{ scale: 0.95 }}
+                        aria-label="Main Menu"
+                        aria-expanded={isMenuOpen}
+                        aria-haspopup="true"
                         style={{
                             background: 'rgba(0,0,0,0.6)',
                             border: '1px solid #555',
@@ -377,7 +382,7 @@ export function GameOverlay() {
                             <line x1="3" y1="6" x2="21" y2="6"></line>
                             <line x1="3" y1="18" x2="21" y2="18"></line>
                         </svg>
-                    </button>
+                    </motion.button>
 
                     <AnimatePresence>
                         {isMenuOpen && (
