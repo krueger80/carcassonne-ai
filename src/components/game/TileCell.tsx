@@ -33,6 +33,8 @@ interface TileCellProps {
   tentativeMeepleSegment?: string
   /** Type of the tentative meeple (for rendering correct shape) */
   tentativeMeepleType?: 'NORMAL' | 'BIG' | 'FARMER' | 'BUILDER' | 'PIG' | null
+  /** Type of a simultaneous secondary placement (for rendering builders or pigs) */
+  tentativeSecondaryMeepleType?: 'NORMAL' | 'BIG' | 'FARMER' | 'BUILDER' | 'PIG' | null
   /** Color of the current player (for tentative meeple rendering) */
   currentPlayerColor?: string
   /** ID of the segment where the fairy is currently located */
@@ -51,6 +53,7 @@ export const TileCell = memo(({
   isTentative = false,
   tentativeMeepleSegment,
   tentativeMeepleType,
+  tentativeSecondaryMeepleType,
   currentPlayerColor = '#ffffff',
   fairySegmentId,
   isFairyMovePhase,
@@ -75,14 +78,28 @@ export const TileCell = memo(({
   }
 
   // 2. Tentative meeple
-  if (tentativeMeepleSegment && !meepleColors[tentativeMeepleSegment]) {
-    // Determine visuals based on type
-    meepleColors[tentativeMeepleSegment] = {
-      color: currentPlayerColor,
-      isTentative: true,
-      isBig: tentativeMeepleType === 'BIG',
-      isBuilder: tentativeMeepleType === 'BUILDER',
-      isPig: tentativeMeepleType === 'PIG',
+  if (tentativeMeepleSegment) {
+    if (!meepleColors[tentativeMeepleSegment] && tentativeMeepleType) {
+      meepleColors[tentativeMeepleSegment] = {
+        color: currentPlayerColor,
+        isTentative: true,
+        isBig: tentativeMeepleType === 'BIG',
+        isBuilder: tentativeMeepleType === 'BUILDER',
+        isPig: tentativeMeepleType === 'PIG',
+      }
+    }
+
+    if (tentativeSecondaryMeepleType) {
+      const secKey = `${tentativeMeepleSegment}_${tentativeSecondaryMeepleType}`
+      if (!meepleColors[secKey]) {
+        meepleColors[secKey] = {
+          color: currentPlayerColor,
+          isTentative: true,
+          isBig: tentativeSecondaryMeepleType === 'BIG',
+          isBuilder: tentativeSecondaryMeepleType === 'BUILDER',
+          isPig: tentativeSecondaryMeepleType === 'PIG',
+        }
+      }
     }
   }
 
@@ -114,12 +131,12 @@ export const TileCell = memo(({
           const seg = def.segments.find(s => s.id === fairySegmentId);
           if (!seg) return null;
           const { x, y } = rotateCentroid(seg.meepleCentroid, tile.rotation);
-          
+
           // Meeple height constants from MeepleSVG.tsx
           // s is roughly 15 * zoom. Here size is the tile size.
           // In viewBox units (0-100), the meeple height is approx 18-25 units.
-          const meepleVisualHeight = 22; 
-          
+          const meepleVisualHeight = 22;
+
           // Position it above the meeple's head
           return (
             <div style={{
@@ -173,11 +190,11 @@ export const TileCell = memo(({
         const { x, y } = rotateCentroid(seg.meepleCentroid, tile.rotation)
 
         const isSelected = tentativeMeepleSegment === seg.id
-        
-        const tooltipTitle = isSelected 
-          ? 'Remove meeple' 
-          : isFairyMovePhase 
-            ? 'Place Fairy' 
+
+        const tooltipTitle = isSelected
+          ? 'Remove meeple'
+          : isFairyMovePhase
+            ? 'Place Fairy'
             : `Place meeple on ${seg.type.toLowerCase()}`
 
         return (

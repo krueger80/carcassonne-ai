@@ -215,9 +215,14 @@ export function addTileToUnionFind(
 
     const openEdges = countOpenEdgePositions(physicalEdgePositions)
 
-    // Initial adjacencies from tile definition
+    // Initial adjacencies from tile definition — only track CITY neighbours
+    // (touchingCityIds is used for field-scoring: 3 pts per completed city)
     const initialTouchIds = (def.adjacencies ?? [])
       .filter(([a, b]) => a === seg.id || b === seg.id)
+      .filter(([a, b]) => {
+        const otherSegId = a === seg.id ? b : a
+        return def.segments.find(s => s.id === otherSegId)?.type === 'CITY'
+      })
       .map(([a, b]) => nodeKey(coord, a === seg.id ? b : a))
 
     const feature: Feature = {

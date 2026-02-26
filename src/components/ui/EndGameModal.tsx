@@ -7,8 +7,10 @@ interface EndGameModalProps {
 }
 
 export function EndGameModal({ players, expansions = [] }: EndGameModalProps) {
-  const { resetGame } = useGameStore()
+  const { resetGame, gameState } = useGameStore()
   const hasTradersBuilders = expansions.includes('traders-builders')
+  const tbData = gameState?.expansionData?.['tradersBuilders'] as { useModernTerminology?: boolean } | undefined
+  const useModernTerminology = tbData?.useModernTerminology ?? false
 
   const sorted = [...players].sort((a, b) => b.score - a.score)
   const winner = sorted[0]
@@ -20,7 +22,11 @@ export function EndGameModal({ players, expansions = [] }: EndGameModalProps) {
     WHEAT: '/images/TradersAndBuilders_Shared/Good_Grain.png',
     WINE: '/images/TradersAndBuilders_Shared/Good_Wine.png',
   }
-  const commodityLabels: Record<string, string> = { CLOTH: 'Cloth', WHEAT: 'Wheat', WINE: 'Wine' }
+  const commodityLabels: Record<string, string> = {
+    CLOTH: 'Cloth',
+    WHEAT: useModernTerminology ? 'Grain' : 'Wheat',
+    WINE: useModernTerminology ? 'Chicken' : 'Wine'
+  }
 
   const traderBonuses = hasTradersBuilders ? commodities.map(c => {
     const max = Math.max(...players.map(p => p.traderTokens?.[c] ?? 0))

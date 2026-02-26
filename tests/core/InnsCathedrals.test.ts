@@ -66,7 +66,7 @@ describe('IC tile definitions', () => {
 
   it('all tiles have expansionId set to inns-cathedrals', () => {
     for (const tile of IC_TILES) {
-      expect(tile.expansionId).toBe('inns-cathedrals')
+      expect(tile.expansionId).toBe('inns-cathedrals-c3')
     }
   })
 
@@ -106,9 +106,8 @@ describe('IC tile definitions', () => {
       if (tile.segments.some(s => s.hasCathedral)) cathedralTiles++
       innSegments += tile.segments.filter(s => s.hasInn).length
     }
-    expect(cathedralTiles).toBe(2) // ic_A and ic_B
-    // ic_E, ic_F, ic_I, ic_J each have 1 inn segment, ic_O has 4 = 8 total
-    expect(innSegments).toBe(8)
+    expect(cathedralTiles).toBe(2) // ic3_Ka and ic3_Kb
+    expect(innSegments).toBe(6)
   })
 })
 
@@ -239,7 +238,7 @@ describe('Feature metadata propagation', () => {
     const board = emptyBoard()
     const tile: PlacedTile = {
       coordinate: { x: 0, y: 0 },
-      definitionId: 'ic_I',
+      definitionId: 'ic3_A',
       rotation: 0,
       meeples: {},
     }
@@ -253,11 +252,11 @@ describe('Feature metadata propagation', () => {
   })
 
   it('cathedral flag is propagated to feature metadata', () => {
-    // Place ic_A (full city with cathedral) at (0,0)
+    // Place ic3_Ka (full city with cathedral) at (0,0)
     const board = emptyBoard()
     const tile: PlacedTile = {
       coordinate: { x: 0, y: 0 },
-      definitionId: 'ic_A',
+      definitionId: 'ic3_Ka',
       rotation: 0,
       meeples: {},
     }
@@ -274,7 +273,7 @@ describe('Feature metadata propagation', () => {
     let board = emptyBoard()
     const tile1: PlacedTile = {
       coordinate: { x: 0, y: 0 },
-      definitionId: 'ic_I',
+      definitionId: 'ic3_A',
       rotation: 0,
       meeples: {},
     }
@@ -283,7 +282,7 @@ describe('Feature metadata propagation', () => {
 
     const tile2: PlacedTile = {
       coordinate: { x: 0, y: 1 },
-      definitionId: 'base_U',
+      definitionId: 'base2_U',
       rotation: 0,
       meeples: {},
     }
@@ -344,7 +343,7 @@ describe('Game initialization with Inns & Cathedrals', () => {
   it('tile bag has 89 tiles (72 base + 18 IC - 1 starting)', () => {
     const state = initGame({
       playerNames: ['Alice', 'Bob'],
-      expansions: ['inns-cathedrals'],
+      expansions: ['inns-cathedrals-c3'],
     })
     expect(state.tileBag.length).toBe(89) // 72 + 18 - 1 starting tile
   })
@@ -352,7 +351,7 @@ describe('Game initialization with Inns & Cathedrals', () => {
   it('players start with 7 NORMAL + 1 BIG meeple', () => {
     const state = initGame({
       playerNames: ['Alice', 'Bob'],
-      expansions: ['inns-cathedrals'],
+      expansions: ['inns-cathedrals-c3'],
     })
     for (const player of state.players) {
       expect(player.meeples.available.NORMAL).toBe(7)
@@ -363,7 +362,7 @@ describe('Game initialization with Inns & Cathedrals', () => {
   it('scoring rules are stored in expansionData', () => {
     const state = initGame({
       playerNames: ['Alice', 'Bob'],
-      expansions: ['inns-cathedrals'],
+      expansions: ['inns-cathedrals-c3'],
     })
     expect(state.expansionData.scoringRules).toBeDefined()
     expect(state.expansionData.scoringRules).toBe(IC_SCORING_RULES)

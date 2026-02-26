@@ -1,11 +1,11 @@
 import type { TileDefinition } from '../types/tile.ts'
 
 export const IC_TILES: TileDefinition[] = [
-  // ic_A
+  // ic3_A
   {
-    id: 'ic_A',
+    id: 'ic3_A',
     count: 1,
-    expansionId: 'inns-cathedrals',
+    expansionId: 'inns-cathedrals-c3',
     imageUrl: '/images/InnsAndCathedrals_C3/Inns_And_Cathedrals_C3_Tile_A.png',
     segments: [
       {
@@ -62,11 +62,11 @@ export const IC_TILES: TileDefinition[] = [
       ]
     ]
   },
-  // ic_B
+  // ic3_B
   {
-    id: 'ic_B',
+    id: 'ic3_B',
     count: 1,
-    expansionId: 'inns-cathedrals',
+    expansionId: 'inns-cathedrals-c3',
     imageUrl: '/images/InnsAndCathedrals_C3/Inns_And_Cathedrals_C3_Tile_B.png',
     segments: [
       {
@@ -123,11 +123,11 @@ export const IC_TILES: TileDefinition[] = [
       ]
     ]
   },
-  // ic_C
+  // ic3_C
   {
-    id: 'ic_C',
+    id: 'ic3_C',
     count: 1,
-    expansionId: 'inns-cathedrals',
+    expansionId: 'inns-cathedrals-c3',
     imageUrl: '/images/InnsAndCathedrals_C3/Inns_And_Cathedrals_C3_Tile_C.png',
     segments: [
       {
@@ -228,11 +228,11 @@ export const IC_TILES: TileDefinition[] = [
       ]
     ]
   },
-  // ic_D
+  // ic3_D
   {
-    id: 'ic_D',
+    id: 'ic3_D',
     count: 1,
-    expansionId: 'inns-cathedrals',
+    expansionId: 'inns-cathedrals-c3',
     imageUrl: '/images/InnsAndCathedrals_C3/Inns_And_Cathedrals_C3_Tile_D.png',
     segments: [
       {
@@ -330,11 +330,11 @@ export const IC_TILES: TileDefinition[] = [
       ]
     ]
   },
-  // ic_E
+  // ic3_E
   {
-    id: 'ic_E',
+    id: 'ic3_E',
     count: 1,
-    expansionId: 'inns-cathedrals',
+    expansionId: 'inns-cathedrals-c3',
     imageUrl: '/images/InnsAndCathedrals_C3/Inns_And_Cathedrals_C3_Tile_E.png',
     segments: [
       {
@@ -416,11 +416,11 @@ export const IC_TILES: TileDefinition[] = [
       ]
     ]
   },
-  // ic_F
+  // ic3_F
   {
-    id: 'ic_F',
+    id: 'ic3_F',
     count: 1,
-    expansionId: 'inns-cathedrals',
+    expansionId: 'inns-cathedrals-c3',
     imageUrl: '/images/InnsAndCathedrals_C3/Inns_And_Cathedrals_C3_Tile_F.png',
     segments: [
       {
@@ -497,11 +497,11 @@ export const IC_TILES: TileDefinition[] = [
       ]
     ]
   },
-  // ic_G
+  // ic3_G
   {
-    id: 'ic_G',
+    id: 'ic3_G',
     count: 1,
-    expansionId: 'inns-cathedrals',
+    expansionId: 'inns-cathedrals-c3',
     imageUrl: '/images/InnsAndCathedrals_C3/Inns_And_Cathedrals_C3_Tile_G.png',
     segments: [
       {
@@ -557,11 +557,11 @@ export const IC_TILES: TileDefinition[] = [
       ]
     ]
   },
-  // ic_H
+  // ic3_H
   {
-    id: 'ic_H',
+    id: 'ic3_H',
     count: 1,
-    expansionId: 'inns-cathedrals',
+    expansionId: 'inns-cathedrals-c3',
     imageUrl: '/images/InnsAndCathedrals_C3/Inns_And_Cathedrals_C3_Tile_H.png',
     segments: [
       {
@@ -643,11 +643,11 @@ export const IC_TILES: TileDefinition[] = [
       ]
     ]
   },
-  // ic_I
+  // ic3_I
   {
-    id: 'ic_I',
+    id: 'ic3_I',
     count: 1,
-    expansionId: 'inns-cathedrals',
+    expansionId: 'inns-cathedrals-c3',
     imageUrl: '/images/InnsAndCathedrals_C3/Inns_And_Cathedrals_C3_Tile_I.png',
     segments: [
       {
@@ -772,11 +772,11 @@ export const IC_TILES: TileDefinition[] = [
       ]
     ]
   },
-  // ic_J
+  // ic3_J
   {
-    id: 'ic_J',
+    id: 'ic3_J',
     count: 1,
-    expansionId: 'inns-cathedrals',
+    expansionId: 'inns-cathedrals-c3',
     imageUrl: '/images/InnsAndCathedrals_C3/Inns_And_Cathedrals_C3_Tile_J.png',
     segments: [
       {
@@ -853,11 +853,11 @@ export const IC_TILES: TileDefinition[] = [
       ]
     ]
   },
-  // ic_Ka
+  // ic3_Ka
   {
-    id: 'ic_Ka',
+    id: 'ic3_Ka',
     count: 1,
-    expansionId: 'inns-cathedrals',
+    expansionId: 'inns-cathedrals-c3',
     imageUrl: '/images/InnsAndCathedrals_C3/Inns_And_Cathedrals_C3_Tile_Ka.png',
     segments: [
       {
@@ -886,11 +886,11 @@ export const IC_TILES: TileDefinition[] = [
       WEST_RIGHT: 'city0'
     }
   },
-  // ic_Kb
+  // ic3_Kb
   {
-    id: 'ic_Kb',
+    id: 'ic3_Kb',
     count: 1,
-    expansionId: 'inns-cathedrals',
+    expansionId: 'inns-cathedrals-c3',
     imageUrl: '/images/InnsAndCathedrals_C3/Inns_And_Cathedrals_C3_Tile_Kb.png',
     segments: [
       {
@@ -919,11 +919,11 @@ export const IC_TILES: TileDefinition[] = [
       WEST_RIGHT: 'city0'
     }
   },
-  // ic_L
+  // ic3_L
   {
-    id: 'ic_L',
+    id: 'ic3_L',
     count: 1,
-    expansionId: 'inns-cathedrals',
+    expansionId: 'inns-cathedrals-c3',
     imageUrl: '/images/InnsAndCathedrals_C3/Inns_And_Cathedrals_C3_Tile_L.png',
     segments: [
       {
@@ -994,11 +994,11 @@ export const IC_TILES: TileDefinition[] = [
       ]
     ]
   },
-  // ic_M
+  // ic3_M
   {
-    id: 'ic_M',
+    id: 'ic3_M',
     count: 1,
-    expansionId: 'inns-cathedrals',
+    expansionId: 'inns-cathedrals-c3',
     imageUrl: '/images/InnsAndCathedrals_C3/Inns_And_Cathedrals_C3_Tile_M.png',
     segments: [
       {
@@ -1067,11 +1067,11 @@ export const IC_TILES: TileDefinition[] = [
       ]
     ]
   },
-  // ic_N
+  // ic3_N
   {
-    id: 'ic_N',
+    id: 'ic3_N',
     count: 1,
-    expansionId: 'inns-cathedrals',
+    expansionId: 'inns-cathedrals-c3',
     imageUrl: '/images/InnsAndCathedrals_C3/Inns_And_Cathedrals_C3_Tile_N.png',
     segments: [
       {
@@ -1149,11 +1149,11 @@ export const IC_TILES: TileDefinition[] = [
       ]
     ]
   },
-  // ic_O
+  // ic3_O
   {
-    id: 'ic_O',
+    id: 'ic3_O',
     count: 1,
-    expansionId: 'inns-cathedrals',
+    expansionId: 'inns-cathedrals-c3',
     imageUrl: '/images/InnsAndCathedrals_C3/Inns_And_Cathedrals_C3_Tile_O.png',
     segments: [
       {
@@ -1222,11 +1222,11 @@ export const IC_TILES: TileDefinition[] = [
       ]
     ]
   },
-  // ic_P
+  // ic3_P
   {
-    id: 'ic_P',
+    id: 'ic3_P',
     count: 1,
-    expansionId: 'inns-cathedrals',
+    expansionId: 'inns-cathedrals-c3',
     imageUrl: '/images/InnsAndCathedrals_C3/Inns_And_Cathedrals_C3_Tile_P.png',
     segments: [
       {
@@ -1283,11 +1283,11 @@ export const IC_TILES: TileDefinition[] = [
       ]
     ]
   },
-  // ic_Q
+  // ic3_Q
   {
-    id: 'ic_Q',
+    id: 'ic3_Q',
     count: 1,
-    expansionId: 'inns-cathedrals',
+    expansionId: 'inns-cathedrals-c3',
     imageUrl: '/images/InnsAndCathedrals_C3/Inns_And_Cathedrals_C3_Tile_Q.png',
     segments: [
       {

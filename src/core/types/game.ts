@@ -15,6 +15,7 @@ export type TurnPhase =
   | 'PLACE_MEEPLE'
   | 'FAIRY_MOVE'         // D&F: player may move fairy after scoring 0 from a completed feature
   | 'SCORE'
+  | 'RETURN_FARMER'      // T&B: returning farmers after Pig mid-game scoring
   | 'NEXT_PLAYER'
 
 export interface ScoreEvent {

@@ -42,7 +42,7 @@ function buildBoard(tiles: PlacedTile[]): { board: Board; uf: UnionFindState; al
 describe('Single tile placement', () => {
   it('tile E creates city and field features', () => {
     // Tile E: NORTH=CITY, rest=FIELD
-    const tile = placed('base_E', 0, 0)
+    const tile = placed('base2_E', 0, 0)
     const board = { ...emptyBoard(), tiles: { '0,0': tile } }
     const uf = emptyUnionFindState()
     const { state } = addTileToUnionFind(uf, board, TILE_MAP, tile)
@@ -56,7 +56,7 @@ describe('Single tile placement', () => {
   })
 
   it('isolated city feature has correct open edges', () => {
-    const tile = placed('base_E', 0, 0)
+    const tile = placed('base2_E', 0, 0)
     const board = { ...emptyBoard(), tiles: { '0,0': tile } }
     const uf = emptyUnionFindState()
     const { state } = addTileToUnionFind(uf, board, TILE_MAP, tile)
@@ -71,7 +71,7 @@ describe('Single tile placement', () => {
   })
 
   it('tile A creates cloister and field features', () => {
-    const tile = placed('base_A', 0, 0)
+    const tile = placed('base2_A', 0, 0)
     const board = { ...emptyBoard(), tiles: { '0,0': tile } }
     const uf = emptyUnionFindState()
     const { state } = addTileToUnionFind(uf, board, TILE_MAP, tile)
@@ -86,7 +86,7 @@ describe('Single tile placement', () => {
   })
 
   it('tile C (all city) creates one city feature', () => {
-    const tile = placed('base_C', 0, 0)
+    const tile = placed('base2_C', 0, 0)
     const board = { ...emptyBoard(), tiles: { '0,0': tile } }
     const uf = emptyUnionFindState()
     const { state } = addTileToUnionFind(uf, board, TILE_MAP, tile)
@@ -97,7 +97,7 @@ describe('Single tile placement', () => {
   })
 
   it('tile U (road NS) creates one road and two field features', () => {
-    const tile = placed('base_U', 0, 0)
+    const tile = placed('base2_U', 0, 0)
     const board = { ...emptyBoard(), tiles: { '0,0': tile } }
     const uf = emptyUnionFindState()
     const { state } = addTileToUnionFind(uf, board, TILE_MAP, tile)
@@ -108,7 +108,7 @@ describe('Single tile placement', () => {
   })
 
   it('tile X (4-way) creates 4 roads and 4 fields', () => {
-    const tile = placed('base_X', 0, 0)
+    const tile = placed('base2_X', 0, 0)
     const board = { ...emptyBoard(), tiles: { '0,0': tile } }
     const uf = emptyUnionFindState()
     const { state } = addTileToUnionFind(uf, board, TILE_MAP, tile)
@@ -126,8 +126,8 @@ describe('Two-tile feature merging', () => {
     // Place E at (0,0) and rotated-180 E at (0,-1)
     // (0,-1) has SOUTH=CITY, (0,0) has NORTH=CITY → should merge
     const { uf } = buildBoard([
-      placed('base_E', 0, 0, 0),
-      placed('base_E', 0, -1, 180),  // 180° → city on SOUTH
+      placed('base2_E', 0, 0, 0),
+      placed('base2_E', 0, -1, 180),  // 180° → city on SOUTH
     ])
 
     const features = getAllFeatures(uf)
@@ -139,8 +139,8 @@ describe('Two-tile feature merging', () => {
   it('merged city has reduced open edge count', () => {
     // Two city-E tiles connected vertically
     const { uf } = buildBoard([
-      placed('base_E', 0, 0, 0),
-      placed('base_E', 0, -1, 180),
+      placed('base2_E', 0, 0, 0),
+      placed('base2_E', 0, -1, 180),
     ])
     const features = getAllFeatures(uf)
     const city = features.find(f => f.type === 'CITY')!
@@ -155,8 +155,8 @@ describe('Two-tile feature merging', () => {
   it('a simple 2-tile road merges correctly', () => {
     // Tile U (road NS) at (0,0) and (0,1) → road merges N→S→N
     const { uf } = buildBoard([
-      placed('base_U', 0, 0),
-      placed('base_U', 0, 1),
+      placed('base2_U', 0, 0),
+      placed('base2_U', 0, 1),
     ])
     const features = getAllFeatures(uf)
     const roads = features.filter(f => f.type === 'ROAD')
@@ -168,8 +168,8 @@ describe('Two-tile feature merging', () => {
     // Tile E city-north at (0,0), tile E (0°) at (1,0) → EAST of E = FIELD, WEST of E = FIELD
     // Two separate city features, not merged
     const { uf } = buildBoard([
-      placed('base_E', 0, 0),
-      placed('base_E', 1, 0),
+      placed('base2_E', 0, 0),
+      placed('base2_E', 1, 0),
     ])
     const features = getAllFeatures(uf)
     const cities = features.filter(f => f.type === 'CITY')
@@ -187,11 +187,11 @@ describe('Feature completion', () => {
     // Tile C surrounded on all 4 sides by other C tiles → city completes
     // Each C tile has all CITY edges so they all match
     const { uf, allCompleted } = buildBoard([
-      placed('base_C', 0, 0),  // center
-      placed('base_C', 1, 0),  // east
-      placed('base_C', -1, 0), // west
-      placed('base_C', 0, 1),  // south
-      placed('base_C', 0, -1), // north
+      placed('base2_C', 0, 0),  // center
+      placed('base2_C', 1, 0),  // east
+      placed('base2_C', -1, 0), // west
+      placed('base2_C', 0, 1),  // south
+      placed('base2_C', 0, -1), // north
     ])
     const features = getAllFeatures(uf)
     const cities = features.filter(f => f.type === 'CITY')
@@ -215,9 +215,9 @@ describe('Feature completion', () => {
     // U: NORTH=ROAD, EAST=FIELD, SOUTH=ROAD, WEST=FIELD
     // Place: W(0,0), U(0,1), W(0,2) — road goes N→S through U, W tiles terminate each end
     const { uf, allCompleted } = buildBoard([
-      placed('base_W', 0, 0),   // T-junction: roads go E, S, W from here
-      placed('base_U', 0, 1),   // straight road N-S
-      placed('base_W', 0, 2),   // another T-junction
+      placed('base2_W', 0, 0),   // T-junction: roads go E, S, W from here
+      placed('base2_U', 0, 1),   // straight road N-S
+      placed('base2_W', 0, 2),   // another T-junction
     ])
     void uf
     // The road segment between W tiles should complete
@@ -239,8 +239,8 @@ describe('Feature completion', () => {
     // B at 180°: NORTH=ROAD (was SOUTH), EAST=FIELD, SOUTH=FIELD, WEST=FIELD
     // B(0,0) SOUTH=ROAD, B(0,1) NORTH=ROAD at 180° → they connect, road is enclosed on both ends
     const { uf, allCompleted } = buildBoard([
-      placed('base_A', 0, 0, 0),
-      placed('base_A', 0, 1, 180),
+      placed('base2_A', 0, 0, 0),
+      placed('base2_A', 0, 1, 180),
     ])
     const features = getAllFeatures(uf)
     const roads = features.filter(f => f.type === 'ROAD')
@@ -262,13 +262,13 @@ describe('Cloister detection', () => {
   it('cloister surrounded by 8 tiles completes', () => {
     // Place tile A (cloister) at center, surrounded by 8 field tiles
     const tiles: PlacedTile[] = [
-      placed('base_A', 0, 0),   // the cloister
+      placed('base2_A', 0, 0),   // the cloister
     ]
     // Surround with 8 field-only tiles (E tiles facing away from center, or A tiles)
     for (let dy = -1; dy <= 1; dy++) {
       for (let dx = -1; dx <= 1; dx++) {
         if (dx === 0 && dy === 0) continue
-        tiles.push(placed('base_A', dx, dy))
+        tiles.push(placed('base2_A', dx, dy))
       }
     }
     const { uf } = buildBoard(tiles)
@@ -281,11 +281,11 @@ describe('Cloister detection', () => {
 
   it('cloister with 4 neighbors reports tileCount=5', () => {
     const tiles: PlacedTile[] = [
-      placed('base_A', 0, 0),
-      placed('base_A', 0, 1),
-      placed('base_A', 0, -1),
-      placed('base_A', 1, 0),
-      placed('base_A', -1, 0),
+      placed('base2_A', 0, 0),
+      placed('base2_A', 0, 1),
+      placed('base2_A', 0, -1),
+      placed('base2_A', 1, 0),
+      placed('base2_A', -1, 0),
     ]
     const { uf } = buildBoard(tiles)
     const features = getAllFeatures(uf)
@@ -300,27 +300,27 @@ describe('Cloister detection', () => {
 
 describe('countSurroundingTiles', () => {
   it('isolated tile has 0 surrounding tiles', () => {
-    const board = { ...emptyBoard(), tiles: { '0,0': placed('base_A', 0, 0) } }
+    const board = { ...emptyBoard(), tiles: { '0,0': placed('base2_A', 0, 0) } }
     expect(countSurroundingTiles(board, { x: 0, y: 0 })).toBe(0)
   })
 
   it('tile with 4 orthogonal neighbors has 4 surrounding tiles', () => {
     const { board } = buildBoard([
-      placed('base_A', 0, 0),
-      placed('base_A', 1, 0),
-      placed('base_A', -1, 0),
-      placed('base_A', 0, 1),
-      placed('base_A', 0, -1),
+      placed('base2_A', 0, 0),
+      placed('base2_A', 1, 0),
+      placed('base2_A', -1, 0),
+      placed('base2_A', 0, 1),
+      placed('base2_A', 0, -1),
     ])
     expect(countSurroundingTiles(board, { x: 0, y: 0 })).toBe(4)
   })
 
   it('tile with all 8 neighbors has 8 surrounding tiles', () => {
-    const tiles: PlacedTile[] = [placed('base_A', 0, 0)]
+    const tiles: PlacedTile[] = [placed('base2_A', 0, 0)]
     for (let dy = -1; dy <= 1; dy++) {
       for (let dx = -1; dx <= 1; dx++) {
         if (dx === 0 && dy === 0) continue
-        tiles.push(placed('base_A', dx, dy))
+        tiles.push(placed('base2_A', dx, dy))
       }
     }
     const { board } = buildBoard(tiles)

@@ -7,6 +7,7 @@ import { EndGameModal } from './components/ui/EndGameModal.tsx'
 import { TileDebugger } from './components/debug/TileDebugger.tsx'
 
 import { CarcassonneGallery } from './components/CarcassonneGallery.tsx'
+import { CastView } from './components/cast/CastView.tsx'
 
 function App() {
   const { gameState, refreshDefinitions } = useGameStore()
@@ -20,11 +21,16 @@ function App() {
 
   const showDebug = currentHash === '#debug' || currentHash === '#config'
   const showGallery = currentHash === '#gallery' || currentHash === '#catalog'
+  const showCast = currentHash === '#cast' || currentHash === '#tv'
 
   useEffect(() => {
     // Refresh definitions from DB on mount so that persisted games get logic updates
     refreshDefinitions()
   }, [])
+
+  if (showCast) {
+    return <CastView />
+  }
 
   if (showGallery) {
     return <CarcassonneGallery />

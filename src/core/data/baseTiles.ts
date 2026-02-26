@@ -1,9 +1,10 @@
 import type { TileDefinition } from '../types/tile.ts'
 
 export const BASE_TILES: TileDefinition[] = [
-  // base_A
+  // base2_A
   {
-    id: 'base_A',
+    id: 'base2_A',
+    expansionId: 'base-c2',
     count: 2,
     imageUrl: '/images/BaseGame_C2/Base_Game_C2_Tile_A.jpg',
     segments: [
@@ -64,9 +65,10 @@ export const BASE_TILES: TileDefinition[] = [
       ]
     ]
   },
-  // base_B
+  // base2_B
   {
-    id: 'base_B',
+    id: 'base2_B',
+    expansionId: 'base-c2',
     count: 4,
     imageUrl: '/images/BaseGame_C2/Base_Game_C2_Tile_B.jpg',
     segments: [
@@ -110,9 +112,10 @@ export const BASE_TILES: TileDefinition[] = [
       ]
     ]
   },
-  // base_C
+  // base2_C
   {
-    id: 'base_C',
+    id: 'base2_C',
+    expansionId: 'base-c2',
     count: 1,
     imageUrl: '/images/BaseGame_C2/Base_Game_C2_Tile_C.jpg',
     segments: [
@@ -142,9 +145,10 @@ export const BASE_TILES: TileDefinition[] = [
       WEST_RIGHT: 'city0'
     }
   },
-  // base_D
+  // base2_D
   {
-    id: 'base_D',
+    id: 'base2_D',
+    expansionId: 'base-c2',
     count: 4,
     imageUrl: '/images/BaseGame_C2/Base_Game_C2_Tile_D.jpg',
     startingTile: true,
@@ -215,9 +219,10 @@ export const BASE_TILES: TileDefinition[] = [
       ]
     ]
   },
-  // base_E
+  // base2_E
   {
-    id: 'base_E',
+    id: 'base2_E',
+    expansionId: 'base-c2',
     count: 5,
     imageUrl: '/images/BaseGame_C2/Base_Game_C2_Tile_E.jpg',
     segments: [
@@ -261,9 +266,10 @@ export const BASE_TILES: TileDefinition[] = [
       ]
     ]
   },
-  // base_F
+  // base2_F
   {
-    id: 'base_F',
+    id: 'base2_F',
+    expansionId: 'base-c2',
     count: 2,
     imageUrl: '/images/BaseGame_C2/Base_Game_C2_Tile_F.jpg',
     segments: [
@@ -321,9 +327,10 @@ export const BASE_TILES: TileDefinition[] = [
       ]
     ]
   },
-  // base_G
+  // base2_G
   {
-    id: 'base_G',
+    id: 'base2_G',
+    expansionId: 'base-c2',
     count: 1,
     imageUrl: '/images/BaseGame_C2/Base_Game_C2_Tile_G.jpg',
     segments: [
@@ -380,9 +387,10 @@ export const BASE_TILES: TileDefinition[] = [
       ]
     ]
   },
-  // base_H
+  // base2_H
   {
-    id: 'base_H',
+    id: 'base2_H',
+    expansionId: 'base-c2',
     count: 3,
     imageUrl: '/images/BaseGame_C2/Base_Game_C2_Tile_H.jpg',
     segments: [
@@ -439,9 +447,10 @@ export const BASE_TILES: TileDefinition[] = [
       ]
     ]
   },
-  // base_I
+  // base2_I
   {
-    id: 'base_I',
+    id: 'base2_I',
+    expansionId: 'base-c2',
     count: 2,
     imageUrl: '/images/BaseGame_C2/Base_Game_C2_Tile_I.jpg',
     segments: [
@@ -498,9 +507,10 @@ export const BASE_TILES: TileDefinition[] = [
       ]
     ]
   },
-  // base_J
+  // base2_J
   {
-    id: 'base_J',
+    id: 'base2_J',
+    expansionId: 'base-c2',
     count: 3,
     imageUrl: '/images/BaseGame_C2/Base_Game_C2_Tile_J.jpg',
     segments: [
@@ -570,9 +580,10 @@ export const BASE_TILES: TileDefinition[] = [
       ]
     ]
   },
-  // base_K
+  // base2_K
   {
-    id: 'base_K',
+    id: 'base2_K',
+    expansionId: 'base-c2',
     count: 3,
     imageUrl: '/images/BaseGame_C2/Base_Game_C2_Tile_K.jpg',
     segments: [
@@ -642,9 +653,10 @@ export const BASE_TILES: TileDefinition[] = [
       ]
     ]
   },
-  // base_L
+  // base2_L
   {
-    id: 'base_L',
+    id: 'base2_L',
+    expansionId: 'base-c2',
     count: 3,
     imageUrl: '/images/BaseGame_C2/Base_Game_C2_Tile_L.jpg',
     segments: [
@@ -757,9 +769,10 @@ export const BASE_TILES: TileDefinition[] = [
       ]
     ]
   },
-  // base_M
+  // base2_M
   {
-    id: 'base_M',
+    id: 'base2_M',
+    expansionId: 'base-c2',
     count: 2,
     imageUrl: '/images/BaseGame_C2/Base_Game_C2_Tile_M.jpg',
     segments: [
@@ -804,9 +817,10 @@ export const BASE_TILES: TileDefinition[] = [
       ]
     ]
   },
-  // base_N
+  // base2_N
   {
-    id: 'base_N',
+    id: 'base2_N',
+    expansionId: 'base-c2',
     count: 3,
     imageUrl: '/images/BaseGame_C2/Base_Game_C2_Tile_N.jpg',
     segments: [
@@ -850,9 +864,10 @@ export const BASE_TILES: TileDefinition[] = [
       ]
     ]
   },
-  // base_O
+  // base2_O
   {
-    id: 'base_O',
+    id: 'base2_O',
+    expansionId: 'base-c2',
     count: 2,
     imageUrl: '/images/BaseGame_C2/Base_Game_C2_Tile_O.jpg',
     segments: [
@@ -923,9 +938,10 @@ export const BASE_TILES: TileDefinition[] = [
       ]
     ]
   },
-  // base_P
+  // base2_P
   {
-    id: 'base_P',
+    id: 'base2_P',
+    expansionId: 'base-c2',
     count: 3,
     imageUrl: '/images/BaseGame_C2/Base_Game_C2_Tile_P.jpg',
     segments: [
@@ -995,9 +1011,10 @@ export const BASE_TILES: TileDefinition[] = [
       ]
     ]
   },
-  // base_Q
+  // base2_Q
   {
-    id: 'base_Q',
+    id: 'base2_Q',
+    expansionId: 'base-c2',
     count: 1,
     imageUrl: '/images/BaseGame_C2/Base_Game_C2_Tile_Q.jpg',
     segments: [
@@ -1042,9 +1059,10 @@ export const BASE_TILES: TileDefinition[] = [
       ]
     ]
   },
-  // base_R
+  // base2_R
   {
-    id: 'base_R',
+    id: 'base2_R',
+    expansionId: 'base-c2',
     count: 3,
     imageUrl: '/images/BaseGame_C2/Base_Game_C2_Tile_R.jpg',
     segments: [
@@ -1088,9 +1106,10 @@ export const BASE_TILES: TileDefinition[] = [
       ]
     ]
   },
-  // base_S
+  // base2_S
   {
-    id: 'base_S',
+    id: 'base2_S',
+    expansionId: 'base-c2',
     count: 2,
     imageUrl: '/images/BaseGame_C2/Base_Game_C2_Tile_S.jpg',
     segments: [
@@ -1169,9 +1188,10 @@ export const BASE_TILES: TileDefinition[] = [
       ]
     ]
   },
-  // base_T
+  // base2_T
   {
-    id: 'base_T',
+    id: 'base2_T',
+    expansionId: 'base-c2',
     count: 1,
     imageUrl: '/images/BaseGame_C2/Base_Game_C2_Tile_T.jpg',
     segments: [
@@ -1249,9 +1269,10 @@ export const BASE_TILES: TileDefinition[] = [
       ]
     ]
   },
-  // base_U
+  // base2_U
   {
-    id: 'base_U',
+    id: 'base2_U',
+    expansionId: 'base-c2',
     count: 8,
     imageUrl: '/images/BaseGame_C2/Base_Game_C2_Tile_U.jpg',
     segments: [
@@ -1308,9 +1329,10 @@ export const BASE_TILES: TileDefinition[] = [
       ]
     ]
   },
-  // base_V
+  // base2_V
   {
-    id: 'base_V',
+    id: 'base2_V',
+    expansionId: 'base-c2',
     count: 9,
     imageUrl: '/images/BaseGame_C2/Base_Game_C2_Tile_V.jpg',
     segments: [
@@ -1367,9 +1389,10 @@ export const BASE_TILES: TileDefinition[] = [
       ]
     ]
   },
-  // base_W
+  // base2_W
   {
-    id: 'base_W',
+    id: 'base2_W',
+    expansionId: 'base-c2',
     count: 4,
     imageUrl: '/images/BaseGame_C2/Base_Game_C2_Tile_W.jpg',
     segments: [
@@ -1469,9 +1492,10 @@ export const BASE_TILES: TileDefinition[] = [
       ]
     ]
   },
-  // base_X
+  // base2_X
   {
-    id: 'base_X',
+    id: 'base2_X',
+    expansionId: 'base-c2',
     count: 1,
     imageUrl: '/images/BaseGame_C2/Base_Game_C2_Tile_X.jpg',
     segments: [

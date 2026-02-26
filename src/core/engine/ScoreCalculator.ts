@@ -25,7 +25,10 @@ export function countAdjacentCompletedCities(feature: Feature, state: UnionFindS
   const cityRoots = new Set(
     feature.touchingCityIds
       .map(key => getFeatureRoot(state, key))
-      .filter(root => state.featureData[root]?.isComplete)
+      .filter(root => {
+        const f = state.featureData[root]
+        return f && f.type === 'CITY' && f.isComplete
+      })
   )
   return cityRoots.size
 }

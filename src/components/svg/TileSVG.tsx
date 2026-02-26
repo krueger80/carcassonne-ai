@@ -46,9 +46,9 @@ export const TileSVG = memo(({
   showSchematic = false,
 }: TileSVGProps) => {
   // Sort segments: FIELD first (background), then CITY, ROAD, CLOISTER
-  const renderOrder: Record<string, number> = { FIELD: 0, CITY: 1, ROAD: 2, CLOISTER: 3 }
+  const renderOrder: Record<string, number> = { FIELD: 0, RIVER: 1, CITY: 2, ROAD: 3, CLOISTER: 4 }
   const sortedSegments = [...definition.segments].sort(
-    (a, b) => (renderOrder[a.type] ?? 4) - (renderOrder[b.type] ?? 4)
+    (a, b) => (renderOrder[a.type] ?? 5) - (renderOrder[b.type] ?? 5)
   )
 
   return (
@@ -191,13 +191,25 @@ export const TileSVG = memo(({
       {/* Meeples — use the logical (unrotated) centroid so the CSS rotation
           on the SVG carries the meeple to the correct visual position.
           Counter-rotate the meeple group so the figure stays upright. */}
-      {definition.segments.map(seg => {
-        const meeple = meeples[seg.id]
-        if (!meeple) return null
-        if (!seg.meepleCentroid) return null
-        const { x, y } = seg.meepleCentroid
+      {Object.entries(meeples).map(([meepleKey, meeple]) => {
+        // Meeple keys can be 'segmentId' or 'segmentId_BUILDER'
+        const baseSegmentId = meepleKey.includes('_') && !definition.segments.some(s => s.id === meepleKey)
+          ? meepleKey.split('_')[0]
+          : meepleKey
+
+        const seg = definition.segments.find(s => s.id === baseSegmentId)
+        if (!seg?.meepleCentroid) return null
+
+        let { x, y } = seg.meepleCentroid
+
+        // Offset builders and pigs so they don't exactly perfectly overlap the normal meeple
+        if (meeple.isBuilder || meeple.isPig) {
+          x += 12
+          y -= 8
+        }
+
         return (
-          <g key={seg.id} transform={`rotate(${-rotation}, ${x}, ${y})`}>
+          <g key={meepleKey} transform={`rotate(${-rotation}, ${x}, ${y})`}>
             <MeepleSVG
               color={meeple.color}
               x={x}

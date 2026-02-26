@@ -8,12 +8,17 @@
 
 import type { TileDefinition } from '../core/types/tile.ts'
 import { tileService } from './tileService.ts'
+import { BASE1_TILES } from '../core/data/baseTilesC1.ts'
 import { BASE_TILES } from '../core/data/baseTiles.ts'
+import { BASE3_TILES } from '../core/data/baseTilesC3.ts'
 import { BASE_TILES_C3 } from '../core/data/baseTiles_C3.ts'
+import { IC1_TILES } from '../core/data/innsCathedralsTilesC1.ts'
+import { IC2_TILES } from '../core/data/innsCathedralsTilesC2.ts'
 import { IC_TILES } from '../core/data/innsCathedralsTiles.ts'
-import { IC_TILES_C3 } from '../core/data/innsCathedralsTiles_C3.ts'
 import { IC_C31_TILES } from '../core/data/innsCathedralsC31Tiles.ts'
+import { TB1_TILES } from '../core/data/tradersBuildersTilesC1.ts'
 import { TB_TILES } from '../core/data/tradersBuildersTiles.ts'
+import { TB3_TILES } from '../core/data/tradersBuildersTilesC3.ts'
 import { TB_C31_TILES } from '../core/data/tradersBuildersC31Tiles.ts'
 import { DF_TILES } from '../core/data/dragonFairyTiles.ts'
 
@@ -21,6 +26,15 @@ import { DF_TILES } from '../core/data/dragonFairyTiles.ts'
 
 let cachedTiles: TileDefinition[] | null = null
 let cachedMap: Record<string, TileDefinition> | null = null
+
+// ─── All hardcoded fallback tiles ────────────────────────────────────────────
+
+const FALLBACK_TILES = () => [
+  ...BASE1_TILES, ...BASE_TILES, ...BASE3_TILES, ...BASE_TILES_C3,
+  ...IC1_TILES, ...IC2_TILES, ...IC_TILES, ...IC_C31_TILES,
+  ...TB1_TILES, ...TB_TILES, ...TB3_TILES, ...TB_C31_TILES,
+  ...DF_TILES,
+]
 
 // ─── Public API ──────────────────────────────────────────────────────────────
 
@@ -35,15 +49,14 @@ export async function loadAllTiles(): Promise<TileDefinition[]> {
         const dbTiles = await tileService.fetchAll()
         if (dbTiles.length > 0) {
             cachedTiles = dbTiles
-            cachedMap = null // invalidate map cache
+            cachedMap = null
             return cachedTiles
         }
     } catch (e) {
         console.warn('[TileRegistry] DB fetch failed, using hardcoded fallback', e)
     }
 
-    // Fallback to hardcoded definitions
-    cachedTiles = [...BASE_TILES, ...BASE_TILES_C3, ...IC_TILES, ...IC_TILES_C3, ...IC_C31_TILES, ...TB_TILES, ...TB_C31_TILES, ...DF_TILES]
+    cachedTiles = FALLBACK_TILES()
     cachedMap = null
     return cachedTiles
 }
@@ -53,22 +66,21 @@ export async function loadAllTiles(): Promise<TileDefinition[]> {
  */
 export async function loadTileMap(): Promise<Record<string, TileDefinition>> {
     if (cachedMap) return cachedMap
-
     const tiles = await loadAllTiles()
     cachedMap = Object.fromEntries(tiles.map(t => [t.id, t]))
     return cachedMap
 }
 
 /**
- * Load only base-game tiles.
+ * Load only base-game tiles (C2 edition).
  */
 export async function loadBaseTiles(): Promise<TileDefinition[]> {
     const tiles = await loadAllTiles()
-    return tiles.filter(t => !t.expansionId || t.expansionId === 'base')
+    return tiles.filter(t => !t.expansionId || t.expansionId === 'base-c2')
 }
 
 /**
- * Load tiles for a specific expansion.
+ * Load tiles for a specific versioned expansion ID (e.g. 'inns-cathedrals-c3').
  */
 export async function loadExpansionTiles(expansionId: string): Promise<TileDefinition[]> {
     const tiles = await loadAllTiles()
@@ -76,11 +88,10 @@ export async function loadExpansionTiles(expansionId: string): Promise<TileDefin
 }
 
 /**
- * Get the hardcoded fallback tiles (synchronous, no DB).
- * Used by the engine and tests when no async context is available.
+ * Get all hardcoded fallback tiles (synchronous, no DB).
  */
 export function getFallbackTiles(): TileDefinition[] {
-    return [...BASE_TILES, ...BASE_TILES_C3, ...IC_TILES, ...IC_TILES_C3, ...IC_C31_TILES, ...TB_TILES, ...TB_C31_TILES, ...DF_TILES]
+    return FALLBACK_TILES()
 }
 
 export function getFallbackBaseTiles(): TileDefinition[] {
@@ -88,7 +99,7 @@ export function getFallbackBaseTiles(): TileDefinition[] {
 }
 
 export function getFallbackTileMap(): Record<string, TileDefinition> {
-    return Object.fromEntries([...BASE_TILES, ...BASE_TILES_C3, ...IC_TILES, ...IC_TILES_C3, ...IC_C31_TILES, ...TB_TILES, ...TB_C31_TILES, ...DF_TILES].map(t => [t.id, t]))
+    return Object.fromEntries(FALLBACK_TILES().map(t => [t.id, t]))
 }
 
 /**

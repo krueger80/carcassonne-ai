@@ -1,5 +1,5 @@
-export type EdgeType = 'CITY' | 'ROAD' | 'FIELD'
-export type FeatureType = 'CITY' | 'ROAD' | 'CLOISTER' | 'FIELD'
+export type EdgeType = 'CITY' | 'ROAD' | 'FIELD' | 'RIVER'
+export type FeatureType = 'CITY' | 'ROAD' | 'CLOISTER' | 'FIELD' | 'RIVER'
 export type Direction = 'NORTH' | 'EAST' | 'SOUTH' | 'WEST'
 export type Rotation = 0 | 90 | 180 | 270
 

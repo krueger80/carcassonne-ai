@@ -24,7 +24,7 @@ import type { DragonFairyState } from '../../src/core/expansions/dragonFairy.ts'
 function createDfGame(): GameState {
   return initGame({
     playerNames: ['Alice', 'Bob'],
-    expansions: ['dragon-fairy'],
+    expansions: ['dragon-fairy-c31'],
   })
 }
 
@@ -111,7 +111,7 @@ describe('D&F tile definitions', () => {
 
   it('all tiles have expansionId set to dragon-fairy', () => {
     for (const tile of DF_TILES) {
-      expect(tile.expansionId).toBe('dragon-fairy')
+      expect(tile.expansionId).toBe('dragon-fairy-c31')
     }
   })
 
@@ -121,14 +121,14 @@ describe('D&F tile definitions', () => {
     expect(hoards.length).toBeGreaterThanOrEqual(6)
   })
 
-  it('has 12 Dragon tiles', () => {
+  it('has 10 Dragon tiles', () => {
     const dragons = DF_TILES.filter(t => t.hasDragon)
-    expect(dragons.length).toBe(12)
+    expect(dragons.length).toBe(10)
   })
 
-  it('has 4 magic portal tiles', () => {
+  it('has 6 magic portal tiles', () => {
     const portals = DF_TILES.filter(t => t.hasMagicPortal)
-    expect(portals.length).toBe(4)
+    expect(portals.length).toBe(6)
   })
 
   it('Dragon Hoard tiles do NOT have dragon or magic portal flags', () => {
@@ -155,7 +155,7 @@ describe('D&F tile definitions', () => {
 
 describe('D&F expansion config', () => {
   it('has correct expansion properties', () => {
-    expect(DRAGON_FAIRY_EXPANSION.id).toBe('dragon-fairy')
+    expect(DRAGON_FAIRY_EXPANSION.id).toBe('dragon-fairy-c31')
     expect(DRAGON_FAIRY_EXPANSION.enableDragonAndFairy).toBe(true)
     expect(DRAGON_FAIRY_EXPANSION.enableBigMeeple).toBe(false)
     expect(DRAGON_FAIRY_EXPANSION.tiles.length).toBe(26)
@@ -187,9 +187,9 @@ describe('D&F game initialization', () => {
 
   it('includes D&F tile definitions in staticTileMap', () => {
     const state = createDfGame()
-    expect(state.staticTileMap['df_1']).toBeDefined()
-    expect(state.staticTileMap['df_K']).toBeDefined()
-    expect(state.staticTileMap['df_S']).toBeDefined()
+    expect(state.staticTileMap['df31_1']).toBeDefined()
+    expect(state.staticTileMap['df31_K']).toBeDefined()
+    expect(state.staticTileMap['df31_S']).toBeDefined()
   })
 })
 
@@ -200,7 +200,7 @@ describe('Dragon Hoard tile detection', () => {
     const state = createDfGame()
     const stateWithHoard = {
       ...state,
-      currentTile: { definitionId: 'df_1', rotation: 0 as const },
+      currentTile: { definitionId: 'df31_1', rotation: 0 as const },
     }
     expect(isDragonHoardTile(stateWithHoard)).toBe(true)
   })
@@ -209,7 +209,7 @@ describe('Dragon Hoard tile detection', () => {
     const state = createDfGame()
     const stateWithDragon = {
       ...state,
-      currentTile: { definitionId: 'df_K', rotation: 0 as const },
+      currentTile: { definitionId: 'df31_K', rotation: 0 as const },
     }
     expect(isDragonHoardTile(stateWithDragon)).toBe(false)
   })
@@ -222,7 +222,7 @@ describe('Magic Portal tile detection', () => {
     const state = createDfGame()
     const stateWithPortal = {
       ...state,
-      currentTile: { definitionId: 'df_S', rotation: 0 as const },
+      currentTile: { definitionId: 'df31_S', rotation: 0 as const },
     }
     expect(isMagicPortalTile(stateWithPortal)).toBe(true)
   })
@@ -231,7 +231,7 @@ describe('Magic Portal tile detection', () => {
     const state = createDfGame()
     const stateWithHoard = {
       ...state,
-      currentTile: { definitionId: 'df_1', rotation: 0 as const },
+      currentTile: { definitionId: 'df31_1', rotation: 0 as const },
     }
     expect(isMagicPortalTile(stateWithHoard)).toBe(false)
   })
@@ -259,13 +259,13 @@ describe('Dragon movement', () => {
     // Meeple on (2,0)
     const player = state.players[0]
     state = buildLinearBoard(state, [
-      { x: 1, y: 0, defId: 'df_K' },
+      { x: 1, y: 0, defId: 'df31_K' },
       {
-        x: 2, y: 0, defId: 'df_H', meeples: {
+        x: 2, y: 0, defId: 'df31_H', meeples: {
           city_N: { playerId: player.id, meepleType: 'NORMAL', segmentId: 'city_N' },
         }
       },
-      { x: 3, y: 0, defId: 'df_C' },
+      { x: 3, y: 0, defId: 'df31_C' },
     ])
 
     // Set dragon at (0,0) facing EAST
@@ -312,8 +312,8 @@ describe('Dragon movement', () => {
     // Dragon at (0,0) facing EAST
     // Fairy at (2,0)
     state = buildLinearBoard(state, [
-      { x: 1, y: 0, defId: 'df_K' },
-      { x: 2, y: 0, defId: 'df_H' },
+      { x: 1, y: 0, defId: 'df31_K' },
+      { x: 2, y: 0, defId: 'df31_H' },
     ])
 
     state = setDfState(state, {
@@ -338,7 +338,7 @@ describe('Dragon movement', () => {
     // Place just one tile east of starting: (1,0)
     // Dragon at (0,0) facing EAST — can only move to (1,0)
     state = buildLinearBoard(state, [
-      { x: 1, y: 0, defId: 'df_K' },
+      { x: 1, y: 0, defId: 'df31_K' },
     ])
 
     state = setDfState(state, {
@@ -393,7 +393,7 @@ describe('Fairy movement', () => {
     // Place a tile with a meeple
     state = buildLinearBoard(state, [
       {
-        x: 1, y: 0, defId: 'df_N', meeples: {
+        x: 1, y: 0, defId: 'df31_N', meeples: {
           city_N: { playerId: player.id, meepleType: 'NORMAL', segmentId: 'city_N' },
         }
       },
@@ -412,7 +412,7 @@ describe('Fairy movement', () => {
     // Place a tile with OTHER player's meeple
     state = buildLinearBoard(state, [
       {
-        x: 1, y: 0, defId: 'df_N', meeples: {
+        x: 1, y: 0, defId: 'df31_N', meeples: {
           city_N: { playerId: otherPlayer.id, meepleType: 'NORMAL', segmentId: 'city_N' },
         }
       },
@@ -501,13 +501,13 @@ describe('Magic Portal placements', () => {
 
     // Place an extra tile
     state = buildLinearBoard(state, [
-      { x: 1, y: 0, defId: 'df_N' },
+      { x: 1, y: 0, defId: 'df31_N' },
     ])
 
     state = {
       ...state,
       turnPhase: 'PLACE_MEEPLE',
-      currentTile: { definitionId: 'df_S', rotation: 0 },
+      currentTile: { definitionId: 'df31_S', rotation: 0 },
     }
 
     // Get portal placements

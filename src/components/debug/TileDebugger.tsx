@@ -39,6 +39,12 @@ export function TileDebugger() {
         const tile = editedTiles[selectedTileId]
         if (!tile) return
 
+        const errors = validateTile(tile)
+        if (errors.length > 0) {
+            setToast({ message: 'Validation failed:\n' + errors.join('\n'), type: 'error' })
+            return
+        }
+
         try {
             await tileService.update(selectedTileId, tile)
             setEditedTiles(prev => {
@@ -93,12 +99,19 @@ export function TileDebugger() {
         handleUpdate({ segments: newSegments })
     }
 
-    const handleEdgeUpdate = (pos: EdgePosition, segId: string) => {
+    const handleEdgeUpdate = (pos: EdgePosition, segId: string | null) => {
+        const newEdgeMapping = { ...activeTile.edgePositionToSegment }
+
+        if (!segId || (activeTile.edgePositionToSegment[pos] === segId)) {
+            // Clear mapping if segId is null or if clicking the same segment again
+            delete newEdgeMapping[pos]
+        } else {
+            // Set mapping
+            newEdgeMapping[pos] = segId
+        }
+
         handleUpdate({
-            edgePositionToSegment: {
-                ...activeTile.edgePositionToSegment,
-                [pos]: segId
-            }
+            edgePositionToSegment: newEdgeMapping
         })
     }
 
@@ -157,6 +170,20 @@ export function TileDebugger() {
     const handleSaveAll = async () => {
         const ids = Object.keys(editedTiles)
         if (ids.length === 0) return
+
+        // Validate all edited tiles first
+        const allErrors: string[] = []
+        ids.forEach(id => {
+            const errors = validateTile(editedTiles[id])
+            if (errors.length > 0) {
+                allErrors.push(`Tile ${id}: ${errors[0]}${errors.length > 1 ? ` (+${errors.length - 1} more)` : ''}`)
+            }
+        })
+
+        if (allErrors.length > 0) {
+            setToast({ message: 'Some tiles failed validation:\n' + allErrors.join('\n'), type: 'error' })
+            return
+        }
 
         if (!confirm(`Save changes for ${ids.length} tiles?`)) return
 
@@ -400,7 +427,7 @@ function EditorArea({
     onUpdate: (u: Partial<TileDefinition>) => void,
     onSelectSegment: (id: string | null) => void,
     onSegmentUpdate: (id: string, u: Partial<Segment>) => void,
-    onEdgeUpdate: (pos: EdgePosition, segId: string) => void
+    onEdgeUpdate: (pos: EdgePosition, segId: string | null) => void
 }) {
     const [showSchematic, setShowSchematic] = useState(true)
 
@@ -459,8 +486,26 @@ function PropertiesPanel({
 }) {
 
 
+    const validationErrors = validateTile(tile)
+
     return (
         <div style={{ width: 500, borderLeft: '1px solid #444', overflowY: 'auto', display: 'flex', flexDirection: 'column', padding: 15, position: 'relative', zIndex: 20, background: '#222' }}>
+            {validationErrors.length > 0 && (
+                <div style={{
+                    background: '#442222',
+                    border: '1px solid #aa4444',
+                    borderRadius: 4,
+                    padding: 10,
+                    marginBottom: 15,
+                    fontSize: 12,
+                    color: '#ffaaaa'
+                }}>
+                    <div style={{ fontWeight: 'bold', marginBottom: 5 }}>⚠️ Validation Errors</div>
+                    <ul style={{ margin: 0, paddingLeft: 20 }}>
+                        {validationErrors.map((err, i) => <li key={i}>{err}</li>)}
+                    </ul>
+                </div>
+            )}
             <div style={{ marginBottom: 20, borderBottom: '1px solid #444', paddingBottom: 15 }}>
                 <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
                     <label>
@@ -482,7 +527,7 @@ function PropertiesPanel({
                     </label>
 
                     {/* Dragon & Fairy tile-level flags */}
-                    {(tile.expansionId === 'dragon-fairy' || tile.isDragonHoard || tile.hasDragon || tile.hasMagicPortal) && (
+                    {(tile.expansionId === 'dragon-fairy-c31' || tile.isDragonHoard || tile.hasDragon || tile.hasMagicPortal) && (
                         <div style={{ display: 'flex', gap: 12, flexWrap: 'wrap', marginTop: 5 }}>
                             <label
                                 onClick={e => e.stopPropagation()}
@@ -539,6 +584,7 @@ function PropertiesPanel({
                     <button onClick={() => onAddSegment('ROAD')} style={{ fontSize: 10, padding: 4, background: '#888', color: 'black', border: 'none', borderRadius: 4, cursor: 'pointer' }}>+Road</button>
                     <button onClick={() => onAddSegment('CITY')} style={{ fontSize: 10, padding: 4, background: '#8B4513', color: 'white', border: 'none', borderRadius: 4, cursor: 'pointer' }}>+City</button>
                     <button onClick={() => onAddSegment('CLOISTER')} style={{ fontSize: 10, padding: 4, background: '#DAA520', color: 'black', border: 'none', borderRadius: 4, cursor: 'pointer' }}>+Abbey</button>
+                    <button onClick={() => onAddSegment('RIVER')} style={{ fontSize: 10, padding: 4, background: '#00BFFF', color: 'white', border: 'none', borderRadius: 4, cursor: 'pointer' }}>+River</button>
                 </div>
             </div>
 
@@ -620,6 +666,7 @@ function PropertiesPanel({
                                     <option value="ROAD">ROAD</option>
                                     <option value="FIELD">FIELD</option>
                                     <option value="CLOISTER">CLOISTER</option>
+                                    <option value="RIVER">RIVER</option>
                                 </select>
                                 <button
                                     title="Delete Segment"
@@ -678,7 +725,7 @@ function PropertiesPanel({
                             </div>
 
                             <div style={{ fontSize: 10, color: '#aaa' }}>
-                                Pos: ({Math.round(seg.meepleCentroid.x)}, {Math.round(seg.meepleCentroid.y)})
+                                {seg.type !== 'RIVER' ? `Pos: (${Math.round(seg.meepleCentroid.x)}, ${Math.round(seg.meepleCentroid.y)})` : 'Meeple placement disabled'}
                             </div>
                         </div>
                     )
@@ -715,8 +762,99 @@ function getColorForType(type: string) {
         case 'ROAD': return '#FFF'
         case 'FIELD': return '#32CD32' // LimeGreen
         case 'CLOISTER': return '#FFD700' // Gold
+        case 'RIVER': return '#00BFFF' // DeepSkyBlue
         default: return '#888'
     }
+}
+
+/**
+ * Validates a tile definition for completeness and Carcassonne logic consistency.
+ */
+function validateTile(tile: TileDefinition): string[] {
+    const errors: string[] = []
+
+    // 0. Basic Properties
+    if (!tile.id) errors.push('Tile ID is missing')
+    if (tile.count < 0) errors.push('Tile count cannot be negative')
+    if (!tile.imageUrl) errors.push('Tile image URL is missing')
+
+    // 1. Completeness: All 12 edge positions must be mapped
+    const expectedPositions = [
+        'NORTH_LEFT', 'NORTH_CENTER', 'NORTH_RIGHT',
+        'EAST_LEFT', 'EAST_CENTER', 'EAST_RIGHT',
+        'SOUTH_LEFT', 'SOUTH_CENTER', 'SOUTH_RIGHT',
+        'WEST_LEFT', 'WEST_CENTER', 'WEST_RIGHT'
+    ]
+    expectedPositions.forEach(pos => {
+        const segId = tile.edgePositionToSegment[pos as EdgePosition]
+        if (!segId) {
+            errors.push(`Missing mapping for edge position ${pos}`)
+        } else if (!tile.segments.some(s => s.id === segId)) {
+            errors.push(`Edge position ${pos} maps to non-existent segment ${segId}`)
+        }
+    })
+
+    // 2. Adjacency Logic
+    const segmentIds = new Set(tile.segments.map(s => s.id))
+    if (tile.adjacencies) {
+        tile.adjacencies.forEach(([id1, id2], idx) => {
+            if (!segmentIds.has(id1)) errors.push(`Adjacency #${idx} references non-existent segment ${id1}`)
+            if (!segmentIds.has(id2)) errors.push(`Adjacency #${idx} references non-existent segment ${id2}`)
+            if (id1 === id2) errors.push(`Adjacency #${idx}: Self-adjacency detected for ${id1}`)
+        })
+    }
+
+    // 3. Edge Type Homogeneity (Carcassonne Geometry Rules)
+    const getEdgePattern = (dir: 'NORTH' | 'EAST' | 'SOUTH' | 'WEST') => {
+        const centerSegId = tile.edgePositionToSegment[`${dir}_CENTER` as EdgePosition]
+        const leftSegId = tile.edgePositionToSegment[`${dir}_LEFT` as EdgePosition]
+        const rightSegId = tile.edgePositionToSegment[`${dir}_RIGHT` as EdgePosition]
+
+        const centerType = tile.segments.find(s => s.id === centerSegId)?.type
+        const leftType = tile.segments.find(s => s.id === leftSegId)?.type
+        const rightType = tile.segments.find(s => s.id === rightSegId)?.type
+
+        return { centerType, leftType, rightType }
+    }
+
+    (['NORTH', 'EAST', 'SOUTH', 'WEST'] as const).forEach(dir => {
+        const { centerType, leftType, rightType } = getEdgePattern(dir)
+        if (!centerType) return // Already caught by completeness check
+
+        // Valid patterns: CCC, FFF, FRF
+        // const pattern = `${leftType?.charAt(0)}${centerType?.charAt(0)}${rightType?.charAt(0)}`
+
+        if (centerType === 'CITY') {
+            if (leftType !== 'CITY' || rightType !== 'CITY') {
+                errors.push(`${dir} edge error: Center is CITY, so sides must be CITY (not ${leftType}/${rightType})`)
+            }
+        } else if (centerType === 'ROAD') {
+            if (leftType !== 'FIELD' || rightType !== 'FIELD') {
+                errors.push(`${dir} edge error: Center is ROAD, so sides must be FIELD (not ${leftType}/${rightType})`)
+            }
+        } else if (centerType === 'FIELD') {
+            if (leftType !== 'FIELD' || rightType !== 'FIELD') {
+                errors.push(`${dir} edge error: Center is FIELD, so sides must be FIELD (not ${leftType}/${rightType})`)
+            }
+        } else if (centerType === 'RIVER') {
+            if (leftType !== 'FIELD' || rightType !== 'FIELD') {
+                errors.push(`${dir} edge error: Center is RIVER, so sides must be FIELD (not ${leftType}/${rightType})`)
+            }
+        } else if (centerType === 'CLOISTER') {
+            errors.push(`${dir} edge error: CLOISTER cannot be an edge segment`)
+        }
+    })
+
+    // 4. Segment Integrity
+    tile.segments.forEach(seg => {
+        if (!seg.id) errors.push(`Segment with type ${seg.type} is missing an ID`)
+        if (!seg.svgPath) errors.push(`Segment ${seg.id} is missing an SVG path`)
+        if (seg.meepleCentroid.x < 0 || seg.meepleCentroid.x > 100 || seg.meepleCentroid.y < 0 || seg.meepleCentroid.y > 100) {
+            errors.push(`Segment ${seg.id} meeple centroid is out of bounds`)
+        }
+    })
+
+    return errors
 }
 
 function EditorCanvas({
@@ -727,7 +865,7 @@ function EditorCanvas({
     onUpdate: (u: Partial<TileDefinition>) => void,
     onSelectSegment: (id: string | null) => void,
     onSegmentUpdate: (id: string, u: Partial<Segment>) => void,
-    onEdgeUpdate: (pos: EdgePosition, segId: string) => void,
+    onEdgeUpdate: (pos: EdgePosition, segId: string | null) => void,
     showSchematic: boolean
 }) {
     const size = 600
@@ -891,6 +1029,9 @@ function EditorCanvas({
                                 e.stopPropagation() // Prevent drag
                                 if (activeSegmentId) {
                                     onEdgeUpdate(pos, activeSegmentId)
+                                } else if (assignedSegId) {
+                                    // If no segment is selected but the edge is assigned, clear it
+                                    onEdgeUpdate(pos, null)
                                 } else {
                                     alert('Select a segment first to assign it to this edge.')
                                 }
