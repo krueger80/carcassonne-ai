@@ -881,3 +881,39 @@ export const selectCurrentPlayer = (s: { gameState: GameState | null }) => {
   if (!s.gameState) return null
   return s.gameState.players[s.gameState.currentPlayerIndex]
 }
+
+// ── Cross-tab sync via BroadcastChannel (for Cast/TV view) ────────────────────
+const castSyncChannel = typeof BroadcastChannel !== 'undefined'
+  ? new BroadcastChannel('carcassonne-sync')
+  : null
+
+if (castSyncChannel) {
+  // Guard flag to prevent echo loops: when a tab receives a STATE_UPDATE and
+  // calls setState, the subscribe fires — this flag stops it from re-broadcasting.
+  let _isSyncReceive = false
+
+  // Broadcast gameState changes to other tabs (Cast view).
+  // JSON serialize to strip non-cloneable data (functions in tile defs, scoring rules).
+  // The cast view only needs display data (tiles, meeples, scores), not game logic.
+  useGameStore.subscribe((state, prev) => {
+    if (_isSyncReceive) return // Don't echo back received updates
+    if (state.gameState !== prev.gameState && state.gameState) {
+      try {
+        const json = JSON.stringify(state.gameState)
+        castSyncChannel.postMessage({ type: 'STATE_UPDATE', json })
+      } catch { /* ignore serialization errors */ }
+    }
+  })
+
+  // Receive updates from other tabs (e.g., player tab → cast tab)
+  castSyncChannel.onmessage = (event) => {
+    if (event.data?.type === 'STATE_UPDATE' && event.data.json) {
+      try {
+        const gameState = JSON.parse(event.data.json)
+        _isSyncReceive = true
+        useGameStore.setState({ gameState })
+        _isSyncReceive = false
+      } catch { /* ignore parse errors */ }
+    }
+  }
+}
