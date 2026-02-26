@@ -6,7 +6,6 @@ import {
     endTurn
 } from '../src/core/engine/GameEngine.ts'
 import { getPlaceableSegments } from '../src/core/engine/MeeplePlacement.ts'
-import type { GameState } from '../src/core/types/game.ts'
 
 describe('Meeple Placement Bug Reproduction', () => {
     it('should not allow placing a meeple on a city occupied by a meeple and a builder', () => {
@@ -29,7 +28,7 @@ describe('Meeple Placement Bug Reproduction', () => {
             currentTile: { definitionId: 'tb31_O', rotation: 270 }
         }
         state = placeTile(state, { x: -1, y: 0 })
-        
+
         // Alice places NORMAL + BUILDER on city0
         state = placeMeeple(state, 'city0', 'NORMAL', 'BUILDER')
         state = endTurn(state)
@@ -44,23 +43,23 @@ describe('Meeple Placement Bug Reproduction', () => {
         // Original tb31_O: N=city, W=city, S=road, E=road.
         // 270 rotation: N=W=city, E=N=city, S=E=road, W=S=road.
         // So West edge of rotated tb31_O is road.
-        
+
         // Let's try rotation 90:
         // North -> East
         // West -> North
         // Wait, rotation 90 is North -> East? No, North -> East is 90.
         // North -> East (90), East -> South (90), South -> West (90), West -> North (90).
-        
+
         // Original tb31_O: N=city, W=city.
         // Rotation 90: N(was W) = city, E(was N) = city.
         // Rotation 180: E(was W) = city, S(was N) = city.
         // Rotation 270: S(was W) = city, W(was N) = city.
-        
+
         // OK, Alice places tb31_O at (0, 1) rotated 0 (N=city, W=city)
         // Start tile (0,0) has city on North.
         // So (0,1) South edge connects to (0,0) North edge.
         // But (0,1) South edge is road/field.
-        
+
         // Start tile (0,0) is base2_D (City on North).
         // Alice places tb31_O at (0, -1) rotated 180.
         // Original N=city, W=city.
@@ -80,7 +79,7 @@ describe('Meeple Placement Bug Reproduction', () => {
         state = placeTile(state, { x: 0, y: -1 })
         state = placeMeeple(state, 'city0', 'NORMAL', 'BUILDER')
         state = endTurn(state)
-        
+
         // Bob's turn
         // Bob draws tb31_W and places it at (1, -1)
         // (0,-1) has city on South and East.
@@ -93,7 +92,7 @@ describe('Meeple Placement Bug Reproduction', () => {
             currentTile: { definitionId: 'tb31_W', rotation: 0 }
         }
         state = placeTile(state, { x: 1, y: -1 })
-        
+
         // Check if Bob can place meeple on city0 of (1, -1)
         const bobPlayer = state.players[state.currentPlayerIndex]
         const placeableSegments = getPlaceableSegments(
@@ -103,9 +102,9 @@ describe('Meeple Placement Bug Reproduction', () => {
             { x: 1, y: -1 },
             bobPlayer
         )
-        
+
         console.log('Placeable segments for Bob:', placeableSegments)
-        
+
         expect(placeableSegments).not.toContain('city0')
     })
 })

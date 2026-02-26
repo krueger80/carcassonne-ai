@@ -86,7 +86,6 @@ describe('Traders & Builders C3.1 Scoring Verification', () => {
 
     it('verifies that isBuilderBonusTurn is cleared after the bonus turn ends', () => {
         // 1. Manually trigger a bonus turn
-        const p1Id = state.players[0].id
         state.expansionData['tradersBuilders'] = {
             isBuilderBonusTurn: true,
             pendingBuilderBonus: false,
