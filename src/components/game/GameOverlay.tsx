@@ -5,6 +5,7 @@ import { motion, AnimatePresence } from 'framer-motion'
 import { useEffect, useState, useMemo } from 'react'
 import { SetupScreen } from '../setup/SetupScreen.tsx'
 import { PlayerCard } from '../ui/PlayerCard.tsx'
+import { useCastSender } from '../../cast/useCastSender.ts'
 
 export function GameOverlay() {
     const {
@@ -35,6 +36,7 @@ export function GameOverlay() {
     } = useGameStore()
 
     const { selectedMeepleType, setSelectedMeepleType } = useUIStore()
+    const { sdkReady } = useCastSender()
 
     const [isMenuOpen, setIsMenuOpen] = useState(false)
     const [showNewGameScreen, setShowNewGameScreen] = useState(false)
@@ -337,6 +339,26 @@ export function GameOverlay() {
                     </div>
                 )}
             </div>
+
+            {/* ── Chromecast Button ───────────────────────────────────────────── */}
+            {sdkReady && (
+                <div style={{
+                    position: 'absolute',
+                    top: 28,
+                    right: 140,
+                    pointerEvents: 'auto',
+                    zIndex: 40,
+                }}>
+                    <google-cast-launcher style={{
+                        display: 'inline-block',
+                        width: 24,
+                        height: 24,
+                        cursor: 'pointer',
+                        '--connected-color': '#4CAF50',
+                        '--disconnected-color': '#fff',
+                    } as React.CSSProperties} />
+                </div>
+            )}
 
             {/* ── Left Sidebar: Players & Menu ──────────────────────────────── */}
             <div
