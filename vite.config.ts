@@ -12,4 +12,12 @@ export default defineConfig({
       '@hooks': resolve(__dirname, 'src/hooks'),
     },
   },
+  build: {
+    rollupOptions: {
+      input: {
+        main: resolve(__dirname, 'index.html'),
+        receiver: resolve(__dirname, 'receiver.html'),
+      },
+    },
+  },
 })
