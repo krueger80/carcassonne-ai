@@ -4,6 +4,10 @@ import { resolve } from 'path'
 
 export default defineConfig({
   plugins: [react()],
+  server: {
+    allowedHosts: true,
+    host: true,
+  },
   resolve: {
     alias: {
       '@core': resolve(__dirname, 'src/core'),
