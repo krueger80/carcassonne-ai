@@ -382,6 +382,9 @@ export function GameOverlay() {
                 <div style={{ position: 'relative', pointerEvents: 'auto', alignSelf: 'flex-start', marginBottom: 20 }} onPointerDown={(e) => e.stopPropagation()}>
                     <button
                         onClick={(e) => { e.stopPropagation(); setIsMenuOpen(!isMenuOpen) }}
+                        aria-label={isMenuOpen ? "Close menu" : "Open menu"}
+                        aria-expanded={isMenuOpen}
+                        aria-controls="game-menu-dropdown"
                         style={{
                             background: 'rgba(0,0,0,0.6)',
                             border: '1px solid #555',
@@ -404,6 +407,7 @@ export function GameOverlay() {
                     <AnimatePresence>
                         {isMenuOpen && (
                             <motion.div
+                                id="game-menu-dropdown"
                                 initial={{ opacity: 0, y: -10, scale: 0.95 }}
                                 animate={{ opacity: 1, y: 0, scale: 1 }}
                                 exit={{ opacity: 0, y: -10, scale: 0.95 }}
