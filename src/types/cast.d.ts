@@ -32,7 +32,12 @@ declare global {
 
       interface CastSession {
         getSessionId(): string
-        sendMessage(namespace: string, message: string): Promise<void>
+        sendMessage(
+          namespace: string,
+          message: string,
+          successCallback?: () => void,
+          errorCallback?: (err: any) => void,
+        ): void
         addMessageListener(
           namespace: string,
           listener: (namespace: string, message: string) => void,

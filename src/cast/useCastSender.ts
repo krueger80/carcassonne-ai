@@ -45,8 +45,12 @@ export function useCastSender() {
       const message = JSON.stringify({ type: 'STATE_UPDATE', json })
       console.log(`[Cast] Sending state. Payload size: ${Math.round(message.length / 1024)} KB`)
 
-      session.sendMessage(CAST_NAMESPACE, message)
-        .catch((err: unknown) => console.warn('[Cast] sendMessage rejected:', err))
+      session.sendMessage(
+        CAST_NAMESPACE,
+        message,
+        () => console.log('[Cast] State sent'),
+        (err: unknown) => console.warn('[Cast] sendMessage failed:', err),
+      )
     } catch (err) {
       console.error('[Cast] Failed to send state:', err)
     }
@@ -115,7 +119,9 @@ export function useCastSender() {
           sessionRef.current!.sendMessage(
             CAST_NAMESPACE,
             JSON.stringify({ type: 'STATE_UPDATE', json }),
-          ).catch((err: unknown) => console.warn('[Cast] sendMessage rejected:', err))
+            () => console.log('[Cast] State update sent'),
+            (err: unknown) => console.warn('[Cast] sendMessage failed:', err),
+          )
         } catch (err) {
           console.error('[Cast] Failed to send state update:', err)
         }
