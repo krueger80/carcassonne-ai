@@ -6,6 +6,7 @@ import { motion, AnimatePresence } from 'framer-motion'
 import { useEffect, useState, useMemo, useRef } from 'react'
 import { SetupScreen } from '../setup/SetupScreen.tsx'
 import { PlayerCard } from '../ui/PlayerCard.tsx'
+import { TileSVG } from '../svg/TileSVG.tsx'
 import { useCastSender } from '../../cast/useCastSender.ts'
 
 export function GameOverlay() {
@@ -64,6 +65,27 @@ export function GameOverlay() {
     useEffect(() => {
         setSelectedMeepleType('NORMAL')
     }, [gameState?.currentPlayerIndex, setSelectedMeepleType])
+
+    // Hide system cursor and inject tile-cursor when in PLACE_TILE+IDLE
+    const isCursorModePre = gameState?.turnPhase === 'PLACE_TILE' && interactionState === 'IDLE'
+    useEffect(() => {
+        if (!isCursorModePre) return
+        const style = document.createElement('style')
+        style.textContent = '* { cursor: none !important; }'
+        document.head.appendChild(style)
+        return () => { document.head.removeChild(style) }
+    }, [isCursorModePre])
+
+    // Scroll wheel rotates tile during PLACE_TILE
+    useEffect(() => {
+        if (gameState?.turnPhase !== 'PLACE_TILE') return
+        const handleWheel = (e: WheelEvent) => {
+            e.preventDefault()
+            rotateTentativeTile()
+        }
+        window.addEventListener('wheel', handleWheel, { passive: false })
+        return () => window.removeEventListener('wheel', handleWheel)
+    }, [gameState?.turnPhase, rotateTentativeTile])
 
     // Failsafe: recalculate valid placements on mount/phase-change.
     // Always merges fallback tile map with persisted map to cover the page-refresh
@@ -251,28 +273,10 @@ export function GameOverlay() {
         canUndo: turnPhase === 'DRAGON_ORIENT' && !dfData?.dragonMovement && !!gameState.lastPlacedCoord,
     }
 
-    // ── Active player card positioning ────────────────────────────────────────
-    // PLACE_TILE + IDLE              → follows cursor, 38% opacity
-    // PLACE_TILE + TILE_PLACED_TENT. → follows cursor, 72% opacity
-    // Any other phase                → fixed top-right corner, 100% opacity
-    const CARD_W = 300
-    const CARD_H = 320
-
-    // Follow cursor only while idle in PLACE_TILE (no spot selected yet)
+    // ── Tile cursor ───────────────────────────────────────────────────────────
+    const TILE_CURSOR_SIZE = 72
+    // isCursorMode: tile image follows cursor during PLACE_TILE+IDLE
     const isCursorMode = turnPhase === 'PLACE_TILE' && interactionState === 'IDLE'
-
-    // Cursor-following position (20 px right of cursor, clamped to screen)
-    const rawLeft  = cursorPos.x + 20
-    const rawTop   = cursorPos.y - 50
-    const flipLeft = rawLeft + CARD_W > window.innerWidth - 8
-    const cursorLeft = Math.max(8, flipLeft ? cursorPos.x - CARD_W - 20 : rawLeft)
-    const cursorTop  = Math.max(8, Math.min(rawTop, window.innerHeight - CARD_H - 8))
-
-    // Fixed top-right (sits just below the "Tiles:" badge at top:24)
-    const fixedRight = 16   // px from right edge
-    const fixedTop   = 80  // px from top
-
-    const cardOpacity = isCursorMode ? 0.38 : 1.0
 
     return (
         <div style={{
@@ -655,113 +659,78 @@ export function GameOverlay() {
                     marginTop: 'auto',
                 }}
                 >
-                    {/* Inactive players only — current player floats near cursor */}
+                    {/* All players — inactive collapsed when showOpponents=false, active always visible */}
                     <AnimatePresence mode="popLayout">
-                        {orderedPlayers.filter(p => p.id !== currentPlayer.id).map((p) => (
-                            <motion.div
-                                key={p.id}
-                                layout
-                                initial={{ opacity: 0, x: -20 }}
-                                animate={
-                                    showOpponents
-                                        ? { opacity: 0.7, scale: 0.95, x: 0 }
-                                        : { opacity: 0.5, scale: 0.92, x: 0 }
-                                }
-                                transition={{ type: 'spring', stiffness: 300, damping: 25 }}
-                                style={{
-                                    position: 'relative',
-                                    zIndex: 1,
-                                    pointerEvents: 'auto',
-                                    cursor: 'pointer',
-                                    ...(!showOpponents ? {
-                                        height: 8,
-                                        overflow: 'hidden',
-                                        marginBottom: -4,
-                                    } : {}),
-                                }}
-                                onPointerDown={(e) => e.stopPropagation()}
-                                onClick={(e) => {
-                                    if ((e.target as HTMLElement).closest('button')) return
-                                    setShowOpponents(!showOpponents)
-                                }}
-                            >
-                                <PlayerCard
-                                    player={p}
-                                    isCurrentTurn={false}
-                                    isBuilderBonusTurn={false}
-                                    hasTradersBuilders={hasTradersBuilders}
-                                    hasInnsCathedrals={hasInnsCathedrals}
-                                    hasDragonHeldBy={dfData?.dragonHeldBy ?? null}
-                                    useModernTerminology={useModernTerminology}
-                                />
-                            </motion.div>
-                        ))}
+                        {orderedPlayers.map((p) => {
+                            const isActive = p.id === currentPlayer.id
+                            return (
+                                <motion.div
+                                    key={p.id}
+                                    layout
+                                    initial={{ opacity: 0, x: -20 }}
+                                    animate={
+                                        isActive
+                                            ? { opacity: 1, scale: 1, x: 0 }
+                                            : showOpponents
+                                                ? { opacity: 0.7, scale: 0.95, x: 0 }
+                                                : { opacity: 0.5, scale: 0.92, x: 0 }
+                                    }
+                                    transition={{ type: 'spring', stiffness: 300, damping: 25 }}
+                                    style={{
+                                        position: 'relative',
+                                        zIndex: isActive ? 10 : 1,
+                                        pointerEvents: 'auto',
+                                        cursor: isActive ? 'default' : 'pointer',
+                                        ...(!isActive && !showOpponents ? {
+                                            height: 8,
+                                            overflow: 'hidden',
+                                            marginBottom: -4,
+                                        } : {}),
+                                    }}
+                                    onPointerDown={(e) => e.stopPropagation()}
+                                    onClick={(e) => {
+                                        if (isActive) return
+                                        if ((e.target as HTMLElement).closest('button')) return
+                                        setShowOpponents(!showOpponents)
+                                    }}
+                                >
+                                    <PlayerCard
+                                        player={p}
+                                        isCurrentTurn={isActive}
+                                        isBuilderBonusTurn={isActive && isBuilderBonusTurn}
+                                        hasTradersBuilders={hasTradersBuilders}
+                                        hasInnsCathedrals={hasInnsCathedrals}
+                                        hasDragonHeldBy={dfData?.dragonHeldBy ?? null}
+                                        useModernTerminology={useModernTerminology}
+                                        turnState={isActive ? currentPlayerTurnState : undefined}
+                                    />
+                                </motion.div>
+                            )
+                        })}
                     </AnimatePresence>
                 </div>
             </div>
 
-            {/* ── Active player card ────────────────────────────────────────────
-                PLACE_TILE  → follows cursor (plain style, instant — framer-motion
-                              can't reliably track per-frame cursor updates)
-                Other phases → fixed top-right via CSS `right`, fully opaque.
-                CSS transition only fires when switching modes:
-                  cursor→fixed : position + opacity animate (springy bezier)
-                  fixed→cursor : position jumps instantly (transition removed)  */}
-            {isCursorMode ? (
-                /* Cursor-following: plain div, position updates every rAF frame */
-                <div
-                    style={{
-                        position: 'absolute',
-                        left: cursorLeft,
-                        top: cursorTop,
-                        width: CARD_W,
-                        zIndex: 55,
-                        pointerEvents: 'none',
-                        opacity: cardOpacity,
-                        transition: 'opacity 0.2s ease',
-                    }}
-                    onPointerDown={(e) => e.stopPropagation()}
-                >
-                    <div style={{ pointerEvents: 'auto' }}>
-                        <PlayerCard
-                            player={currentPlayer}
-                            isCurrentTurn={true}
-                            isBuilderBonusTurn={isBuilderBonusTurn}
-                            hasTradersBuilders={hasTradersBuilders}
-                            hasInnsCathedrals={hasInnsCathedrals}
-                            hasDragonHeldBy={dfData?.dragonHeldBy ?? null}
-                            useModernTerminology={useModernTerminology}
-                            turnState={currentPlayerTurnState}
-                        />
-                    </div>
-                </div>
-            ) : (
-                /* Fixed top-right: CSS `right` property, never moves with cursor */
-                <div
-                    style={{
-                        position: 'absolute',
-                        right: fixedRight,
-                        top: fixedTop,
-                        width: CARD_W,
-                        zIndex: 55,
-                        pointerEvents: 'none',
-                        opacity: 1,
-                        transition: 'opacity 0.2s ease',
-                    }}
-                    onPointerDown={(e) => e.stopPropagation()}
-                >
-                    <div style={{ pointerEvents: 'auto' }}>
-                        <PlayerCard
-                            player={currentPlayer}
-                            isCurrentTurn={true}
-                            isBuilderBonusTurn={isBuilderBonusTurn}
-                            hasTradersBuilders={hasTradersBuilders}
-                            hasInnsCathedrals={hasInnsCathedrals}
-                            hasDragonHeldBy={dfData?.dragonHeldBy ?? null}
-                            useModernTerminology={useModernTerminology}
-                            turnState={currentPlayerTurnState}
-                        />
-                    </div>
+            {/* ── Tile cursor (replaces hand cursor during PLACE_TILE+IDLE) ─── */}
+            {isCursorMode && currentTile && gameState.staticTileMap[currentTile.definitionId] && (
+                <div style={{
+                    position: 'absolute',
+                    left: cursorPos.x - TILE_CURSOR_SIZE / 2,
+                    top: cursorPos.y - TILE_CURSOR_SIZE / 2,
+                    width: TILE_CURSOR_SIZE,
+                    height: TILE_CURSOR_SIZE,
+                    borderRadius: 6,
+                    overflow: 'hidden',
+                    pointerEvents: 'none',
+                    zIndex: 70,
+                    opacity: 0.88,
+                    boxShadow: `0 4px 16px rgba(0,0,0,0.6), 0 0 0 2px ${currentPlayer.color}80`,
+                }}>
+                    <TileSVG
+                        definition={gameState.staticTileMap[currentTile.definitionId]}
+                        rotation={currentTile.rotation}
+                        size={TILE_CURSOR_SIZE}
+                    />
                 </div>
             )}
         </div>

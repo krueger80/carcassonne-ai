@@ -1,6 +1,5 @@
 import { Player, MeepleType } from "../../core/types/player";
 import { MeepleSVG } from "../svg/MeepleSVG";
-import { TileSVG } from "../svg/TileSVG";
 import { TileDefinition, Rotation, Direction } from "../../core/types/tile";
 import { Coordinate } from "../../core/types/board";
 import { Button } from "./Button";
@@ -332,77 +331,14 @@ export function PlayerCard({ player, isCurrentTurn, isBuilderBonusTurn = false, 
                     )}
                 </div>
 
-                {/* Right Col: Tile Preview (Active only) */}
-                {isCurrentTurn && turnState?.currentTile && turnState.tileDefinition && (
-                    <div
-                        style={{
-                            width: 80,
-                            display: 'flex',
-                            flexDirection: 'column',
-                            alignItems: 'center',
-                            gap: 4,
-                            cursor: (turnState.phase === 'DRAGON_ORIENT' || turnState.phase === 'PLACE_TILE') ? 'pointer' : 'default'
-                        }}
-                        onClick={
-                            turnState.phase === 'DRAGON_ORIENT'
-                                ? turnState.actions.cycleDragonFacing
-                                : turnState.phase === 'PLACE_TILE'
-                                    ? turnState.actions.rotate
-                                    : undefined
-                        }
-                    >
-                        <div style={{
-                            width: 80, height: 80,
-                            borderRadius: 8, overflow: 'hidden',
-                            boxShadow: '0 4px 10px rgba(0,0,0,0.5)',
-                            border: '1px solid #666',
-                            background: '#000',
-                            position: 'relative'
-                        }}>
-                            <TileSVG
-                                definition={turnState.tileDefinition}
-                                rotation={turnState.currentTile.rotation}
-                                size={80}
-                            />
-                            {turnState.phase === 'DRAGON_ORIENT' && (
-                                <div style={{
-                                    position: 'absolute',
-                                    inset: 0,
-                                    display: 'flex',
-                                    alignItems: 'center',
-                                    justifyContent: 'center',
-                                    background: 'rgba(231, 76, 60, 0.1)',
-                                    zIndex: 5,
-                                }}>
-                                    <svg width="40" height="40" viewBox="0 0 24 24">
-                                        <text x="12" y="17" textAnchor="middle" fontSize="16" fill="#e74c3c"
-                                            style={{ filter: 'drop-shadow(0 1px 2px rgba(0,0,0,0.8))' }}>
-                                            {turnState.tentativeDragonFacing === 'NORTH' ? '\u25B2' :
-                                                turnState.tentativeDragonFacing === 'SOUTH' ? '\u25BC' :
-                                                    turnState.tentativeDragonFacing === 'EAST' ? '\u25B6' :
-                                                        turnState.tentativeDragonFacing === 'WEST' ? '\u25C0' : '\u2666'}
-                                        </text>
-                                    </svg>
-                                </div>
-                            )}
-                        </div>
-                        {turnState.phase === 'PLACE_TILE' && (
-                            <div style={{ fontSize: 9, color: '#aaa', fontWeight: 'bold' }}>
-                                Cliquer pour tourner ⭮
-                            </div>
-                        )}
-                        {turnState.phase === 'DRAGON_ORIENT' && (
-                            <div style={{ fontSize: 9, color: '#e74c3c', fontWeight: 'bold' }}>
-                                Click to Rotate ↻
-                            </div>
-                        )}
-                    </div>
-                )}
             </div>
 
             {/* 4. Action Buttons (Active only) */}
             {isCurrentTurn && turnState && (
                 <div style={{ marginTop: 4, display: 'flex', gap: 8 }}>
+                    {turnState.phase === 'PLACE_TILE' && turnState.interactionState === 'IDLE' && (
+                        <Button onClick={turnState.actions.rotate!} style={{ flex: 1 }}>⭮ Rotate</Button>
+                    )}
                     {turnState.phase === 'PLACE_TILE' && turnState.interactionState === 'TILE_PLACED_TENTATIVELY' && (
                         <>
                             <Button onClick={turnState.actions.confirm!} primary style={{ flex: 1 }}>Confirm</Button>
@@ -424,6 +360,7 @@ export function PlayerCard({ player, isCurrentTurn, isBuilderBonusTurn = false, 
                     )}
                     {turnState.phase === 'DRAGON_ORIENT' && turnState.actions.confirmDragonOrientation && (
                         <>
+                            <Button onClick={turnState.actions.cycleDragonFacing!} style={{ flex: 1 }}>↻ Cycle</Button>
                             <Button
                                 onClick={turnState.actions.confirmDragonOrientation}
                                 primary
