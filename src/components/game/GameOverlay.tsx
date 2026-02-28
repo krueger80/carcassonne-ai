@@ -251,26 +251,27 @@ export function GameOverlay() {
         canUndo: turnPhase === 'DRAGON_ORIENT' && !dfData?.dragonMovement && !!gameState.lastPlacedCoord,
     }
 
-    // ── Floating card: two modes ───────────────────────────────────────────────
-    // PLACE_TILE phase  → follows cursor, semi-transparent (waiting) or more opaque (placed tentatively)
-    // All other phases  → fixed top-right, fully opaque (tile placed, action time)
+    // ── Active player card positioning ────────────────────────────────────────
+    // PLACE_TILE + IDLE              → follows cursor, 38% opacity
+    // PLACE_TILE + TILE_PLACED_TENT. → follows cursor, 72% opacity
+    // Any other phase                → fixed top-right corner, 100% opacity
     const CARD_W = 300
     const CARD_H = 320
+
+    // Only follow cursor while the player is still deciding where to place the tile
     const isCursorMode = turnPhase === 'PLACE_TILE'
 
-    // Cursor-following position
-    const rawLeft = cursorPos.x + 20
-    const rawTop  = cursorPos.y - 50
+    // Cursor-following position (20 px right of cursor, clamped to screen)
+    const rawLeft  = cursorPos.x + 20
+    const rawTop   = cursorPos.y - 50
     const flipLeft = rawLeft + CARD_W > window.innerWidth - 8
     const cursorLeft = Math.max(8, flipLeft ? cursorPos.x - CARD_W - 20 : rawLeft)
     const cursorTop  = Math.max(8, Math.min(rawTop, window.innerHeight - CARD_H - 8))
 
-    // Fixed top-right position (below the "Tiles:" badge which is at top:24)
-    const fixedLeft = window.innerWidth - CARD_W - 16
-    const fixedTop  = 80
+    // Fixed top-right (sits just below the "Tiles:" badge at top:24)
+    const fixedRight = 16   // px from right edge
+    const fixedTop   = 80  // px from top
 
-    const cardLeft    = isCursorMode ? cursorLeft : fixedLeft
-    const cardTop     = isCursorMode ? cursorTop  : fixedTop
     const cardOpacity = isCursorMode
         ? (interactionState === 'IDLE' ? 0.38 : 0.72)
         : 1.0
@@ -702,31 +703,69 @@ export function GameOverlay() {
             </div>
 
             {/* ── Active player card ────────────────────────────────────────────
-                PLACE_TILE:  follows cursor, transparent
-                Other phases: fixed top-right, fully opaque (spring animation)   */}
-            <motion.div
-                style={{ position: 'absolute', width: CARD_W, zIndex: 55, pointerEvents: 'none' }}
-                animate={{ left: cardLeft, top: cardTop, opacity: cardOpacity }}
-                transition={isCursorMode
-                    ? { duration: 0 }                                          // instant cursor tracking
-                    : { type: 'spring', stiffness: 280, damping: 28,           // smooth snap to corner
-                        opacity: { duration: 0.2 } }
-                }
-                onPointerDown={(e) => e.stopPropagation()}
-            >
-                <div style={{ pointerEvents: 'auto' }}>
-                    <PlayerCard
-                        player={currentPlayer}
-                        isCurrentTurn={true}
-                        isBuilderBonusTurn={isBuilderBonusTurn}
-                        hasTradersBuilders={hasTradersBuilders}
-                        hasInnsCathedrals={hasInnsCathedrals}
-                        hasDragonHeldBy={dfData?.dragonHeldBy ?? null}
-                        useModernTerminology={useModernTerminology}
-                        turnState={currentPlayerTurnState}
-                    />
+                PLACE_TILE  → follows cursor (plain style, instant — framer-motion
+                              can't reliably track per-frame cursor updates)
+                Other phases → fixed top-right via CSS `right`, fully opaque.
+                CSS transition only fires when switching modes:
+                  cursor→fixed : position + opacity animate (springy bezier)
+                  fixed→cursor : position jumps instantly (transition removed)  */}
+            {isCursorMode ? (
+                /* Cursor-following: plain div, position updates every rAF frame */
+                <div
+                    style={{
+                        position: 'absolute',
+                        left: cursorLeft,
+                        top: cursorTop,
+                        width: CARD_W,
+                        zIndex: 55,
+                        pointerEvents: 'none',
+                        opacity: cardOpacity,
+                        transition: 'opacity 0.2s ease',
+                    }}
+                    onPointerDown={(e) => e.stopPropagation()}
+                >
+                    <div style={{ pointerEvents: 'auto' }}>
+                        <PlayerCard
+                            player={currentPlayer}
+                            isCurrentTurn={true}
+                            isBuilderBonusTurn={isBuilderBonusTurn}
+                            hasTradersBuilders={hasTradersBuilders}
+                            hasInnsCathedrals={hasInnsCathedrals}
+                            hasDragonHeldBy={dfData?.dragonHeldBy ?? null}
+                            useModernTerminology={useModernTerminology}
+                            turnState={currentPlayerTurnState}
+                        />
+                    </div>
                 </div>
-            </motion.div>
+            ) : (
+                /* Fixed top-right: CSS `right` property, never moves with cursor */
+                <div
+                    style={{
+                        position: 'absolute',
+                        right: fixedRight,
+                        top: fixedTop,
+                        width: CARD_W,
+                        zIndex: 55,
+                        pointerEvents: 'none',
+                        opacity: 1,
+                        transition: 'opacity 0.2s ease',
+                    }}
+                    onPointerDown={(e) => e.stopPropagation()}
+                >
+                    <div style={{ pointerEvents: 'auto' }}>
+                        <PlayerCard
+                            player={currentPlayer}
+                            isCurrentTurn={true}
+                            isBuilderBonusTurn={isBuilderBonusTurn}
+                            hasTradersBuilders={hasTradersBuilders}
+                            hasInnsCathedrals={hasInnsCathedrals}
+                            hasDragonHeldBy={dfData?.dragonHeldBy ?? null}
+                            useModernTerminology={useModernTerminology}
+                            turnState={currentPlayerTurnState}
+                        />
+                    </div>
+                </div>
+            )}
         </div>
     )
 }
