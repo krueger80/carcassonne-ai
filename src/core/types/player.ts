@@ -1,5 +1,7 @@
 export type MeepleType = 'NORMAL' | 'BIG' | 'FARMER' | 'BUILDER' | 'PIG'
 
+export type ScoreCategory = 'ROAD' | 'CITY' | 'CLOISTER' | 'FIELD' | 'TRADER'
+
 export interface Meeple {
   id: string
   playerId: string
@@ -29,6 +31,7 @@ export interface Player {
   score: number
   meeples: PlayerMeeples
   traderTokens: Record<'CLOTH' | 'WHEAT' | 'WINE', number>
+  scoreBreakdown: Partial<Record<ScoreCategory, number>>
 }
 
 export function createPlayer(
@@ -54,6 +57,7 @@ export function createPlayer(
       onBoard: [],
     },
     traderTokens: { CLOTH: 0, WHEAT: 0, WINE: 0 },
+    scoreBreakdown: {},
   }
 }
 

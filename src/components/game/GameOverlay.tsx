@@ -1,8 +1,9 @@
 import { useGameStore } from '../../store/gameStore.ts'
 import { useUIStore } from '../../store/uiStore.ts'
 import { getAllPotentialPlacements, getValidMeepleTypes } from '../../core/engine/GameEngine.ts'
+import { getFallbackTileMap } from '../../services/tileRegistry.ts'
 import { motion, AnimatePresence } from 'framer-motion'
-import { useEffect, useState, useMemo } from 'react'
+import { useEffect, useState, useMemo, useRef } from 'react'
 import { SetupScreen } from '../setup/SetupScreen.tsx'
 import { PlayerCard } from '../ui/PlayerCard.tsx'
 import { useCastSender } from '../../cast/useCastSender.ts'
@@ -42,25 +43,49 @@ export function GameOverlay() {
     const [showNewGameScreen, setShowNewGameScreen] = useState(false)
     const [showOpponents, setShowOpponents] = useState(true)
 
+    // Track cursor position for floating active player card
+    const [cursorPos, setCursorPos] = useState({ x: 200, y: 400 })
+    const rafRef = useRef<number>(0)
+    useEffect(() => {
+        const handleMouseMove = (e: MouseEvent) => {
+            cancelAnimationFrame(rafRef.current)
+            rafRef.current = requestAnimationFrame(() => {
+                setCursorPos({ x: e.clientX, y: e.clientY })
+            })
+        }
+        window.addEventListener('mousemove', handleMouseMove)
+        return () => {
+            window.removeEventListener('mousemove', handleMouseMove)
+            cancelAnimationFrame(rafRef.current)
+        }
+    }, [])
+
     // Reset meeple type selection when turn changes
     useEffect(() => {
         setSelectedMeepleType('NORMAL')
     }, [gameState?.currentPlayerIndex, setSelectedMeepleType])
 
-    // Failsafe: if we are in PLACE_TILE but have no valid placements, try to recalculate
+    // Failsafe: recalculate valid placements on mount/phase-change.
+    // Always merges fallback tile map with persisted map to cover the page-refresh
+    // case where staticTileMap from localStorage may be stale/incomplete.
     useEffect(() => {
         if (!gameState) return
         if (gameState.turnPhase === 'PLACE_TILE' && gameState.currentTile) {
             const store = useGameStore.getState()
-            if (store.validPlacements.length === 0 && store.interactionState !== 'TILE_PLACED_TENTATIVELY') {
-                const tileMap = gameState.staticTileMap
-                const potential = getAllPotentialPlacements(gameState.board, tileMap, gameState.currentTile)
-                if (potential.length > 0) {
-                    useGameStore.setState({ validPlacements: potential })
+            if (store.interactionState === 'TILE_PLACED_TENTATIVELY') return
+            // Merge: fallback covers all hardcoded tiles; persisted map may have DB-only tiles
+            const mergedMap = { ...getFallbackTileMap(), ...(gameState.staticTileMap ?? {}) }
+            const potential = getAllPotentialPlacements(gameState.board, mergedMap, gameState.currentTile)
+            useGameStore.setState((draft) => {
+                draft.validPlacements = potential
+                // Patch staticTileMap so subsequent isValidPlacement calls also work
+                if (draft.gameState) {
+                    draft.gameState.staticTileMap = mergedMap
                 }
-            }
+            })
         }
-    }, [gameState?.turnPhase, gameState?.currentTile])
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [gameState?.turnPhase, gameState?.currentTile?.definitionId, gameState?.currentTile?.rotation])
 
     // Auto-draw if in DRAW_TILE phase (handles refresh/persistence)
     useEffect(() => {
@@ -168,6 +193,78 @@ export function GameOverlay() {
     } else if (turnPhase === 'SCORE') {
         instructionText = 'Turn ending...'
     }
+
+    // ── Current player turn state (shared between floating card and map) ─────
+    const validMeepleTypesForCard = getValidMeepleTypes(gameState)
+    const currentPlayerTurnState = {
+        phase: turnPhase,
+        interactionState,
+        statusText,
+        instructionText,
+        currentTile: currentTile ?? undefined,
+        tileDefinition: currentTile ? gameState.staticTileMap[currentTile.definitionId] : undefined,
+        actions: {
+            rotate: rotateTentativeTile,
+            confirm: confirmTilePlacement,
+            cancel: cancelTilePlacement,
+            skip: skipMeeple,
+            undo: undoTilePlacement,
+            selectMeeple: (type: any) => {
+                if (useModernTerminology && (type === 'BUILDER' || type === 'PIG')) {
+                    const currentSecondary = useGameStore.getState().tentativeSecondaryMeepleType
+                    if (currentSecondary === type) {
+                        useGameStore.setState({ tentativeSecondaryMeepleType: null })
+                    } else {
+                        useGameStore.setState({ tentativeSecondaryMeepleType: type })
+                        const currentPrimary = useUIStore.getState().selectedMeepleType
+                        if (currentPrimary !== 'NORMAL' && currentPrimary !== 'BIG') {
+                            setSelectedMeepleType('NORMAL')
+                            if (interactionState === 'MEEPLE_SELECTED_TENTATIVELY') {
+                                setTentativeMeepleType('NORMAL')
+                            }
+                        }
+                    }
+                } else {
+                    setSelectedMeepleType(type)
+                    if (interactionState === 'MEEPLE_SELECTED_TENTATIVELY') {
+                        setTentativeMeepleType(type)
+                    }
+                }
+            },
+            confirmMeeple: confirmMeeplePlacement,
+            cancelMeeple: turnPhase === 'FAIRY_MOVE' ? cancelFairyMove : cancelMeeplePlacement,
+            skipFairy: skipFairyMove,
+            startFairyMove: startFairyMove,
+            executeDragon: executeDragon,
+            cycleDragonFacing: cycleDragonFacing,
+            confirmDragonOrientation: confirmDragonOrientation,
+            placeDragonOnHoard: placeDragonOnHoard,
+        },
+        selectedMeepleType: selectedMeepleType,
+        tentativeMeepleType: tentativeMeepleType,
+        tentativeSecondaryMeepleType: tentativeSecondaryMeepleType,
+        validMeepleTypes: validMeepleTypesForCard,
+        dragonOrientations,
+        tentativeDragonFacing,
+        dragonPlaceTargets,
+        dragonMovesRemaining: dfData?.dragonMovement?.movesRemaining,
+        canUndo: turnPhase === 'DRAGON_ORIENT' && !dfData?.dragonMovement && !!gameState.lastPlacedCoord,
+    }
+
+    // ── Floating card opacity based on interaction state ──────────────────────
+    const floatingCardOpacity =
+        turnPhase === 'PLACE_TILE' && interactionState === 'IDLE' ? 0.38 :
+        turnPhase === 'PLACE_TILE' && interactionState === 'TILE_PLACED_TENTATIVELY' ? 0.72 :
+        1.0
+
+    // ── Floating card position (cursor-relative, clamped to screen) ───────────
+    const CARD_W = 300
+    const CARD_H = 320
+    const rawLeft = cursorPos.x + 20
+    const rawTop  = cursorPos.y - 50
+    const flipLeft = rawLeft + CARD_W > window.innerWidth - 8
+    const floatingLeft = Math.max(8, flipLeft ? cursorPos.x - CARD_W - 20 : rawLeft)
+    const floatingTop  = Math.max(8, Math.min(rawTop, window.innerHeight - CARD_H - 8))
 
     return (
         <div style={{
@@ -550,124 +647,76 @@ export function GameOverlay() {
                     marginTop: 'auto',
                 }}
                 >
+                    {/* Inactive players only — current player floats near cursor */}
                     <AnimatePresence mode="popLayout">
-                        {orderedPlayers.map((p) => {
-                            const isCurrent = p.id === currentPlayer.id;
-
-                            // Construct TurnState for the active player
-                            let turnState = undefined;
-                            if (isCurrent) {
-                                const validMeepleTypes = getValidMeepleTypes(gameState)
-                                turnState = {
-                                    phase: turnPhase,
-                                    interactionState,
-                                    statusText,
-                                    instructionText,
-                                    currentTile: currentTile ?? undefined,
-                                    tileDefinition: currentTile ? gameState.staticTileMap[currentTile.definitionId] : undefined,
-                                    actions: {
-                                        rotate: rotateTentativeTile,
-                                        confirm: confirmTilePlacement,
-                                        cancel: cancelTilePlacement,
-                                        skip: skipMeeple,
-                                        undo: undoTilePlacement,
-                                        selectMeeple: (type: any) => {
-                                            const useModernTerminology = tbData?.useModernTerminology ?? false
-                                            console.log('--- selectMeeple ---')
-                                            console.log('type clicked: ', type)
-                                            console.log('modern rules: ', useModernTerminology)
-
-                                            if (useModernTerminology && (type === 'BUILDER' || type === 'PIG')) {
-                                                const currentSecondary = useGameStore.getState().tentativeSecondaryMeepleType
-                                                if (currentSecondary === type) {
-                                                    // Toggle off
-                                                    useGameStore.setState({ tentativeSecondaryMeepleType: null })
-                                                } else {
-                                                    // Set secondary directly
-                                                    useGameStore.setState({ tentativeSecondaryMeepleType: type })
-
-                                                    // If normal or big isn't already selected, default to normal
-                                                    const currentPrimary = useUIStore.getState().selectedMeepleType
-                                                    if (currentPrimary !== 'NORMAL' && currentPrimary !== 'BIG') {
-                                                        const primaryType = 'NORMAL'
-                                                        setSelectedMeepleType(primaryType)
-                                                        if (interactionState === 'MEEPLE_SELECTED_TENTATIVELY') {
-                                                            setTentativeMeepleType(primaryType)
-                                                        }
-                                                    }
-                                                }
-                                            } else {
-                                                setSelectedMeepleType(type)
-                                                if (interactionState === 'MEEPLE_SELECTED_TENTATIVELY') {
-                                                    setTentativeMeepleType(type)
-                                                }
-                                            }
-                                        },
-                                        confirmMeeple: confirmMeeplePlacement,
-                                        cancelMeeple: turnPhase === 'FAIRY_MOVE' ? cancelFairyMove : cancelMeeplePlacement,
-                                        skipFairy: skipFairyMove,
-                                        startFairyMove: startFairyMove,
-                                        executeDragon: executeDragon,
-                                        cycleDragonFacing: cycleDragonFacing,
-                                        confirmDragonOrientation: confirmDragonOrientation,
-                                        placeDragonOnHoard: placeDragonOnHoard,
-                                    },
-                                    selectedMeepleType: selectedMeepleType,
-                                    tentativeMeepleType: tentativeMeepleType,
-                                    tentativeSecondaryMeepleType: tentativeSecondaryMeepleType,
-                                    validMeepleTypes,
-                                    dragonOrientations,
-                                    tentativeDragonFacing,
-                                    dragonPlaceTargets,
-                                    dragonMovesRemaining: dfData?.dragonMovement?.movesRemaining,
-                                    canUndo: turnPhase === 'DRAGON_ORIENT' && !dfData?.dragonMovement && !!gameState.lastPlacedCoord,
-                                };
-                            }
-
-                            return (
-                                <motion.div
-                                    key={p.id}
-                                    layout
-                                    initial={{ opacity: 0, x: -20 }}
-                                    animate={
-                                        isCurrent
-                                            ? { opacity: 1, scale: 1.05, x: 0 }
-                                            : showOpponents
-                                                ? { opacity: 0.7, scale: 0.95, x: 0 }
-                                                : { opacity: 0.5, scale: 0.92, x: 0 }
-                                    }
-                                    transition={{ type: 'spring', stiffness: 300, damping: 25 }}
-                                    style={{
-                                        position: 'relative',
-                                        zIndex: isCurrent ? 10 : 1,
-                                        pointerEvents: 'auto',
-                                        cursor: 'pointer',
-                                        ...(!isCurrent && !showOpponents ? {
-                                            height: 8,
-                                            overflow: 'hidden',
-                                            marginBottom: -4,
-                                        } : {}),
-                                    }}
-                                    onPointerDown={(e) => e.stopPropagation()}
-                                    onClick={(e) => {
-                                        if ((e.target as HTMLElement).closest('button')) return
-                                        setShowOpponents(!showOpponents)
-                                    }}
-                                >
-                                    <PlayerCard
-                                        player={p}
-                                        isCurrentTurn={isCurrent}
-                                        isBuilderBonusTurn={isCurrent && isBuilderBonusTurn}
-                                        hasTradersBuilders={hasTradersBuilders}
-                                        hasInnsCathedrals={hasInnsCathedrals}
-                                        hasDragonHeldBy={dfData?.dragonHeldBy ?? null}
-                                        useModernTerminology={useModernTerminology}
-                                        turnState={turnState}
-                                    />
-                                </motion.div>
-                            )
-                        })}
+                        {orderedPlayers.filter(p => p.id !== currentPlayer.id).map((p) => (
+                            <motion.div
+                                key={p.id}
+                                layout
+                                initial={{ opacity: 0, x: -20 }}
+                                animate={
+                                    showOpponents
+                                        ? { opacity: 0.7, scale: 0.95, x: 0 }
+                                        : { opacity: 0.5, scale: 0.92, x: 0 }
+                                }
+                                transition={{ type: 'spring', stiffness: 300, damping: 25 }}
+                                style={{
+                                    position: 'relative',
+                                    zIndex: 1,
+                                    pointerEvents: 'auto',
+                                    cursor: 'pointer',
+                                    ...(!showOpponents ? {
+                                        height: 8,
+                                        overflow: 'hidden',
+                                        marginBottom: -4,
+                                    } : {}),
+                                }}
+                                onPointerDown={(e) => e.stopPropagation()}
+                                onClick={(e) => {
+                                    if ((e.target as HTMLElement).closest('button')) return
+                                    setShowOpponents(!showOpponents)
+                                }}
+                            >
+                                <PlayerCard
+                                    player={p}
+                                    isCurrentTurn={false}
+                                    isBuilderBonusTurn={false}
+                                    hasTradersBuilders={hasTradersBuilders}
+                                    hasInnsCathedrals={hasInnsCathedrals}
+                                    hasDragonHeldBy={dfData?.dragonHeldBy ?? null}
+                                    useModernTerminology={useModernTerminology}
+                                />
+                            </motion.div>
+                        ))}
                     </AnimatePresence>
+                </div>
+            </div>
+
+            {/* ── Floating active player card (follows cursor) ───────────────── */}
+            <div
+                style={{
+                    position: 'absolute',
+                    left: floatingLeft,
+                    top: floatingTop,
+                    width: CARD_W,
+                    zIndex: 55,
+                    pointerEvents: 'none',
+                    opacity: floatingCardOpacity,
+                    transition: 'opacity 0.25s ease',
+                }}
+                onPointerDown={(e) => e.stopPropagation()}
+            >
+                <div style={{ pointerEvents: 'auto' }}>
+                    <PlayerCard
+                        player={currentPlayer}
+                        isCurrentTurn={true}
+                        isBuilderBonusTurn={isBuilderBonusTurn}
+                        hasTradersBuilders={hasTradersBuilders}
+                        hasInnsCathedrals={hasInnsCathedrals}
+                        hasDragonHeldBy={dfData?.dragonHeldBy ?? null}
+                        useModernTerminology={useModernTerminology}
+                        turnState={currentPlayerTurnState}
+                    />
                 </div>
             </div>
         </div>

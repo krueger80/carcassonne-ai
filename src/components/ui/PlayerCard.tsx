@@ -341,12 +341,12 @@ export function PlayerCard({ player, isCurrentTurn, isBuilderBonusTurn = false, 
                             flexDirection: 'column',
                             alignItems: 'center',
                             gap: 4,
-                            cursor: (turnState.phase === 'DRAGON_ORIENT' || (turnState.phase === 'PLACE_TILE' && turnState.interactionState === 'TILE_PLACED_TENTATIVELY')) ? 'pointer' : 'default'
+                            cursor: (turnState.phase === 'DRAGON_ORIENT' || turnState.phase === 'PLACE_TILE') ? 'pointer' : 'default'
                         }}
                         onClick={
                             turnState.phase === 'DRAGON_ORIENT'
                                 ? turnState.actions.cycleDragonFacing
-                                : (turnState.phase === 'PLACE_TILE' && turnState.interactionState === 'TILE_PLACED_TENTATIVELY')
+                                : turnState.phase === 'PLACE_TILE'
                                     ? turnState.actions.rotate
                                     : undefined
                         }
@@ -386,9 +386,9 @@ export function PlayerCard({ player, isCurrentTurn, isBuilderBonusTurn = false, 
                                 </div>
                             )}
                         </div>
-                        {(turnState.phase === 'PLACE_TILE' && turnState.interactionState === 'TILE_PLACED_TENTATIVELY') && (
+                        {turnState.phase === 'PLACE_TILE' && (
                             <div style={{ fontSize: 9, color: '#aaa', fontWeight: 'bold' }}>
-                                Click to Rotate ⭮
+                                Cliquer pour tourner ⭮
                             </div>
                         )}
                         {turnState.phase === 'DRAGON_ORIENT' && (

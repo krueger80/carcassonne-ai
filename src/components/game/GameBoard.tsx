@@ -67,6 +67,20 @@ const BoardGrid = memo(({
   const lastKey = gameState.lastPlacedCoord
     ? `${gameState.lastPlacedCoord.x},${gameState.lastPlacedCoord.y}`
     : ''
+
+  // Build a map of each player's last-placed tile coordinate → player color
+  const lastPlacedPlayerColorMap = useMemo(() => {
+    const map: Record<string, string> = {}
+    const byPlayer = gameState.lastPlacedCoordByPlayer as Record<string, { x: number; y: number }> | undefined
+    if (!byPlayer) return map
+    for (const player of gameState.players) {
+      const coord = byPlayer[player.id]
+      if (coord) {
+        map[`${coord.x},${coord.y}`] = player.color
+      }
+    }
+    return map
+  }, [gameState.lastPlacedCoordByPlayer, gameState.players])
   const tentKey = tentativeTileCoord
     ? `${tentativeTileCoord.x},${tentativeTileCoord.y}`
     : ''
@@ -141,6 +155,7 @@ const BoardGrid = memo(({
                 const isPortalTarget = inMeeplePhaseBrowsing && portalTargetsMap[key]
                 const isDragonPlaceTarget = isDragonPlacePhase && dragonPlaceTargetSet.has(key)
                 const isDragonOrientHere = isDragonOrientPhase && hasDragon
+                const lastPlacedColor = lastPlacedPlayerColorMap[key]
 
                 return (
                   <div
@@ -164,8 +179,10 @@ const BoardGrid = memo(({
                             ? 'inset 0 0 0 3px #f1c40f, 0 0 12px rgba(241,196,15,0.5)'
                             : isPortalTarget
                               ? 'inset 0 0 0 2px #9955cc, 0 0 10px rgba(153,85,204,0.4)'
-                              : undefined,
-                      borderRadius: (isDragonOrientHere || isDragonPlaceTarget || isFairyTarget || isPortalTarget) ? 2 : undefined,
+                              : lastPlacedColor
+                                ? `inset 0 0 0 2px ${lastPlacedColor}`
+                                : undefined,
+                      borderRadius: (isDragonOrientHere || isDragonPlaceTarget || isFairyTarget || isPortalTarget || lastPlacedColor) ? 2 : undefined,
                       overflow: 'visible', // Allow meeples to overlap neighbors
                     }}
                   >

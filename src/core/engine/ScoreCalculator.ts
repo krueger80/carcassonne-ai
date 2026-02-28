@@ -206,11 +206,17 @@ export function applyScoreEvents(
   players: Player[],
   events: ScoreEvent[],
 ): Player[] {
-  const updated = players.map(p => ({ ...p }))
+  const updated = players.map(p => ({ ...p, scoreBreakdown: { ...(p.scoreBreakdown ?? {}) } }))
   for (const event of events) {
+    const category = event.featureId.startsWith('trader_bonus') ? 'TRADER' : event.featureType
     for (const [playerId, points] of Object.entries(event.scores)) {
       const player = updated.find(p => p.id === playerId)
-      if (player) player.score += points
+      if (player) {
+        player.score += points
+        if (category === 'ROAD' || category === 'CITY' || category === 'CLOISTER' || category === 'FIELD' || category === 'TRADER') {
+          player.scoreBreakdown[category] = (player.scoreBreakdown[category] ?? 0) + points
+        }
+      }
     }
   }
   return updated

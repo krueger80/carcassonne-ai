@@ -258,6 +258,7 @@ export function initGame(config: GameConfig): GameState {
     tileBag: bag,
     currentTile: null,
     lastPlacedCoord: null,
+    lastPlacedCoordByPlayer: {},
     completedFeatureIds: [],
     featureUnionFind: initialUfState,
     lastScoreEvents: [],
@@ -419,11 +420,17 @@ export function placeTile(state: GameState, coord: Coordinate): GameState {
     }
   }
 
+  const currentPlayerId = state.players[state.currentPlayerIndex].id
+
   return {
     ...state,
     board: newBoard,
     currentTile: state.currentTile,  // keep for reference
     lastPlacedCoord: coord,
+    lastPlacedCoordByPlayer: {
+      ...state.lastPlacedCoordByPlayer,
+      [currentPlayerId]: coord,
+    },
     completedFeatureIds,
     featureUnionFind: newUfState,
     lastScoreEvents: [],

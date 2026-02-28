@@ -34,7 +34,7 @@ import {
   isMagicPortalTile,
 } from '../core/engine/GameEngine.ts'
 import type { GameConfig } from '../core/engine/GameEngine.ts'
-import { loadAllTiles, loadTileMap, invalidateCache } from '../services/tileRegistry.ts'
+import { loadAllTiles, loadTileMap, invalidateCache, getFallbackTileMap } from '../services/tileRegistry.ts'
 import { nodeKey } from '../core/types/feature.ts'
 import { getFeature } from '../core/engine/FeatureDetector.ts'
 import { useUIStore } from './uiStore.ts'
@@ -216,13 +216,20 @@ export const useGameStore = create<GameStore>()(
       }),
 
       rotateTentativeTile: () => set((store) => {
-        if (!store.gameState?.currentTile || !store.tentativeTileCoord) return
+        if (!store.gameState?.currentTile) return
+
+        // IDLE state (no tentative coord yet) — free +90° rotation
+        if (!store.tentativeTileCoord) {
+          const r = (store.gameState.currentTile.rotation + 90) % 360 as Rotation
+          store.gameState.currentTile.rotation = r
+          return
+        }
 
         const { board, currentTile } = store.gameState
         const coord = store.tentativeTileCoord
         let r = currentTile.rotation
 
-        // Find next valid rotation
+        // Has tentative placement — find next VALID rotation for that cell
         for (let i = 0; i < 4; i++) {
           r = (r + 90) % 360 as Rotation
           if (isValidPlacement(board, store.gameState.staticTileMap, { ...currentTile, rotation: r }, coord)) {
@@ -617,9 +624,16 @@ export const useGameStore = create<GameStore>()(
           invalidateCache()
           const tileMap = await loadTileMap()
           set((store) => {
-            if (store.gameState) {
-              // Merge registry definitions into existing map
-              store.gameState.staticTileMap = { ...store.gameState.staticTileMap, ...tileMap }
+            if (!store.gameState) return
+            // Merge registry definitions into existing map
+            store.gameState.staticTileMap = { ...store.gameState.staticTileMap, ...tileMap }
+            // Recalculate valid placements after staticTileMap refresh (fixes stale placements after page reload)
+            if (store.gameState.turnPhase === 'PLACE_TILE' && store.gameState.currentTile) {
+              store.validPlacements = getAllPotentialPlacements(
+                store.gameState.board,
+                store.gameState.staticTileMap,
+                store.gameState.currentTile,
+              )
             }
           })
         } catch (e) {
@@ -854,9 +868,48 @@ export const useGameStore = create<GameStore>()(
     })),
     {
       name: 'carcassonne-game',
+      // `merge` runs synchronously during rehydration and its return value IS the final store state.
+      // This is the correct hook in Zustand v5 (unlike onRehydrateStorage whose mutations are ignored).
+      // We use it to:
+      //   1. Always rebuild staticTileMap from the hardcoded fallback (never trust the persisted copy)
+      //   2. Recompute validPlacements immediately so the board shows valid cells on first render
+      merge: (persisted: unknown, current) => {
+        const p = persisted as Partial<typeof current> | null
+        if (!p) return current
+        const merged = { ...current, ...p }
+        if (merged.gameState) {
+          // Always rebuild staticTileMap from fallback — never stale, always complete.
+          // DB-specific tiles will be added back when refreshDefinitions() runs.
+          merged.gameState = {
+            ...merged.gameState,
+            staticTileMap: {
+              ...getFallbackTileMap(),
+              ...((p.gameState as any)?.staticTileMap ?? {}),
+            },
+          }
+          // Recompute validPlacements so the board is immediately interactive after F5
+          if (merged.gameState.turnPhase === 'PLACE_TILE' && merged.gameState.currentTile) {
+            merged.validPlacements = getAllPotentialPlacements(
+              merged.gameState.board,
+              merged.gameState.staticTileMap,
+              merged.gameState.currentTile,
+            )
+            // Always reset tentative state on refresh — avoids the "tile at wrong place"
+            // visual confusion caused by restoring a mid-placement state.
+            merged.interactionState = 'IDLE'
+            merged.tentativeTileCoord = null
+          }
+        }
+        return merged
+      },
       // We persist gameState AND interaction state so a refresh doesn't break the turn flow
       partialize: (s) => ({
-        gameState: s.gameState,
+        gameState: s.gameState ? {
+          ...s.gameState,
+          // Strip staticTileMap — it is always rebuilt from fallback in `merge` above.
+          // This also keeps localStorage size small (tile definitions are large).
+          staticTileMap: {},
+        } : null,
         interactionState: s.interactionState,
         validPlacements: s.validPlacements,
         tentativeTileCoord: s.tentativeTileCoord,

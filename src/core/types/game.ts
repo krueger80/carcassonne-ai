@@ -45,6 +45,8 @@ export interface GameState {
   currentTile: TileInstance | null
   /** Coordinate of the tile placed this turn (set by placeTile, cleared by endTurn). */
   lastPlacedCoord: Coordinate | null
+  /** Last tile placed by each player (playerId → coordinate). Persists across turns. */
+  lastPlacedCoordByPlayer: Record<string, Coordinate>
   /** Feature root IDs that completed this turn — scored in endTurn (after meeple placement). */
   completedFeatureIds: string[]
   featureUnionFind: UnionFindState
