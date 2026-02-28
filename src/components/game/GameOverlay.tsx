@@ -37,7 +37,7 @@ export function GameOverlay() {
         resolveFarmerReturn,
     } = useGameStore()
 
-    const { selectedMeepleType, setSelectedMeepleType } = useUIStore()
+    const { selectedMeepleType, setSelectedMeepleType, boardScale, boardOffset } = useUIStore()
     const { sdkReady } = useCastSender()
 
     const [isMenuOpen, setIsMenuOpen] = useState(false)
@@ -278,6 +278,29 @@ export function GameOverlay() {
     const TILE_CURSOR_SIZE = 72
     // isCursorMode: tile image follows cursor during PLACE_TILE+IDLE
     const isCursorMode = turnPhase === 'PLACE_TILE' && interactionState === 'IDLE'
+
+    // ── Floating Confirm/Cancel near placed tile ──────────────────────────────
+    const CELL_SIZE = 88
+    const BOARD_PADDING = 3
+    const tentativeTileCoord = useGameStore(s => s.tentativeTileCoord)
+    const tileButtonPos = useMemo(() => {
+        if (interactionState !== 'TILE_PLACED_TENTATIVELY' || !tentativeTileCoord || !gameState) return null
+        const board = gameState.board
+        const minX = board.minX - BOARD_PADDING
+        const maxX = board.maxX + BOARD_PADDING
+        const minY = board.minY - BOARD_PADDING
+        const maxY = board.maxY + BOARD_PADDING
+        const boardWidth  = (maxX - minX + 1) * CELL_SIZE
+        const boardHeight = (maxY - minY + 1) * CELL_SIZE
+        const { x: cx, y: cy } = tentativeTileCoord
+        // Bottom-center of the tile in screen coords
+        const dx = (cx - minX + 0.5) * CELL_SIZE - boardWidth  / 2
+        const dy = (cy - minY + 1)   * CELL_SIZE - boardHeight / 2
+        return {
+            x: window.innerWidth  / 2 + boardOffset.x + dx * boardScale,
+            y: window.innerHeight / 2 + boardOffset.y + dy * boardScale + 8,
+        }
+    }, [interactionState, tentativeTileCoord, gameState, boardOffset, boardScale])
 
     return (
         <div style={{
@@ -818,6 +841,56 @@ export function GameOverlay() {
                     </AnimatePresence>
                 </div>
             </div>
+
+            {/* ── Confirm / Cancel near placed tile ────────────────────────── */}
+            {tileButtonPos && (
+                <div
+                    style={{
+                        position: 'absolute',
+                        left: tileButtonPos.x,
+                        top: tileButtonPos.y,
+                        transform: 'translateX(-50%)',
+                        display: 'flex',
+                        gap: 8,
+                        zIndex: 60,
+                        pointerEvents: 'auto',
+                    }}
+                    onPointerDown={(e) => e.stopPropagation()}
+                >
+                    <button
+                        onClick={confirmTilePlacement}
+                        style={{
+                            background: 'linear-gradient(135deg, #27ae60, #1e8449)',
+                            color: '#fff',
+                            border: 'none',
+                            borderRadius: 8,
+                            padding: '8px 20px',
+                            fontSize: 13,
+                            fontWeight: 'bold',
+                            cursor: 'pointer',
+                            boxShadow: '0 3px 12px rgba(0,0,0,0.5)',
+                        }}
+                    >
+                        ✓ Confirm
+                    </button>
+                    <button
+                        onClick={cancelTilePlacement}
+                        style={{
+                            background: 'linear-gradient(135deg, #c0392b, #922b21)',
+                            color: '#fff',
+                            border: 'none',
+                            borderRadius: 8,
+                            padding: '8px 20px',
+                            fontSize: 13,
+                            fontWeight: 'bold',
+                            cursor: 'pointer',
+                            boxShadow: '0 3px 12px rgba(0,0,0,0.5)',
+                        }}
+                    >
+                        ✕ Cancel
+                    </button>
+                </div>
+            )}
 
             {/* ── Tile cursor (replaces hand cursor during PLACE_TILE+IDLE) ─── */}
             {isCursorMode && currentTile && gameState.staticTileMap[currentTile.definitionId] && (

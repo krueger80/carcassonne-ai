@@ -339,12 +339,6 @@ export function PlayerCard({ player, isCurrentTurn, isBuilderBonusTurn = false, 
                     {turnState.phase === 'PLACE_TILE' && turnState.interactionState === 'IDLE' && (
                         <Button onClick={turnState.actions.rotate!} style={{ flex: 1 }}>⭮ Rotate</Button>
                     )}
-                    {turnState.phase === 'PLACE_TILE' && turnState.interactionState === 'TILE_PLACED_TENTATIVELY' && (
-                        <>
-                            <Button onClick={turnState.actions.confirm!} primary style={{ flex: 1 }}>Confirm</Button>
-                            <Button onClick={turnState.actions.cancel!} danger style={{ flex: 1 }}>Cancel</Button>
-                        </>
-                    )}
                     {turnState.phase === 'PLACE_MEEPLE' && (
                         turnState.interactionState === 'MEEPLE_SELECTED_TENTATIVELY' ? (
                             <>
