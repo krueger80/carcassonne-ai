@@ -426,52 +426,69 @@ export function GameOverlay() {
                 )}
             </AnimatePresence>
 
-            {/* ── Game Info (Tiles Left) ────────────────────────────────────── */}
+            {/* ── Top-right controls (Chromecast · Scoreboard · Tiles) ─────────── */}
             <div style={{
                 position: 'absolute',
                 top: 24,
                 right: 24,
-                background: 'rgba(0,0,0,0.6)',
-                color: '#ddd',
-                padding: '8px 16px',
-                borderRadius: 20,
-                fontSize: 14,
-                fontFamily: 'monospace',
+                display: 'flex',
+                alignItems: 'center',
+                gap: 8,
+                zIndex: 41,
                 pointerEvents: 'none',
-                zIndex: 40,
             }}>
-                Tiles: {tileBag.length}
-                {hasDragonFairy && (
-                    <div style={{ marginTop: 4, fontSize: 12 }}>
-                        <span style={{ color: '#e74c3c' }}>{dfData?.dragonInPlay ? '\u25C6 Dragon' : '\u25C7 No Dragon'}</span>
-                        {' '}
-                        <span style={{ color: '#f1c40f' }}>{dfData?.fairyPosition ? '\u2605 Fairy' : '\u2606 No Fairy'}</span>
+                {/* Chromecast */}
+                {sdkReady && (
+                    <div style={{ pointerEvents: 'auto' }}>
+                        <google-cast-launcher style={{
+                            display: 'inline-block',
+                            width: 24,
+                            height: 24,
+                            cursor: 'pointer',
+                            '--connected-color': '#4CAF50',
+                            '--disconnected-color': '#fff',
+                        } as React.CSSProperties} />
                     </div>
                 )}
-            </div>
 
-            {/* ── Scoreboard Button ────────────────────────────────────────────── */}
-            <button
-                onClick={() => setShowScoreboard(v => !v)}
-                style={{
-                    position: 'absolute',
-                    top: 24,
-                    right: hasDragonFairy ? 170 : 130,
-                    background: showScoreboard ? 'rgba(232,216,160,0.25)' : 'rgba(0,0,0,0.6)',
-                    border: showScoreboard ? '1px solid #e8d8a0' : '1px solid #555',
+                {/* Scoreboard toggle */}
+                <button
+                    onClick={() => setShowScoreboard(v => !v)}
+                    style={{
+                        background: showScoreboard ? 'rgba(232,216,160,0.25)' : 'rgba(0,0,0,0.6)',
+                        border: showScoreboard ? '1px solid #e8d8a0' : '1px solid #555',
+                        borderRadius: 20,
+                        color: '#e8d8a0',
+                        padding: '6px 12px',
+                        fontSize: 16,
+                        cursor: 'pointer',
+                        pointerEvents: 'auto',
+                        lineHeight: 1,
+                    }}
+                    title="Tableau des scores"
+                >
+                    🏆
+                </button>
+
+                {/* Tiles counter */}
+                <div style={{
+                    background: 'rgba(0,0,0,0.6)',
+                    color: '#ddd',
+                    padding: '6px 14px',
                     borderRadius: 20,
-                    color: '#e8d8a0',
-                    padding: '8px 14px',
-                    fontSize: 16,
-                    cursor: 'pointer',
-                    pointerEvents: 'auto',
-                    zIndex: 41,
-                    lineHeight: 1,
-                }}
-                title="Tableau des scores"
-            >
-                🏆
-            </button>
+                    fontSize: 14,
+                    fontFamily: 'monospace',
+                }}>
+                    Tiles: {tileBag.length}
+                    {hasDragonFairy && (
+                        <div style={{ marginTop: 4, fontSize: 12 }}>
+                            <span style={{ color: '#e74c3c' }}>{dfData?.dragonInPlay ? '\u25C6 Dragon' : '\u25C7 No Dragon'}</span>
+                            {' '}
+                            <span style={{ color: '#f1c40f' }}>{dfData?.fairyPosition ? '\u2605 Fairy' : '\u2606 No Fairy'}</span>
+                        </div>
+                    )}
+                </div>
+            </div>
 
             {/* ── Scoreboard Panel ─────────────────────────────────────────────── */}
             {showScoreboard && (
@@ -548,25 +565,6 @@ export function GameOverlay() {
                 </>
             )}
 
-            {/* ── Chromecast Button ───────────────────────────────────────────── */}
-            {sdkReady && (
-                <div style={{
-                    position: 'absolute',
-                    top: 28,
-                    right: 140,
-                    pointerEvents: 'auto',
-                    zIndex: 40,
-                }}>
-                    <google-cast-launcher style={{
-                        display: 'inline-block',
-                        width: 24,
-                        height: 24,
-                        cursor: 'pointer',
-                        '--connected-color': '#4CAF50',
-                        '--disconnected-color': '#fff',
-                    } as React.CSSProperties} />
-                </div>
-            )}
 
             {/* ── Left Sidebar: Players & Menu ──────────────────────────────── */}
             <div
