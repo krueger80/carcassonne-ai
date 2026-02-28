@@ -251,20 +251,29 @@ export function GameOverlay() {
         canUndo: turnPhase === 'DRAGON_ORIENT' && !dfData?.dragonMovement && !!gameState.lastPlacedCoord,
     }
 
-    // ── Floating card opacity based on interaction state ──────────────────────
-    const floatingCardOpacity =
-        turnPhase === 'PLACE_TILE' && interactionState === 'IDLE' ? 0.38 :
-        turnPhase === 'PLACE_TILE' && interactionState === 'TILE_PLACED_TENTATIVELY' ? 0.72 :
-        1.0
-
-    // ── Floating card position (cursor-relative, clamped to screen) ───────────
+    // ── Floating card: two modes ───────────────────────────────────────────────
+    // PLACE_TILE phase  → follows cursor, semi-transparent (waiting) or more opaque (placed tentatively)
+    // All other phases  → fixed top-right, fully opaque (tile placed, action time)
     const CARD_W = 300
     const CARD_H = 320
+    const isCursorMode = turnPhase === 'PLACE_TILE'
+
+    // Cursor-following position
     const rawLeft = cursorPos.x + 20
     const rawTop  = cursorPos.y - 50
     const flipLeft = rawLeft + CARD_W > window.innerWidth - 8
-    const floatingLeft = Math.max(8, flipLeft ? cursorPos.x - CARD_W - 20 : rawLeft)
-    const floatingTop  = Math.max(8, Math.min(rawTop, window.innerHeight - CARD_H - 8))
+    const cursorLeft = Math.max(8, flipLeft ? cursorPos.x - CARD_W - 20 : rawLeft)
+    const cursorTop  = Math.max(8, Math.min(rawTop, window.innerHeight - CARD_H - 8))
+
+    // Fixed top-right position (below the "Tiles:" badge which is at top:24)
+    const fixedLeft = window.innerWidth - CARD_W - 16
+    const fixedTop  = 80
+
+    const cardLeft    = isCursorMode ? cursorLeft : fixedLeft
+    const cardTop     = isCursorMode ? cursorTop  : fixedTop
+    const cardOpacity = isCursorMode
+        ? (interactionState === 'IDLE' ? 0.38 : 0.72)
+        : 1.0
 
     return (
         <div style={{
@@ -692,18 +701,17 @@ export function GameOverlay() {
                 </div>
             </div>
 
-            {/* ── Floating active player card (follows cursor) ───────────────── */}
-            <div
-                style={{
-                    position: 'absolute',
-                    left: floatingLeft,
-                    top: floatingTop,
-                    width: CARD_W,
-                    zIndex: 55,
-                    pointerEvents: 'none',
-                    opacity: floatingCardOpacity,
-                    transition: 'opacity 0.25s ease',
-                }}
+            {/* ── Active player card ────────────────────────────────────────────
+                PLACE_TILE:  follows cursor, transparent
+                Other phases: fixed top-right, fully opaque (spring animation)   */}
+            <motion.div
+                style={{ position: 'absolute', width: CARD_W, zIndex: 55, pointerEvents: 'none' }}
+                animate={{ left: cardLeft, top: cardTop, opacity: cardOpacity }}
+                transition={isCursorMode
+                    ? { duration: 0 }                                          // instant cursor tracking
+                    : { type: 'spring', stiffness: 280, damping: 28,           // smooth snap to corner
+                        opacity: { duration: 0.2 } }
+                }
                 onPointerDown={(e) => e.stopPropagation()}
             >
                 <div style={{ pointerEvents: 'auto' }}>
@@ -718,7 +726,7 @@ export function GameOverlay() {
                         turnState={currentPlayerTurnState}
                     />
                 </div>
-            </div>
+            </motion.div>
         </div>
     )
 }
