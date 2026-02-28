@@ -41,8 +41,14 @@ export function useCastSender() {
     const gameState = useGameStore.getState().gameState
     if (!gameState) return
     try {
-      const json = JSON.stringify(gameState)
-      session.sendMessage(CAST_NAMESPACE, JSON.stringify({ type: 'STATE_UPDATE', json }))
+      // Stripping staticTileMap to keep payload small (< 64KB)
+      const { staticTileMap, ...rest } = gameState
+      const json = JSON.stringify(rest)
+
+      const message = JSON.stringify({ type: 'STATE_UPDATE', json })
+      console.log(`[Cast] Sending state. Payload size: ${Math.round(message.length / 1024)} KB`)
+
+      session.sendMessage(CAST_NAMESPACE, message)
         .catch((err: unknown) => console.warn('[Cast] sendMessage rejected:', err))
     } catch (err) {
       console.error('[Cast] Failed to send state:', err)
@@ -108,8 +114,10 @@ export function useCastSender() {
     const unsub = useGameStore.subscribe((state, prev) => {
       if (state.gameState !== prev.gameState && state.gameState && sessionRef.current) {
         try {
-          const json = JSON.stringify(state.gameState)
-          sessionRef.current.sendMessage(
+          // Stripping staticTileMap to keep payload small (< 64KB)
+          const { staticTileMap, ...rest } = state.gameState!
+          const json = JSON.stringify(rest)
+          sessionRef.current!.sendMessage(
             CAST_NAMESPACE,
             JSON.stringify({ type: 'STATE_UPDATE', json }),
           ).catch((err: unknown) => console.warn('[Cast] sendMessage rejected:', err))
