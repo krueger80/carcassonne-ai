@@ -1,3 +1,4 @@
+import { useState } from 'react'
 import type { Player } from '../../core/types/player.ts'
 import { useGameStore } from '../../store/gameStore.ts'
 
@@ -33,6 +34,32 @@ const COMMODITY_IMAGES = {
 export function EndGameModal({ players, expansions = [] }: EndGameModalProps) {
   const { resetGame } = useGameStore()
   const hasTradersBuilders = expansions.includes('traders-builders')
+  const [hidden, setHidden] = useState(false)
+
+  if (hidden) {
+    return (
+      <button
+        onClick={() => setHidden(false)}
+        style={{
+          position: 'fixed',
+          bottom: 24,
+          right: 24,
+          zIndex: 100,
+          background: 'linear-gradient(135deg, #c8a46e, #a07840)',
+          color: '#1a1a2e',
+          border: 'none',
+          borderRadius: 24,
+          padding: '10px 20px',
+          fontSize: 14,
+          fontWeight: 'bold',
+          cursor: 'pointer',
+          boxShadow: '0 4px 16px rgba(0,0,0,0.5)',
+        }}
+      >
+        🏆 Résultats
+      </button>
+    )
+  }
 
   const sorted = [...players].sort((a, b) => b.score - a.score)
   const winner = sorted[0]
@@ -59,18 +86,23 @@ export function EndGameModal({ players, expansions = [] }: EndGameModalProps) {
   }).filter(Boolean) : []
 
   return (
-    <div style={{
-      position: 'fixed',
-      inset: 0,
-      background: 'rgba(0,0,0,0.85)',
-      display: 'flex',
-      alignItems: 'center',
-      justifyContent: 'center',
-      zIndex: 100,
-      padding: '16px',
-      overflowY: 'auto',
-    }}>
-      <div style={{
+    <div
+      style={{
+        position: 'fixed',
+        inset: 0,
+        background: 'rgba(0,0,0,0.85)',
+        display: 'flex',
+        alignItems: 'center',
+        justifyContent: 'center',
+        zIndex: 100,
+        padding: '16px',
+        overflowY: 'auto',
+      }}
+      onPointerDown={() => setHidden(true)}
+    >
+      <div
+        onPointerDown={(e) => e.stopPropagation()}
+        style={{
         background: 'linear-gradient(160deg, #1e1e2e 0%, #252535 100%)',
         border: '1px solid #444',
         borderRadius: 20,
@@ -234,15 +266,30 @@ export function EndGameModal({ players, expansions = [] }: EndGameModalProps) {
           </div>
         )}
 
-        {/* Play again */}
-        <div style={{ textAlign: 'center' }}>
+        {/* Play again / Show board */}
+        <div style={{ display: 'flex', gap: 12, justifyContent: 'center' }}>
+          <button
+            onClick={() => setHidden(true)}
+            style={{
+              background: 'rgba(255,255,255,0.08)',
+              color: '#ccc',
+              border: '1px solid #555',
+              padding: '13px 28px',
+              borderRadius: 10,
+              cursor: 'pointer',
+              fontSize: 15,
+              fontWeight: 'bold',
+            }}
+          >
+            🗺️ Voir le plateau
+          </button>
           <button
             onClick={resetGame}
             style={{
               background: 'linear-gradient(135deg, #c8a46e, #a07840)',
               color: '#1a1a2e',
               border: 'none',
-              padding: '13px 40px',
+              padding: '13px 28px',
               borderRadius: 10,
               cursor: 'pointer',
               fontSize: 15,
