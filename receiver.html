@@ -7,7 +7,13 @@
     <script src="//www.gstatic.com/cast/sdk/libs/caf_receiver/v3/cast_receiver_framework.js"></script>
   </head>
   <body>
-    <div id="root"></div>
+    <!-- Inline fallback: visible until React mounts. If React crashes, this stays on screen. -->
+    <div id="root">
+      <div style="width:100vw;height:100vh;background:#1a2a1a;display:flex;flex-direction:column;align-items:center;justify-content:center;font-family:system-ui,sans-serif">
+        <div style="font-size:48px;color:#b8a47a;font-style:italic;margin-bottom:16px">Carcassonne</div>
+        <div style="font-size:18px;color:#666">Loading receiver...</div>
+      </div>
+    </div>
     <script type="module" src="/src/receiver.tsx"></script>
   </body>
 </html>
