@@ -636,6 +636,7 @@ export function GameBoard() {
           }}
           style={btnStyle}
           title="Zoom in"
+          aria-label="Zoom in"
         >+</button>
         <button
           onClick={() => {
@@ -644,6 +645,7 @@ export function GameBoard() {
           }}
           style={btnStyle}
           title="Reset view"
+          aria-label="Reset view"
         >⌖</button>
         <button
           onClick={() => {
@@ -652,6 +654,7 @@ export function GameBoard() {
           }}
           style={btnStyle}
           title="Zoom out"
+          aria-label="Zoom out"
         >−</button>
       </div>
 
