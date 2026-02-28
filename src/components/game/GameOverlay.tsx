@@ -258,8 +258,8 @@ export function GameOverlay() {
     const CARD_W = 300
     const CARD_H = 320
 
-    // Only follow cursor while the player is still deciding where to place the tile
-    const isCursorMode = turnPhase === 'PLACE_TILE'
+    // Follow cursor only while idle in PLACE_TILE (no spot selected yet)
+    const isCursorMode = turnPhase === 'PLACE_TILE' && interactionState === 'IDLE'
 
     // Cursor-following position (20 px right of cursor, clamped to screen)
     const rawLeft  = cursorPos.x + 20
@@ -272,9 +272,7 @@ export function GameOverlay() {
     const fixedRight = 16   // px from right edge
     const fixedTop   = 80  // px from top
 
-    const cardOpacity = isCursorMode
-        ? (interactionState === 'IDLE' ? 0.38 : 0.72)
-        : 1.0
+    const cardOpacity = isCursorMode ? 0.38 : 1.0
 
     return (
         <div style={{
