@@ -426,27 +426,37 @@ export function GameOverlay() {
                 )}
             </AnimatePresence>
 
-            {/* ── Top-right controls (Chromecast · Scoreboard · Tiles) ─────────── */}
+            {/* ── Top-right controls — single unified pill ─────────────────────── */}
             <div style={{
                 position: 'absolute',
-                top: 24,
-                right: 24,
+                top: 20,
+                right: 20,
                 display: 'flex',
                 alignItems: 'center',
-                gap: 8,
+                gap: 0,
                 zIndex: 41,
                 pointerEvents: 'none',
+                background: 'rgba(0,0,0,0.65)',
+                border: '1px solid #444',
+                borderRadius: 24,
+                overflow: 'hidden',
             }}>
                 {/* Chromecast */}
                 {sdkReady && (
-                    <div style={{ pointerEvents: 'auto' }}>
+                    <div style={{
+                        padding: '7px 10px',
+                        borderRight: '1px solid #444',
+                        display: 'flex',
+                        alignItems: 'center',
+                        pointerEvents: 'auto',
+                    }}>
                         <google-cast-launcher style={{
                             display: 'inline-block',
-                            width: 24,
-                            height: 24,
+                            width: 20,
+                            height: 20,
                             cursor: 'pointer',
                             '--connected-color': '#4CAF50',
-                            '--disconnected-color': '#fff',
+                            '--disconnected-color': '#aaa',
                         } as React.CSSProperties} />
                     </div>
                 )}
@@ -455,15 +465,17 @@ export function GameOverlay() {
                 <button
                     onClick={() => setShowScoreboard(v => !v)}
                     style={{
-                        background: showScoreboard ? 'rgba(232,216,160,0.25)' : 'rgba(0,0,0,0.6)',
-                        border: showScoreboard ? '1px solid #e8d8a0' : '1px solid #555',
-                        borderRadius: 20,
+                        background: showScoreboard ? 'rgba(232,216,160,0.18)' : 'transparent',
+                        border: 'none',
+                        borderRight: '1px solid #444',
                         color: '#e8d8a0',
-                        padding: '6px 12px',
-                        fontSize: 16,
+                        padding: '7px 12px',
+                        fontSize: 15,
                         cursor: 'pointer',
                         pointerEvents: 'auto',
                         lineHeight: 1,
+                        display: 'flex',
+                        alignItems: 'center',
                     }}
                     title="Tableau des scores"
                 >
@@ -472,20 +484,19 @@ export function GameOverlay() {
 
                 {/* Tiles counter */}
                 <div style={{
-                    background: 'rgba(0,0,0,0.6)',
                     color: '#ddd',
-                    padding: '6px 14px',
-                    borderRadius: 20,
-                    fontSize: 14,
+                    padding: '7px 14px',
+                    fontSize: 13,
                     fontFamily: 'monospace',
+                    whiteSpace: 'nowrap',
                 }}>
-                    Tiles: {tileBag.length}
+                    {tileBag.length} tuiles
                     {hasDragonFairy && (
-                        <div style={{ marginTop: 4, fontSize: 12 }}>
-                            <span style={{ color: '#e74c3c' }}>{dfData?.dragonInPlay ? '\u25C6 Dragon' : '\u25C7 No Dragon'}</span>
+                        <span style={{ marginLeft: 8, fontSize: 11 }}>
+                            <span style={{ color: '#e74c3c' }}>{dfData?.dragonInPlay ? '\u25C6' : '\u25C7'}</span>
                             {' '}
-                            <span style={{ color: '#f1c40f' }}>{dfData?.fairyPosition ? '\u2605 Fairy' : '\u2606 No Fairy'}</span>
-                        </div>
+                            <span style={{ color: '#f1c40f' }}>{dfData?.fairyPosition ? '\u2605' : '\u2606'}</span>
+                        </span>
                     )}
                 </div>
             </div>
