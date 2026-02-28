@@ -87,14 +87,23 @@ function CastReceiver() {
     // 1. Register message listener BEFORE start() (per CAF docs)
     context.addCustomMessageListener(CAST_NAMESPACE, (event) => {
       try {
-        const message = JSON.parse(event.data)
+        // event.data is the message payload (already a string from the sender)
+        const message = typeof event.data === 'string'
+          ? JSON.parse(event.data)
+          : event.data
+
         if (message.type === 'STATE_UPDATE' && message.json) {
-          const partialState = JSON.parse(message.json)
+          const partialState = typeof message.json === 'string'
+            ? JSON.parse(message.json)
+            : message.json
           latestPartialState = partialState
-          debugLog(`State received (${Math.round(event.data.length / 1024)} KB)`)
+          debugLog(`State received (board has ${partialState.board?.tiles ? Object.keys(partialState.board.tiles).length : 0} tiles)`)
 
           if (tileMapCache) {
             useGameStore.setState({ gameState: partialState })
+            debugLog('State applied to store')
+          } else {
+            debugLog('Tile map not yet loaded, buffering state')
           }
         }
       } catch (err) {
