@@ -1,4 +1,4 @@
-import { StrictMode, useEffect } from 'react'
+import { useEffect } from 'react'
 import { createRoot } from 'react-dom/client'
 import { useGameStore } from './store/gameStore.ts'
 import { CastView } from './components/cast/CastView.tsx'
@@ -7,30 +7,33 @@ import { loadAllTiles } from './services/tileRegistry.ts'
 import type { TileDefinition } from './core/types/tile.ts'
 import './index.css'
 
+// Move global state outside component for stability
+let tileMapCache: Record<string, TileDefinition> | null = null
+let latestPartialState: any = null
+
 function CastReceiver() {
   useEffect(() => {
     const context = cast.framework.CastReceiverContext.getInstance()
-    let tileMapCache: Record<string, TileDefinition> | null = null
-    let latestPartialState: any = null
 
-    // 1. Start context immediately to prevent launch timeout
+    // 1. Initial configuration
     context.setApplicationState('Carcassonne')
-    context.start()
 
-    // 2. Load large assets in background
-    loadAllTiles().then(allTiles => {
-      tileMapCache = Object.fromEntries(allTiles.map((t) => [t.id, t]))
-      console.log(`[Receiver] Loaded ${allTiles.length} definitions.`)
+    // 2. Load large assets in background (if not already cached)
+    if (!tileMapCache) {
+      loadAllTiles().then(allTiles => {
+        tileMapCache = Object.fromEntries(allTiles.map((t) => [t.id, t]))
+        console.log(`[Receiver] Loaded ${allTiles.length} definitions.`)
 
-      // If we already received a state update while loading, apply it now
-      if (latestPartialState) {
-        useGameStore.setState({
-          gameState: { ...latestPartialState, staticTileMap: tileMapCache } as any
-        })
-      }
-    }).catch(err => {
-      console.error('[Receiver] Failed to load definitions:', err)
-    })
+        // If we already received a state update while loading, apply it now
+        if (latestPartialState) {
+          useGameStore.setState({
+            gameState: { ...latestPartialState, staticTileMap: tileMapCache } as any
+          })
+        }
+      }).catch(err => {
+        console.error('[Receiver] Failed to load definitions:', err)
+      })
+    }
 
     // 3. Listen for state updates
     context.addCustomMessageListener(CAST_NAMESPACE, (event) => {
@@ -50,14 +53,15 @@ function CastReceiver() {
       }
     })
 
-    return () => { context.stop() }
+    // 4. Start context
+    context.start()
+
+    // No stop() call - the platform handles app exit.
   }, [])
 
   return <CastView />
 }
 
 createRoot(document.getElementById('root')!).render(
-  <StrictMode>
-    <CastReceiver />
-  </StrictMode>,
+  <CastReceiver />
 )
