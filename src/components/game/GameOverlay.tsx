@@ -43,6 +43,7 @@ export function GameOverlay() {
     const [isMenuOpen, setIsMenuOpen] = useState(false)
     const [showNewGameScreen, setShowNewGameScreen] = useState(false)
     const [showOpponents, setShowOpponents] = useState(true)
+    const [showScoreboard, setShowScoreboard] = useState(false)
 
     // Track cursor position for floating active player card
     const [cursorPos, setCursorPos] = useState({ x: 200, y: 400 })
@@ -448,6 +449,104 @@ export function GameOverlay() {
                     </div>
                 )}
             </div>
+
+            {/* ── Scoreboard Button ────────────────────────────────────────────── */}
+            <button
+                onClick={() => setShowScoreboard(v => !v)}
+                style={{
+                    position: 'absolute',
+                    top: 24,
+                    right: hasDragonFairy ? 170 : 130,
+                    background: showScoreboard ? 'rgba(232,216,160,0.25)' : 'rgba(0,0,0,0.6)',
+                    border: showScoreboard ? '1px solid #e8d8a0' : '1px solid #555',
+                    borderRadius: 20,
+                    color: '#e8d8a0',
+                    padding: '8px 14px',
+                    fontSize: 16,
+                    cursor: 'pointer',
+                    pointerEvents: 'auto',
+                    zIndex: 41,
+                    lineHeight: 1,
+                }}
+                title="Tableau des scores"
+            >
+                🏆
+            </button>
+
+            {/* ── Scoreboard Panel ─────────────────────────────────────────────── */}
+            {showScoreboard && (
+                <>
+                    {/* Backdrop — click to close */}
+                    <div
+                        style={{ position: 'absolute', inset: 0, zIndex: 58, pointerEvents: 'auto' }}
+                        onPointerDown={() => setShowScoreboard(false)}
+                    />
+                    {/* Panel */}
+                    <div
+                        style={{
+                            position: 'absolute',
+                            top: 64,
+                            right: 16,
+                            width: 340,
+                            background: 'rgba(20,22,32,0.97)',
+                            border: '1px solid #444',
+                            borderRadius: 14,
+                            padding: '16px 18px',
+                            zIndex: 59,
+                            pointerEvents: 'auto',
+                            boxShadow: '0 12px 40px rgba(0,0,0,0.7)',
+                            color: '#f0f0f0',
+                            fontSize: 13,
+                        }}
+                        onPointerDown={(e) => e.stopPropagation()}
+                    >
+                        <div style={{ fontWeight: 'bold', color: '#e8d8a0', fontSize: 15, marginBottom: 12, textAlign: 'center' }}>
+                            🏆 Tableau des scores
+                        </div>
+                        {(() => {
+                            const sorted = [...players].sort((a, b) => b.score - a.score)
+                            const MEDAL: Record<number, string> = { 0: '🥇', 1: '🥈', 2: '🥉' }
+                            const cats: Array<'ROAD' | 'CITY' | 'CLOISTER' | 'FIELD' | 'TRADER'> = ['ROAD', 'CITY', 'CLOISTER', 'FIELD', ...(hasTradersBuilders ? ['TRADER' as const] : [])]
+                            const activeCats = cats.filter(c => players.some(p => (p.scoreBreakdown?.[c] ?? 0) > 0))
+                            const CAT_ICONS: Record<string, string> = { ROAD: '🛤️', CITY: '🏰', CLOISTER: '⛪', FIELD: '🌾', TRADER: '📦' }
+                            return (
+                                <table style={{ width: '100%', borderCollapse: 'collapse' }}>
+                                    <thead>
+                                        <tr>
+                                            <th style={{ width: 24, padding: '4px 2px' }} />
+                                            <th style={{ textAlign: 'left', padding: '4px 6px', color: '#aaa', fontWeight: 'normal' }}>Joueur</th>
+                                            {activeCats.map(c => (
+                                                <th key={c} style={{ textAlign: 'center', padding: '4px 4px', color: '#888', fontWeight: 'normal', fontSize: 16 }} title={c}>{CAT_ICONS[c]}</th>
+                                            ))}
+                                            <th style={{ textAlign: 'center', padding: '4px 6px', color: '#e8d8a0', fontWeight: 'bold', borderLeft: '1px solid #444' }}>Pts</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        {sorted.map((p, rank) => (
+                                            <tr key={p.id} style={{ borderTop: '1px solid #333' }}>
+                                                <td style={{ padding: '6px 2px', fontSize: 16 }}>{MEDAL[rank] ?? `#${rank + 1}`}</td>
+                                                <td style={{ padding: '6px 6px' }}>
+                                                    <span style={{ color: p.color, fontWeight: 'bold' }}>{p.name}</span>
+                                                </td>
+                                                {activeCats.map(c => (
+                                                    <td key={c} style={{ textAlign: 'center', padding: '6px 4px' }}>
+                                                        {(p.scoreBreakdown?.[c] ?? 0) > 0
+                                                            ? <span>{p.scoreBreakdown![c]}</span>
+                                                            : <span style={{ color: '#444' }}>—</span>}
+                                                    </td>
+                                                ))}
+                                                <td style={{ textAlign: 'center', padding: '6px 6px', fontWeight: 'bold', fontSize: 15, color: rank === 0 ? '#e8d8a0' : '#f0f0f0', borderLeft: '1px solid #444' }}>
+                                                    {p.score}
+                                                </td>
+                                            </tr>
+                                        ))}
+                                    </tbody>
+                                </table>
+                            )
+                        })()}
+                    </div>
+                </>
+            )}
 
             {/* ── Chromecast Button ───────────────────────────────────────────── */}
             {sdkReady && (
