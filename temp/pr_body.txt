@@ -1,0 +1,14 @@
+## Description
+This PR introduces a new "Cast View" feature, allowing players to display the current game state on a separate screen (e.g., a TV or a secondary monitor) via a dedicated URL (/cast).
+
+### Key Changes
+- **New Components**: Added `CastView`, `CastScoreboard`, and a utility `useCastAutoFit` to handle the large-scale display and automatic scaling of the game board.
+- **Cross-Tab Sync**: Implemented state synchronization using the `BroadcastChannel` API within `useGameStore`. This ensures that the Cast view stays in sync with the main player's view in real-time.
+- **Menu Integration**: Added a "Cast to TV" button in the `GameOverlay` menu for easy access.
+- **Build Fixes**: Removed unused variables in `TBScoring.test.ts` and `reproduce_bug.test.ts` to address Vercel build failures caused by strict TypeScript checks.
+
+### How to Test
+1. Start the application.
+2. Open the game menu and click "Cast to TV". This will open the `/cast` view in a new tab.
+3. Perform actions in the main game tab (place tiles, meeples, etc.).
+4. Verify that the Cast tab updates automatically to reflect the changes.

@@ -41,10 +41,7 @@ export function useCastSender() {
     const gameState = useGameStore.getState().gameState
     if (!gameState) return
     try {
-      // Stripping staticTileMap to keep payload small (< 64KB)
-      const { staticTileMap, ...rest } = gameState
-      const json = JSON.stringify(rest)
-
+      const json = JSON.stringify(gameState)
       const message = JSON.stringify({ type: 'STATE_UPDATE', json })
       console.log(`[Cast] Sending state. Payload size: ${Math.round(message.length / 1024)} KB`)
 
@@ -114,9 +111,7 @@ export function useCastSender() {
     const unsub = useGameStore.subscribe((state, prev) => {
       if (state.gameState !== prev.gameState && state.gameState && sessionRef.current) {
         try {
-          // Stripping staticTileMap to keep payload small (< 64KB)
-          const { staticTileMap, ...rest } = state.gameState!
-          const json = JSON.stringify(rest)
+          const json = JSON.stringify(state.gameState!)
           sessionRef.current!.sendMessage(
             CAST_NAMESPACE,
             JSON.stringify({ type: 'STATE_UPDATE', json }),

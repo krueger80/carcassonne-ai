@@ -94,8 +94,7 @@ function CastReceiver() {
           debugLog(`State received (${Math.round(event.data.length / 1024)} KB)`)
 
           if (tileMapCache) {
-            const gameState = { ...partialState, staticTileMap: tileMapCache }
-            useGameStore.setState({ gameState })
+            useGameStore.setState({ gameState: partialState })
           }
         }
       } catch (err) {
@@ -122,9 +121,7 @@ function CastReceiver() {
 
       // If we already received a state update while loading, apply it now
       if (latestPartialState) {
-        useGameStore.setState({
-          gameState: { ...latestPartialState, staticTileMap: tileMapCache } as any
-        })
+        useGameStore.setState({ gameState: latestPartialState })
       }
     }).catch(err => {
       debugLog(`Tile load failed: ${err}`)
