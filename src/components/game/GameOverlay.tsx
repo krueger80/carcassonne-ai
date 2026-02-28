@@ -478,7 +478,7 @@ export function GameOverlay() {
                 <>
                     {/* Backdrop — click to close */}
                     <div
-                        style={{ position: 'absolute', inset: 0, zIndex: 58, pointerEvents: 'auto' }}
+                        style={{ position: 'fixed', inset: 0, zIndex: 58, pointerEvents: 'auto' }}
                         onPointerDown={() => setShowScoreboard(false)}
                     />
                     {/* Panel */}
