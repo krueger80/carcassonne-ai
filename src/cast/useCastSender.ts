@@ -45,7 +45,10 @@ export function useCastSender() {
       return false
     }
     try {
-      const json = JSON.stringify(gameState)
+      // Strip staticTileMap to stay under Cast's ~64KB message limit.
+      // The receiver rebuilds it from getFallbackTileMap().
+      const stateToSend = { ...gameState, staticTileMap: {} }
+      const json = JSON.stringify(stateToSend)
       const payload = JSON.stringify({ type: 'STATE_UPDATE', json })
       const sizeKB = Math.round(payload.length / 1024)
       const tileCount = Object.keys(gameState.board?.tiles ?? {}).length
@@ -133,7 +136,9 @@ export function useCastSender() {
         sendCount++
         console.log(`[Cast] Subscriber: sending update #${sendCount}`)
         try {
-          const json = JSON.stringify(state.gameState!)
+          // Strip staticTileMap (receiver rebuilds from fallback)
+          const stateToSend = { ...state.gameState!, staticTileMap: {} }
+          const json = JSON.stringify(stateToSend)
           const payload = JSON.stringify({ type: 'STATE_UPDATE', json })
           const result: any = sessionRef.current!.sendMessage(CAST_NAMESPACE, payload)
           if (result && typeof result.then === 'function') {

@@ -4,6 +4,7 @@ import { createRoot } from 'react-dom/client'
 import { useGameStore } from './store/gameStore.ts'
 import { CastView } from './components/cast/CastView.tsx'
 import { CAST_NAMESPACE } from './cast/castConstants.ts'
+import { getFallbackTileMap } from './services/tileRegistry.ts'
 import './index.css'
 
 // ── Debug overlay: visible on the TV for diagnosing issues ──────────────────
@@ -101,7 +102,9 @@ function CastReceiver() {
             : 0
           debugLog(`State parsed OK — ${tileCount} tiles, phase: ${gameState.turnPhase ?? '?'}`)
 
-          // Apply immediately — tile definitions are included in staticTileMap
+          // Sender strips staticTileMap to stay under Cast's message size limit.
+          // Rebuild it from the hardcoded fallback tile definitions.
+          gameState.staticTileMap = { ...getFallbackTileMap(), ...(gameState.staticTileMap ?? {}) }
           useGameStore.setState({ gameState })
           debugLog('State applied to store')
         }
