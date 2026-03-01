@@ -513,7 +513,7 @@ export function GameOverlay() {
                     fontFamily: 'monospace',
                     whiteSpace: 'nowrap',
                 }}>
-                    {tileBag.length} tuiles · v7
+                    {tileBag.length} tuiles · v8
                     {hasDragonFairy && (
                         <span style={{ marginLeft: 8, fontSize: 11 }}>
                             <span style={{ color: '#e74c3c' }}>{dfData?.dragonInPlay ? '\u25C6' : '\u25C7'}</span>

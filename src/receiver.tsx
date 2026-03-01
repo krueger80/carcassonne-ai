@@ -7,7 +7,7 @@ import { CAST_NAMESPACE } from './cast/castConstants.ts'
 import { getFallbackTileMap } from './services/tileRegistry.ts'
 import './index.css'
 
-const CAST_VERSION = 'v7'
+const CAST_VERSION = 'v8'
 
 // ── Debug overlay: visible on the TV for diagnosing issues ──────────────────
 
@@ -109,11 +109,22 @@ function CastReceiver() {
           const fallback = getFallbackTileMap()
           gameState.staticTileMap = { ...fallback, ...(gameState.staticTileMap ?? {}) }
 
+          // Patch imageUrls from sender (fallback editions may lack them)
+          const imageUrlMap = message.imageUrlMap as Record<string, string> | undefined
+          if (imageUrlMap) {
+            for (const [id, url] of Object.entries(imageUrlMap)) {
+              if (gameState.staticTileMap[id]) {
+                gameState.staticTileMap[id] = { ...gameState.staticTileMap[id], imageUrl: url }
+              }
+            }
+            debugLog(`Patched ${Object.keys(imageUrlMap).length} imageUrls from sender`)
+          }
+
           // Debug: check if imageUrl is present in rebuilt tile defs
           const sampleId = Object.keys(gameState.board?.tiles ?? {})[0]
           const sampleDefId = sampleId ? gameState.board.tiles[sampleId]?.definitionId : null
           const sampleDef = sampleDefId ? gameState.staticTileMap[sampleDefId] : null
-          debugLog(`Fallback: ${Object.keys(fallback).length} defs, sample "${sampleDefId}" imageUrl=${sampleDef?.imageUrl ?? 'NONE'}`)
+          debugLog(`${Object.keys(fallback).length} defs, sample "${sampleDefId}" imageUrl=${sampleDef?.imageUrl ?? 'NONE'}`)
 
           useGameStore.setState({ gameState })
           debugLog('State applied to store')

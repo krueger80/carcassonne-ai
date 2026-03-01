@@ -46,10 +46,14 @@ export function useCastSender() {
     }
     try {
       // Strip staticTileMap to stay under Cast's ~64KB message limit.
-      // The receiver rebuilds it from getFallbackTileMap().
+      // Send a lightweight imageUrl map so the receiver can patch fallback defs.
+      const imageUrlMap: Record<string, string> = {}
+      for (const [id, def] of Object.entries(gameState.staticTileMap)) {
+        if (def.imageUrl) imageUrlMap[id] = def.imageUrl
+      }
       const stateToSend = { ...gameState, staticTileMap: {} }
       const json = JSON.stringify(stateToSend)
-      const payload = JSON.stringify({ type: 'STATE_UPDATE', json })
+      const payload = JSON.stringify({ type: 'STATE_UPDATE', json, imageUrlMap })
       const sizeKB = Math.round(payload.length / 1024)
       const tileCount = Object.keys(gameState.board?.tiles ?? {}).length
 
@@ -137,9 +141,13 @@ export function useCastSender() {
         console.log(`[Cast] Subscriber: sending update #${sendCount}`)
         try {
           // Strip staticTileMap (receiver rebuilds from fallback)
+          const imageUrlMap: Record<string, string> = {}
+          for (const [id, def] of Object.entries(state.gameState!.staticTileMap)) {
+            if (def.imageUrl) imageUrlMap[id] = def.imageUrl
+          }
           const stateToSend = { ...state.gameState!, staticTileMap: {} }
           const json = JSON.stringify(stateToSend)
-          const payload = JSON.stringify({ type: 'STATE_UPDATE', json })
+          const payload = JSON.stringify({ type: 'STATE_UPDATE', json, imageUrlMap })
           const result: any = sessionRef.current!.sendMessage(CAST_NAMESPACE, payload)
           if (result && typeof result.then === 'function') {
             result
