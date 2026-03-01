@@ -42,13 +42,17 @@ export function useCastSender() {
     if (!gameState) return
     try {
       const json = JSON.stringify(gameState)
-      console.log(`[Cast] Sending state. Payload size: ${Math.round(json.length / 1024)} KB`)
+      const payload = JSON.stringify({ type: 'STATE_UPDATE', json })
+      console.log(`[Cast] Sending state. Payload size: ${Math.round(payload.length / 1024)} KB`)
 
-      // Send as object (not string) — CAF SDK handles serialization.
-      // Use Promise API (.then/.catch), not callback args.
-      session.sendMessage(CAST_NAMESPACE, { type: 'STATE_UPDATE', json })
-        .then(() => console.log('[Cast] State sent'))
-        .catch((err: unknown) => console.warn('[Cast] sendMessage failed:', err))
+      // CAF sendMessage: send as string, handle both Promise and void return
+      const result: any = session.sendMessage(CAST_NAMESPACE, payload)
+      if (result && typeof result.then === 'function') {
+        result.then(() => console.log('[Cast] State sent (promise)'))
+              .catch((err: unknown) => console.warn('[Cast] sendMessage rejected:', err))
+      } else {
+        console.log('[Cast] State sent (fire-and-forget)')
+      }
     } catch (err) {
       console.error('[Cast] Failed to send state:', err)
     }
@@ -114,9 +118,12 @@ export function useCastSender() {
       if (state.gameState !== prev.gameState && state.gameState && sessionRef.current) {
         try {
           const json = JSON.stringify(state.gameState!)
-          sessionRef.current!.sendMessage(CAST_NAMESPACE, { type: 'STATE_UPDATE', json })
-            .then(() => console.log('[Cast] State update sent'))
-            .catch((err: unknown) => console.warn('[Cast] sendMessage failed:', err))
+          const payload = JSON.stringify({ type: 'STATE_UPDATE', json })
+          const result: any = sessionRef.current!.sendMessage(CAST_NAMESPACE, payload)
+          if (result && typeof result.then === 'function') {
+            result.then(() => console.log('[Cast] State update sent'))
+                  .catch((err: unknown) => console.warn('[Cast] sendMessage failed:', err))
+          }
         } catch (err) {
           console.error('[Cast] Failed to send state update:', err)
         }
