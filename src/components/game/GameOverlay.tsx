@@ -9,6 +9,18 @@ import { PlayerCard } from '../ui/PlayerCard.tsx'
 import { TileSVG } from '../svg/TileSVG.tsx'
 import { useCastSender } from '../../cast/useCastSender.ts'
 
+const floatingBtnStyle = (from: string, to: string): React.CSSProperties => ({
+    background: `linear-gradient(135deg, ${from}, ${to})`,
+    color: '#fff',
+    border: 'none',
+    borderRadius: 8,
+    padding: '8px 20px',
+    fontSize: 13,
+    fontWeight: 'bold',
+    cursor: 'pointer',
+    boxShadow: '0 3px 12px rgba(0,0,0,0.5)',
+})
+
 export function GameOverlay() {
     const {
         gameState,
@@ -279,12 +291,18 @@ export function GameOverlay() {
     // isCursorMode: tile image follows cursor during PLACE_TILE+IDLE
     const isCursorMode = turnPhase === 'PLACE_TILE' && interactionState === 'IDLE'
 
-    // ── Floating Confirm/Cancel near placed tile ──────────────────────────────
+    // ── Floating buttons near the active tile ──────────────────────────────────
     const CELL_SIZE = 88
     const BOARD_PADDING = 3
     const tentativeTileCoord = useGameStore(s => s.tentativeTileCoord)
+
+    // Which coordinate to anchor floating buttons to
+    const floatingCoord = interactionState === 'TILE_PLACED_TENTATIVELY'
+        ? tentativeTileCoord
+        : (turnPhase === 'PLACE_MEEPLE' ? gameState?.lastPlacedCoord : null)
+
     const tileButtonPos = useMemo(() => {
-        if (interactionState !== 'TILE_PLACED_TENTATIVELY' || !tentativeTileCoord || !gameState) return null
+        if (!floatingCoord || !gameState) return null
         const board = gameState.board
         const minX = board.minX - BOARD_PADDING
         const maxX = board.maxX + BOARD_PADDING
@@ -292,7 +310,7 @@ export function GameOverlay() {
         const maxY = board.maxY + BOARD_PADDING
         const boardWidth  = (maxX - minX + 1) * CELL_SIZE
         const boardHeight = (maxY - minY + 1) * CELL_SIZE
-        const { x: cx, y: cy } = tentativeTileCoord
+        const { x: cx, y: cy } = floatingCoord
         // Bottom-center of the tile in screen coords
         const dx = (cx - minX + 0.5) * CELL_SIZE - boardWidth  / 2
         const dy = (cy - minY + 1)   * CELL_SIZE - boardHeight / 2
@@ -300,7 +318,7 @@ export function GameOverlay() {
             x: window.innerWidth  / 2 + boardOffset.x + dx * boardScale,
             y: window.innerHeight / 2 + boardOffset.y + dy * boardScale + 8,
         }
-    }, [interactionState, tentativeTileCoord, gameState, boardOffset, boardScale])
+    }, [floatingCoord, gameState, boardOffset, boardScale])
 
     return (
         <div style={{
@@ -842,7 +860,7 @@ export function GameOverlay() {
                 </div>
             </div>
 
-            {/* ── Confirm / Cancel near placed tile ────────────────────────── */}
+            {/* ── Floating action buttons near tile ────────────────────────── */}
             {tileButtonPos && (
                 <div
                     style={{
@@ -857,38 +875,36 @@ export function GameOverlay() {
                     }}
                     onPointerDown={(e) => e.stopPropagation()}
                 >
-                    <button
-                        onClick={confirmTilePlacement}
-                        style={{
-                            background: 'linear-gradient(135deg, #27ae60, #1e8449)',
-                            color: '#fff',
-                            border: 'none',
-                            borderRadius: 8,
-                            padding: '8px 20px',
-                            fontSize: 13,
-                            fontWeight: 'bold',
-                            cursor: 'pointer',
-                            boxShadow: '0 3px 12px rgba(0,0,0,0.5)',
-                        }}
-                    >
-                        ✓ Confirm
-                    </button>
-                    <button
-                        onClick={cancelTilePlacement}
-                        style={{
-                            background: 'linear-gradient(135deg, #c0392b, #922b21)',
-                            color: '#fff',
-                            border: 'none',
-                            borderRadius: 8,
-                            padding: '8px 20px',
-                            fontSize: 13,
-                            fontWeight: 'bold',
-                            cursor: 'pointer',
-                            boxShadow: '0 3px 12px rgba(0,0,0,0.5)',
-                        }}
-                    >
-                        ✕ Cancel
-                    </button>
+                    {interactionState === 'TILE_PLACED_TENTATIVELY' && (
+                        <>
+                            <button onClick={confirmTilePlacement} style={floatingBtnStyle('#27ae60', '#1e8449')}>
+                                ✓ Confirm
+                            </button>
+                            <button onClick={cancelTilePlacement} style={floatingBtnStyle('#c0392b', '#922b21')}>
+                                ✕ Cancel
+                            </button>
+                        </>
+                    )}
+                    {turnPhase === 'PLACE_MEEPLE' && interactionState === 'MEEPLE_SELECTED_TENTATIVELY' && (
+                        <>
+                            <button onClick={confirmMeeplePlacement} style={floatingBtnStyle('#27ae60', '#1e8449')}>
+                                ✓ Confirm
+                            </button>
+                            <button onClick={cancelMeeplePlacement} style={floatingBtnStyle('#c0392b', '#922b21')}>
+                                ✕ Cancel
+                            </button>
+                        </>
+                    )}
+                    {turnPhase === 'PLACE_MEEPLE' && interactionState !== 'MEEPLE_SELECTED_TENTATIVELY' && (
+                        <>
+                            <button onClick={undoTilePlacement} style={floatingBtnStyle('#c0392b', '#922b21')}>
+                                ↩ Undo
+                            </button>
+                            <button onClick={skipMeeple} style={floatingBtnStyle('#7f8c8d', '#606c6d')}>
+                                Skip
+                            </button>
+                        </>
+                    )}
                 </div>
             )}
 

@@ -339,19 +339,7 @@ export function PlayerCard({ player, isCurrentTurn, isBuilderBonusTurn = false, 
                     {turnState.phase === 'PLACE_TILE' && turnState.interactionState === 'IDLE' && (
                         <Button onClick={turnState.actions.rotate!} style={{ flex: 1 }}>⭮ Rotate</Button>
                     )}
-                    {turnState.phase === 'PLACE_MEEPLE' && (
-                        turnState.interactionState === 'MEEPLE_SELECTED_TENTATIVELY' ? (
-                            <>
-                                <Button onClick={turnState.actions.confirmMeeple!} primary style={{ flex: 1 }}>Confirm</Button>
-                                <Button onClick={turnState.actions.cancelMeeple!} danger style={{ flex: 1 }}>Cancel</Button>
-                            </>
-                        ) : (
-                            <>
-                                <Button onClick={turnState.actions.undo!} danger style={{ flex: 1 }}>Undo Tile</Button>
-                                <Button onClick={turnState.actions.skip!} style={{ flex: 1 }}>Skip Meeple</Button>
-                            </>
-                        )
-                    )}
+                    {/* PLACE_MEEPLE buttons are shown floating near the tile */}
                     {turnState.phase === 'DRAGON_ORIENT' && turnState.actions.confirmDragonOrientation && (
                         <>
                             <Button onClick={turnState.actions.cycleDragonFacing!} style={{ flex: 1 }}>↻ Cycle</Button>
