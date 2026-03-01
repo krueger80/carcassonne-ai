@@ -7,24 +7,6 @@ import { CAST_NAMESPACE } from './cast/castConstants.ts'
 import { getFallbackTileMap } from './services/tileRegistry.ts'
 import './index.css'
 
-const CAST_VERSION = 'v8'
-
-// ── Debug overlay: visible on the TV for diagnosing issues ──────────────────
-
-const debugLines: string[] = []
-
-function debugLog(msg: string) {
-  const ts = new Date().toLocaleTimeString()
-  const line = `[${ts}] ${msg}`
-  console.log('[Receiver]', msg)
-  debugLines.push(line)
-  // Keep last 12 lines
-  if (debugLines.length > 12) debugLines.shift()
-  // Update the debug overlay element if it exists
-  const el = document.getElementById('cast-debug')
-  if (el) el.textContent = debugLines.join('\n')
-}
-
 // ── Error boundary: catches React render crashes ────────────────────────────
 
 interface ErrorBoundaryState {
@@ -39,8 +21,7 @@ class ReceiverErrorBoundary extends Component<{ children: ReactNode }, ErrorBoun
   }
 
   componentDidCatch(error: Error, info: ErrorInfo) {
-    debugLog(`RENDER CRASH: ${error.message}`)
-    debugLog(`Stack: ${info.componentStack?.split('\n')[1]?.trim() ?? 'unknown'}`)
+    console.error('[Receiver] RENDER CRASH:', error.message, info.componentStack)
   }
 
   render() {
@@ -78,31 +59,20 @@ function CastReceiver() {
     try {
       context = cast.framework.CastReceiverContext.getInstance()
     } catch (err) {
-      debugLog(`Failed to get CastReceiverContext: ${err}`)
+      console.error('[Receiver] Failed to get CastReceiverContext:', err)
       return
     }
 
-    // 1. Register message listener BEFORE start() (per CAF docs)
-    //    Sender now sends objects (not strings), but we handle both for robustness.
     context.addCustomMessageListener(CAST_NAMESPACE, (event) => {
-      debugLog(`Message received — typeof event.data: ${typeof event.data}`)
       try {
-        // Sender sends object { type, json }. CAF may deliver as-is or as string.
         const message = typeof event.data === 'string'
           ? JSON.parse(event.data)
           : event.data
-
-        debugLog(`Message type: ${message?.type ?? 'unknown'}`)
 
         if (message.type === 'STATE_UPDATE' && message.json) {
           const gameState = typeof message.json === 'string'
             ? JSON.parse(message.json)
             : message.json
-
-          const tileCount = gameState.board?.tiles
-            ? Object.keys(gameState.board.tiles).length
-            : 0
-          debugLog(`State parsed OK — ${tileCount} tiles, phase: ${gameState.turnPhase ?? '?'}`)
 
           // Sender strips staticTileMap to stay under Cast's message size limit.
           // Rebuild it from the hardcoded fallback tile definitions.
@@ -117,68 +87,35 @@ function CastReceiver() {
                 gameState.staticTileMap[id] = { ...gameState.staticTileMap[id], imageUrl: url }
               }
             }
-            debugLog(`Patched ${Object.keys(imageUrlMap).length} imageUrls from sender`)
           }
 
-          // Debug: check if imageUrl is present in rebuilt tile defs
-          const sampleId = Object.keys(gameState.board?.tiles ?? {})[0]
-          const sampleDefId = sampleId ? gameState.board.tiles[sampleId]?.definitionId : null
-          const sampleDef = sampleDefId ? gameState.staticTileMap[sampleDefId] : null
-          debugLog(`${Object.keys(fallback).length} defs, sample "${sampleDefId}" imageUrl=${sampleDef?.imageUrl ?? 'NONE'}`)
-
           useGameStore.setState({ gameState })
-          debugLog('State applied to store')
         }
       } catch (err) {
-        debugLog(`Parse error: ${err}`)
+        console.error('[Receiver] Parse error:', err)
       }
     })
-    debugLog(`Message listener registered on namespace: ${CAST_NAMESPACE}`)
 
-    // 2. Start context (signals to Chromecast that receiver is ready)
-    //    Wrapped in try/catch — the CAF SDK throws if the IPC WebSocket fails
-    //    (always fails in non-Chromecast browsers, but works on real hardware)
     try {
       context.setApplicationState('Carcassonne')
       context.start()
-      debugLog('CastReceiverContext started OK')
     } catch (err) {
-      debugLog(`CastReceiverContext.start() failed: ${err}`)
+      console.error('[Receiver] CastReceiverContext.start() failed:', err)
     }
 
-    // No cleanup — CAF context.stop() + re-start() is unsupported
-    // The receiver runs for the lifetime of the cast session
     return () => {}
   }, [])
 
   return (
-    <>
-      <ReceiverErrorBoundary>
-        <CastView />
-      </ReceiverErrorBoundary>
-
-      {/* Debug overlay — small text in bottom-left corner, visible on TV */}
-      <pre
-        id="cast-debug"
-        style={{
-          position: 'fixed', bottom: 4, left: 4,
-          fontSize: 10, color: 'rgba(255,255,255,0.4)',
-          fontFamily: 'monospace', pointerEvents: 'none',
-          zIndex: 9999, whiteSpace: 'pre', lineHeight: 1.3,
-          maxWidth: '50vw',
-        }}
-      >
-        {debugLines.join('\n')}
-      </pre>
-    </>
+    <ReceiverErrorBoundary>
+      <CastView />
+    </ReceiverErrorBoundary>
   )
 }
 
 // ── Mount ───────────────────────────────────────────────────────────────────
 // NOTE: No StrictMode — the CAF Receiver SDK does not support being
 // stopped and restarted (StrictMode double-invokes effects), causing a crash.
-
-debugLog(`receiver.tsx loaded — ${CAST_VERSION}`)
 
 createRoot(document.getElementById('root')!).render(
   <CastReceiver />,
