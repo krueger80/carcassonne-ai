@@ -7,6 +7,8 @@ import { CAST_NAMESPACE } from './cast/castConstants.ts'
 import { getFallbackTileMap } from './services/tileRegistry.ts'
 import './index.css'
 
+const CAST_VERSION = 'v7'
+
 // ── Debug overlay: visible on the TV for diagnosing issues ──────────────────
 
 const debugLines: string[] = []
@@ -104,7 +106,15 @@ function CastReceiver() {
 
           // Sender strips staticTileMap to stay under Cast's message size limit.
           // Rebuild it from the hardcoded fallback tile definitions.
-          gameState.staticTileMap = { ...getFallbackTileMap(), ...(gameState.staticTileMap ?? {}) }
+          const fallback = getFallbackTileMap()
+          gameState.staticTileMap = { ...fallback, ...(gameState.staticTileMap ?? {}) }
+
+          // Debug: check if imageUrl is present in rebuilt tile defs
+          const sampleId = Object.keys(gameState.board?.tiles ?? {})[0]
+          const sampleDefId = sampleId ? gameState.board.tiles[sampleId]?.definitionId : null
+          const sampleDef = sampleDefId ? gameState.staticTileMap[sampleDefId] : null
+          debugLog(`Fallback: ${Object.keys(fallback).length} defs, sample "${sampleDefId}" imageUrl=${sampleDef?.imageUrl ?? 'NONE'}`)
+
           useGameStore.setState({ gameState })
           debugLog('State applied to store')
         }
@@ -157,7 +167,7 @@ function CastReceiver() {
 // NOTE: No StrictMode — the CAF Receiver SDK does not support being
 // stopped and restarted (StrictMode double-invokes effects), causing a crash.
 
-debugLog('receiver.tsx loaded')
+debugLog(`receiver.tsx loaded — ${CAST_VERSION}`)
 
 createRoot(document.getElementById('root')!).render(
   <CastReceiver />,

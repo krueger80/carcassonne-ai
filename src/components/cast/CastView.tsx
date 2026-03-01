@@ -170,7 +170,7 @@ function CastWaitingScreen() {
       <div style={{ fontSize: 48, marginBottom: 16, color: '#b8a47a', fontStyle: 'italic' }}>
         Carcassonne
       </div>
-      <div style={{ fontSize: 18, color: '#666' }}>Waiting for game to start...</div>
+      <div style={{ fontSize: 18, color: '#666' }}>Waiting for game to start... (v7)</div>
       <div style={{ fontSize: 14, marginTop: 8, color: '#444' }}>
         Start a game on your device and this screen will update automatically.
       </div>
