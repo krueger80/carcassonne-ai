@@ -19,13 +19,11 @@ export function useCastSender() {
       return
     }
 
-    // The SDK calls this global when ready
     window.__onGCastApiAvailable = (isAvailable: boolean) => {
       console.log('[Cast] SDK Global callback fired. Available:', isAvailable)
       if (isAvailable) setSdkReady(true)
     }
 
-    // If SDK already loaded (e.g., cached), check immediately
     if (typeof cast !== 'undefined' && cast.framework?.CastContext) {
       console.log('[Cast] SDK already present in window.')
       setSdkReady(true)
@@ -37,24 +35,35 @@ export function useCastSender() {
   // Helper to send current game state to the Cast receiver
   const sendCurrentState = useCallback(() => {
     const session = sessionRef.current
-    if (!session) return
+    if (!session) {
+      console.log('[Cast] sendCurrentState: no session')
+      return false
+    }
     const gameState = useGameStore.getState().gameState
-    if (!gameState) return
+    if (!gameState) {
+      console.log('[Cast] sendCurrentState: no gameState')
+      return false
+    }
     try {
       const json = JSON.stringify(gameState)
       const payload = JSON.stringify({ type: 'STATE_UPDATE', json })
-      console.log(`[Cast] Sending state. Payload size: ${Math.round(payload.length / 1024)} KB`)
+      const sizeKB = Math.round(payload.length / 1024)
+      const tileCount = Object.keys(gameState.board?.tiles ?? {}).length
 
-      // CAF sendMessage: send as string, handle both Promise and void return
+      console.log(`[Cast] Sending state: ${tileCount} tiles, ${sizeKB} KB, phase=${gameState.turnPhase}`)
+
       const result: any = session.sendMessage(CAST_NAMESPACE, payload)
       if (result && typeof result.then === 'function') {
-        result.then(() => console.log('[Cast] State sent (promise)'))
-              .catch((err: unknown) => console.warn('[Cast] sendMessage rejected:', err))
+        result
+          .then(() => console.log('[Cast] ✓ sent (promise resolved)'))
+          .catch((err: unknown) => console.warn('[Cast] ✗ send rejected:', err))
       } else {
-        console.log('[Cast] State sent (fire-and-forget)')
+        console.log('[Cast] ✓ sent (no promise)')
       }
+      return true
     } catch (err) {
-      console.error('[Cast] Failed to send state:', err)
+      console.error('[Cast] ✗ sendMessage threw:', err)
+      return false
     }
   }, [])
 
@@ -73,9 +82,8 @@ export function useCastSender() {
       })
 
       const initialState = ctx.getCastState()
-      console.log('[Cast] Initial state:', initialState)
+      console.log('[Cast] Initial cast state:', initialState)
 
-      // Session state changes (connected / disconnected)
       ctx.addEventListener(cast.framework.CastContextEventType.SESSION_STATE_CHANGED, (event) => {
         const state = event.sessionState
         console.log('[Cast] Session state changed:', state)
@@ -84,19 +92,20 @@ export function useCastSender() {
           state === cast.framework.SessionState.SESSION_RESUMED
         ) {
           sessionRef.current = ctx.getCurrentSession()
+          console.log('[Cast] Session acquired:', !!sessionRef.current)
           setConnectionState('CONNECTED')
           // Send current state immediately on connect
           sendCurrentState()
         } else if (state === cast.framework.SessionState.SESSION_ENDED) {
+          console.log('[Cast] Session ended')
           sessionRef.current = null
           setConnectionState('AVAILABLE')
         }
       })
 
-      // Cast device availability changes
       ctx.addEventListener(cast.framework.CastContextEventType.CAST_STATE_CHANGED, (event) => {
         const s = event.castState
-        console.log('[Cast] State changed:', s)
+        console.log('[Cast] Cast state changed:', s)
         if (s === cast.framework.CastState.NO_DEVICES_AVAILABLE) {
           setConnectionState('NO_DEVICES')
         } else if (s === cast.framework.CastState.NOT_CONNECTED) {
@@ -114,23 +123,44 @@ export function useCastSender() {
 
   // ── 3. Subscribe to Zustand state changes → send to Cast ─────────────────
   useEffect(() => {
+    let sendCount = 0
     const unsub = useGameStore.subscribe((state, prev) => {
-      if (state.gameState !== prev.gameState && state.gameState && sessionRef.current) {
+      const hasSession = !!sessionRef.current
+      const stateChanged = state.gameState !== prev.gameState
+      const hasState = !!state.gameState
+
+      if (stateChanged && hasState && hasSession) {
+        sendCount++
+        console.log(`[Cast] Subscriber: sending update #${sendCount}`)
         try {
           const json = JSON.stringify(state.gameState!)
           const payload = JSON.stringify({ type: 'STATE_UPDATE', json })
           const result: any = sessionRef.current!.sendMessage(CAST_NAMESPACE, payload)
           if (result && typeof result.then === 'function') {
-            result.then(() => console.log('[Cast] State update sent'))
-                  .catch((err: unknown) => console.warn('[Cast] sendMessage failed:', err))
+            result
+              .then(() => console.log(`[Cast] ✓ update #${sendCount} sent`))
+              .catch((err: unknown) => console.warn(`[Cast] ✗ update #${sendCount} failed:`, err))
           }
         } catch (err) {
-          console.error('[Cast] Failed to send state update:', err)
+          console.error(`[Cast] ✗ update #${sendCount} threw:`, err)
         }
+      } else if (stateChanged && hasState && !hasSession) {
+        console.log('[Cast] Subscriber: state changed but no session')
       }
     })
     return unsub
   }, [])
+
+  // ── 4. Periodic resend (every 3s while connected) ─────────────────────────
+  //    Belt-and-suspenders: if individual sends fail silently, this catches up.
+  useEffect(() => {
+    const interval = setInterval(() => {
+      if (sessionRef.current) {
+        sendCurrentState()
+      }
+    }, 3000)
+    return () => clearInterval(interval)
+  }, [sendCurrentState])
 
   return { connectionState, sdkReady }
 }
