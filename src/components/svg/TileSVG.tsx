@@ -68,6 +68,7 @@ export const TileSVG = memo(({
       {definition.imageUrl && (
         <image
           href={definition.imageUrl}
+          xlinkHref={definition.imageUrl}
           x="0"
           y="0"
           width="100"
