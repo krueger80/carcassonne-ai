@@ -34,10 +34,8 @@ declare global {
         getSessionId(): string
         sendMessage(
           namespace: string,
-          message: string,
-          successCallback?: () => void,
-          errorCallback?: (err: any) => void,
-        ): void
+          message: object | string,
+        ): Promise<void>
         addMessageListener(
           namespace: string,
           listener: (namespace: string, message: string) => void,
@@ -74,7 +72,7 @@ declare global {
         stop(): void
         addCustomMessageListener(
           namespace: string,
-          listener: (event: { data: string; senderId: string }) => void,
+          listener: (event: { data: string | Record<string, unknown>; senderId: string }) => void,
         ): void
         setApplicationState(state: string): void
       }

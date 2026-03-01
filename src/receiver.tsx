@@ -4,8 +4,6 @@ import { createRoot } from 'react-dom/client'
 import { useGameStore } from './store/gameStore.ts'
 import { CastView } from './components/cast/CastView.tsx'
 import { CAST_NAMESPACE } from './cast/castConstants.ts'
-import { loadAllTiles } from './services/tileRegistry.ts'
-import type { TileDefinition } from './core/types/tile.ts'
 import './index.css'
 
 // ── Debug overlay: visible on the TV for diagnosing issues ──────────────────
@@ -81,36 +79,37 @@ function CastReceiver() {
       return
     }
 
-    let tileMapCache: Record<string, TileDefinition> | null = null
-    let latestPartialState: any = null
-
     // 1. Register message listener BEFORE start() (per CAF docs)
+    //    Sender now sends objects (not strings), but we handle both for robustness.
     context.addCustomMessageListener(CAST_NAMESPACE, (event) => {
+      debugLog(`Message received — typeof event.data: ${typeof event.data}`)
       try {
-        // event.data is the message payload (already a string from the sender)
+        // Sender sends object { type, json }. CAF may deliver as-is or as string.
         const message = typeof event.data === 'string'
           ? JSON.parse(event.data)
           : event.data
 
+        debugLog(`Message type: ${message?.type ?? 'unknown'}`)
+
         if (message.type === 'STATE_UPDATE' && message.json) {
-          const partialState = typeof message.json === 'string'
+          const gameState = typeof message.json === 'string'
             ? JSON.parse(message.json)
             : message.json
-          latestPartialState = partialState
-          debugLog(`State received (board has ${partialState.board?.tiles ? Object.keys(partialState.board.tiles).length : 0} tiles)`)
 
-          if (tileMapCache) {
-            useGameStore.setState({ gameState: partialState })
-            debugLog('State applied to store')
-          } else {
-            debugLog('Tile map not yet loaded, buffering state')
-          }
+          const tileCount = gameState.board?.tiles
+            ? Object.keys(gameState.board.tiles).length
+            : 0
+          debugLog(`State parsed OK — ${tileCount} tiles, phase: ${gameState.turnPhase ?? '?'}`)
+
+          // Apply immediately — tile definitions are included in staticTileMap
+          useGameStore.setState({ gameState })
+          debugLog('State applied to store')
         }
       } catch (err) {
         debugLog(`Parse error: ${err}`)
       }
     })
-    debugLog('Message listener registered')
+    debugLog(`Message listener registered on namespace: ${CAST_NAMESPACE}`)
 
     // 2. Start context (signals to Chromecast that receiver is ready)
     //    Wrapped in try/catch — the CAF SDK throws if the IPC WebSocket fails
@@ -118,23 +117,10 @@ function CastReceiver() {
     try {
       context.setApplicationState('Carcassonne')
       context.start()
-      debugLog('CastReceiverContext started')
+      debugLog('CastReceiverContext started OK')
     } catch (err) {
       debugLog(`CastReceiverContext.start() failed: ${err}`)
     }
-
-    // 3. Load tile definitions in background
-    loadAllTiles().then(allTiles => {
-      tileMapCache = Object.fromEntries(allTiles.map((t) => [t.id, t]))
-      debugLog(`Loaded ${allTiles.length} tile definitions`)
-
-      // If we already received a state update while loading, apply it now
-      if (latestPartialState) {
-        useGameStore.setState({ gameState: latestPartialState })
-      }
-    }).catch(err => {
-      debugLog(`Tile load failed: ${err}`)
-    })
 
     // No cleanup — CAF context.stop() + re-start() is unsupported
     // The receiver runs for the lifetime of the cast session

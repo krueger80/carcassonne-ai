@@ -42,15 +42,13 @@ export function useCastSender() {
     if (!gameState) return
     try {
       const json = JSON.stringify(gameState)
-      const message = JSON.stringify({ type: 'STATE_UPDATE', json })
-      console.log(`[Cast] Sending state. Payload size: ${Math.round(message.length / 1024)} KB`)
+      console.log(`[Cast] Sending state. Payload size: ${Math.round(json.length / 1024)} KB`)
 
-      session.sendMessage(
-        CAST_NAMESPACE,
-        message,
-        () => console.log('[Cast] State sent'),
-        (err: unknown) => console.warn('[Cast] sendMessage failed:', err),
-      )
+      // Send as object (not string) — CAF SDK handles serialization.
+      // Use Promise API (.then/.catch), not callback args.
+      session.sendMessage(CAST_NAMESPACE, { type: 'STATE_UPDATE', json })
+        .then(() => console.log('[Cast] State sent'))
+        .catch((err: unknown) => console.warn('[Cast] sendMessage failed:', err))
     } catch (err) {
       console.error('[Cast] Failed to send state:', err)
     }
@@ -116,12 +114,9 @@ export function useCastSender() {
       if (state.gameState !== prev.gameState && state.gameState && sessionRef.current) {
         try {
           const json = JSON.stringify(state.gameState!)
-          sessionRef.current!.sendMessage(
-            CAST_NAMESPACE,
-            JSON.stringify({ type: 'STATE_UPDATE', json }),
-            () => console.log('[Cast] State update sent'),
-            (err: unknown) => console.warn('[Cast] sendMessage failed:', err),
-          )
+          sessionRef.current!.sendMessage(CAST_NAMESPACE, { type: 'STATE_UPDATE', json })
+            .then(() => console.log('[Cast] State update sent'))
+            .catch((err: unknown) => console.warn('[Cast] sendMessage failed:', err))
         } catch (err) {
           console.error('[Cast] Failed to send state update:', err)
         }
