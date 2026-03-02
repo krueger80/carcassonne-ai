@@ -1,12 +1,12 @@
+import { useTranslation } from 'react-i18next'
 import { useGameStore } from '../../store/gameStore.ts'
 import { useUIStore } from '../../store/uiStore.ts'
-import { getAllPotentialPlacements, getValidMeepleTypes } from '../../core/engine/GameEngine.ts'
+import { getPotentialPlacementsForState, getValidMeepleTypes } from '../../core/engine/GameEngine.ts'
 import { getFallbackTileMap } from '../../services/tileRegistry.ts'
 import { motion, AnimatePresence } from 'framer-motion'
-import { useEffect, useState, useMemo, useRef } from 'react'
+import { useEffect, useState, useMemo } from 'react'
 import { SetupScreen } from '../setup/SetupScreen.tsx'
 import { PlayerCard } from '../ui/PlayerCard.tsx'
-import { TileSVG } from '../svg/TileSVG.tsx'
 import { useCastSender } from '../../cast/useCastSender.ts'
 
 const floatingBtnStyle = (from: string, to: string): React.CSSProperties => ({
@@ -22,6 +22,7 @@ const floatingBtnStyle = (from: string, to: string): React.CSSProperties => ({
 })
 
 export function GameOverlay() {
+    const { t, i18n } = useTranslation()
     const {
         gameState,
         interactionState,
@@ -57,37 +58,10 @@ export function GameOverlay() {
     const [showOpponents, setShowOpponents] = useState(true)
     const [showScoreboard, setShowScoreboard] = useState(false)
 
-    // Track cursor position for floating active player card
-    const [cursorPos, setCursorPos] = useState({ x: 200, y: 400 })
-    const rafRef = useRef<number>(0)
-    useEffect(() => {
-        const handleMouseMove = (e: MouseEvent) => {
-            cancelAnimationFrame(rafRef.current)
-            rafRef.current = requestAnimationFrame(() => {
-                setCursorPos({ x: e.clientX, y: e.clientY })
-            })
-        }
-        window.addEventListener('mousemove', handleMouseMove)
-        return () => {
-            window.removeEventListener('mousemove', handleMouseMove)
-            cancelAnimationFrame(rafRef.current)
-        }
-    }, [])
-
     // Reset meeple type selection when turn changes
     useEffect(() => {
         setSelectedMeepleType('NORMAL')
     }, [gameState?.currentPlayerIndex, setSelectedMeepleType])
-
-    // Hide system cursor and inject tile-cursor when in PLACE_TILE+IDLE
-    const isCursorModePre = gameState?.turnPhase === 'PLACE_TILE' && interactionState === 'IDLE'
-    useEffect(() => {
-        if (!isCursorModePre) return
-        const style = document.createElement('style')
-        style.textContent = '* { cursor: none !important; }'
-        document.head.appendChild(style)
-        return () => { document.head.removeChild(style) }
-    }, [isCursorModePre])
 
     // Scroll wheel rotates tile during PLACE_TILE
     useEffect(() => {
@@ -110,7 +84,7 @@ export function GameOverlay() {
             if (store.interactionState === 'TILE_PLACED_TENTATIVELY') return
             // Merge: fallback covers all hardcoded tiles; persisted map may have DB-only tiles
             const mergedMap = { ...getFallbackTileMap(), ...(gameState.staticTileMap ?? {}) }
-            const potential = getAllPotentialPlacements(gameState.board, mergedMap, gameState.currentTile)
+            const potential = getPotentialPlacementsForState({ ...gameState, staticTileMap: mergedMap })
             useGameStore.setState((draft) => {
                 draft.validPlacements = potential
                 // Patch staticTileMap so subsequent isValidPlacement calls also work
@@ -190,43 +164,43 @@ export function GameOverlay() {
 
     // Determine status text
     let statusText = isBuilderBonusTurn
-        ? `${currentPlayer.name}'s BONUS TURN`
-        : `${currentPlayer.name}'s turn`
+        ? t('game.playerTurnBonus', { name: currentPlayer.name })
+        : t('game.playerTurn', { name: currentPlayer.name })
     let instructionText = ''
 
     if (turnPhase === 'DRAW_TILE') {
-        instructionText = 'Drawing...'
+        instructionText = t('game.drawing')
     } else if (turnPhase === 'PLACE_TILE') {
         if (interactionState === 'TILE_PLACED_TENTATIVELY') {
-            instructionText = 'Rotate & Confirm'
+            instructionText = t('game.rotateConfirm')
         } else {
-            instructionText = 'Place your tile'
+            instructionText = t('game.placeYourTile')
         }
     } else if (turnPhase === 'PLACE_MEEPLE') {
         const { magicPortalTargets } = useGameStore.getState()
         const hasPortal = magicPortalTargets.length > 0
         if (interactionState === 'MEEPLE_SELECTED_TENTATIVELY') {
-            instructionText = 'Confirm or click meeple to remove'
+            instructionText = t('game.confirmOrRemove')
         } else if (hasPortal) {
-            instructionText = '🌀 Portal: Place Meeple Anywhere!'
+            instructionText = '🌀 ' + t('game.portalPlace')
         } else {
-            instructionText = 'Place Meeple or Skip'
+            instructionText = t('game.placeMeepleOrSkip')
         }
     } else if (turnPhase === 'DRAGON_PLACE') {
-        instructionText = '🐉 Place dragon on a Dragon Hoard tile'
+        instructionText = '🐉 ' + t('game.dragonPlace')
     } else if (turnPhase === 'DRAGON_ORIENT') {
         const facingLabel = tentativeDragonFacing
-            ? `Facing ${tentativeDragonFacing} — click to rotate`
-            : 'Click dragon to orient'
+            ? t('game.dragonFacing', { direction: tentativeDragonFacing })
+            : t('game.dragonClickOrient')
         instructionText = `🐉 ${facingLabel}`
     } else if (turnPhase === 'DRAGON_MOVEMENT') {
-        instructionText = '🐉 Dragon Moving...'
+        instructionText = '🐉 ' + t('game.dragonMoving')
     } else if (turnPhase === 'FAIRY_MOVE') {
-        instructionText = '✨ Place Fairy on a Meeple'
+        instructionText = '✨ ' + t('game.placeFairy')
     } else if (turnPhase === 'RETURN_FARMER') {
-        instructionText = 'Returning Farmers...'
+        instructionText = t('game.returningFarmers')
     } else if (turnPhase === 'SCORE') {
-        instructionText = 'Turn ending...'
+        instructionText = t('game.turnEnding')
     }
 
     // ── Current player turn state (shared between floating card and map) ─────
@@ -285,11 +259,6 @@ export function GameOverlay() {
         dragonMovesRemaining: dfData?.dragonMovement?.movesRemaining,
         canUndo: turnPhase === 'DRAGON_ORIENT' && !dfData?.dragonMovement && !!gameState.lastPlacedCoord,
     }
-
-    // ── Tile cursor ───────────────────────────────────────────────────────────
-    const TILE_CURSOR_SIZE = 72
-    // isCursorMode: tile image follows cursor during PLACE_TILE+IDLE
-    const isCursorMode = turnPhase === 'PLACE_TILE' && interactionState === 'IDLE'
 
     // ── Floating buttons near the active tile ──────────────────────────────────
     const CELL_SIZE = 88
@@ -372,7 +341,7 @@ export function GameOverlay() {
                                 textTransform: 'uppercase',
                                 color: currentPlayer.color,
                             }}>
-                                Bonus Turn
+                                {t('game.bonusTurn')}
                             </span>
                             <span style={{ fontSize: 20 }}>&#x2692;</span>
                         </motion.div>
@@ -433,9 +402,9 @@ export function GameOverlay() {
                             textAlign: 'center'
                         }}
                     >
-                        <h2 style={{ margin: 0, color: '#fff', fontSize: 20 }}>Return Farmer?</h2>
+                        <h2 style={{ margin: 0, color: '#fff', fontSize: 20 }}>{t('farmer.returnTitle')}</h2>
                         <p style={{ margin: 0, color: '#ccc', fontSize: 14 }}>
-                            <strong style={{ color: players.find(p => p.id === activeFarmerPrompt.playerId)?.color }}>{players.find(p => p.id === activeFarmerPrompt.playerId)?.name}</strong>, your Pig just scored {activeFarmerPrompt.points} points and was returned. Do you want to return the farmer assigned to this pig as well?
+                            {t('farmer.returnDescription', { name: players.find(p => p.id === activeFarmerPrompt.playerId)?.name, points: activeFarmerPrompt.points })}
                         </p>
                         <div style={{ display: 'flex', gap: 12, width: '100%', marginTop: 8 }}>
                             <button
@@ -448,7 +417,7 @@ export function GameOverlay() {
                                 onMouseEnter={(e) => e.currentTarget.style.background = '#27ae60'}
                                 onMouseLeave={(e) => e.currentTarget.style.background = '#2ecc71'}
                             >
-                                Yes, Return Farmer
+                                {t('farmer.yesReturn')}
                             </button>
                             <button
                                 onClick={() => resolveFarmerReturn(false)}
@@ -460,7 +429,7 @@ export function GameOverlay() {
                                 onMouseEnter={(e) => e.currentTarget.style.background = '#95a5a6'}
                                 onMouseLeave={(e) => e.currentTarget.style.background = '#7f8c8d'}
                             >
-                                No, Keep Farmer
+                                {t('farmer.noKeep')}
                             </button>
                         </div>
                     </motion.div>
@@ -518,7 +487,7 @@ export function GameOverlay() {
                         display: 'flex',
                         alignItems: 'center',
                     }}
-                    title="Tableau des scores"
+                    title={t('menu.scoreboard')}
                 >
                     🏆
                 </button>
@@ -531,7 +500,7 @@ export function GameOverlay() {
                     fontFamily: 'monospace',
                     whiteSpace: 'nowrap',
                 }}>
-                    {tileBag.length} tuiles
+                    {t('game.tilesCount', { count: tileBag.length })}
                     {hasDragonFairy && (
                         <span style={{ marginLeft: 8, fontSize: 11 }}>
                             <span style={{ color: '#e74c3c' }}>{dfData?.dragonInPlay ? '\u25C6' : '\u25C7'}</span>
@@ -570,7 +539,7 @@ export function GameOverlay() {
                         onPointerDown={(e) => e.stopPropagation()}
                     >
                         <div style={{ fontWeight: 'bold', color: '#e8d8a0', fontSize: 15, marginBottom: 12, textAlign: 'center' }}>
-                            🏆 Tableau des scores
+                            🏆 {t('menu.scoreboard')}
                         </div>
                         {(() => {
                             const sorted = [...players].sort((a, b) => b.score - a.score)
@@ -583,7 +552,7 @@ export function GameOverlay() {
                                     <thead>
                                         <tr>
                                             <th style={{ width: 24, padding: '4px 2px' }} />
-                                            <th style={{ textAlign: 'left', padding: '4px 6px', color: '#aaa', fontWeight: 'normal' }}>Joueur</th>
+                                            <th style={{ textAlign: 'left', padding: '4px 6px', color: '#aaa', fontWeight: 'normal' }}>{t('endGame.player')}</th>
                                             {activeCats.map(c => (
                                                 <th key={c} style={{ textAlign: 'center', padding: '4px 4px', color: '#888', fontWeight: 'normal', fontSize: 16 }} title={c}>{CAT_ICONS[c]}</th>
                                             ))}
@@ -685,7 +654,7 @@ export function GameOverlay() {
                                 }}
                             >
                                 <div style={{ fontSize: 14, fontWeight: 'bold', color: '#fff', paddingBottom: 8, borderBottom: '1px solid #444', marginBottom: 4 }}>
-                                    Menu
+                                    {t('menu.menu')}
                                 </div>
 
                                 <button
@@ -710,7 +679,7 @@ export function GameOverlay() {
                                     onMouseEnter={(e) => (e.currentTarget.style.background = '#4a4a5a')}
                                     onMouseLeave={(e) => (e.currentTarget.style.background = '#3a3a4a')}
                                 >
-                                    <span>🔄</span> New Game
+                                    <span>🔄</span> {t('menu.newGame')}
                                 </button>
 
                                 <button
@@ -735,7 +704,7 @@ export function GameOverlay() {
                                     onMouseEnter={(e) => (e.currentTarget.style.background = '#4a4a5a')}
                                     onMouseLeave={(e) => (e.currentTarget.style.background = '#3a3a4a')}
                                 >
-                                    <span>📚</span> Extension Catalog
+                                    <span>📚</span> {t('menu.extensionCatalog')}
                                 </button>
 
                                 <button
@@ -760,7 +729,7 @@ export function GameOverlay() {
                                     onMouseEnter={(e) => (e.currentTarget.style.background = '#4a5a4a')}
                                     onMouseLeave={(e) => (e.currentTarget.style.background = '#3a4a3a')}
                                 >
-                                    <span>🔧</span> Debug Configurator
+                                    <span>🔧</span> {t('menu.debugConfigurator')}
                                 </button>
 
                                 <div style={{ borderTop: '1px solid #444', margin: '4px 0' }} />
@@ -790,7 +759,33 @@ export function GameOverlay() {
                                     onMouseEnter={(e) => (e.currentTarget.style.background = '#4a4a5a')}
                                     onMouseLeave={(e) => (e.currentTarget.style.background = '#3a3a4a')}
                                 >
-                                    <span>📺</span> Cast to TV
+                                    <span>📺</span> {t('menu.castToTV')}
+                                </button>
+
+                                <div style={{ borderTop: '1px solid #444', margin: '4px 0' }} />
+
+                                <button
+                                    onClick={(e) => {
+                                        e.stopPropagation()
+                                        i18n.changeLanguage(i18n.language === 'fr' ? 'en' : 'fr')
+                                    }}
+                                    style={{
+                                        background: '#3a3a4a',
+                                        border: 'none',
+                                        borderRadius: 6,
+                                        color: 'white',
+                                        padding: '10px',
+                                        cursor: 'pointer',
+                                        textAlign: 'left',
+                                        transition: 'background 0.2s',
+                                        display: 'flex',
+                                        alignItems: 'center',
+                                        gap: 8,
+                                    }}
+                                    onMouseEnter={(e) => (e.currentTarget.style.background = '#4a4a5a')}
+                                    onMouseLeave={(e) => (e.currentTarget.style.background = '#3a3a4a')}
+                                >
+                                    <span>🌐</span> {i18n.language === 'fr' ? 'English' : 'Français'}
                                 </button>
                             </motion.div>
                         )}
@@ -878,58 +873,36 @@ export function GameOverlay() {
                     {interactionState === 'TILE_PLACED_TENTATIVELY' && (
                         <>
                             <button onClick={confirmTilePlacement} style={floatingBtnStyle('#27ae60', '#1e8449')}>
-                                ✓ Confirm
+                                {t('game.confirmBtn')}
                             </button>
                             <button onClick={cancelTilePlacement} style={floatingBtnStyle('#c0392b', '#922b21')}>
-                                ✕ Cancel
+                                {t('game.cancelActionBtn')}
                             </button>
                         </>
                     )}
                     {turnPhase === 'PLACE_MEEPLE' && interactionState === 'MEEPLE_SELECTED_TENTATIVELY' && (
                         <>
                             <button onClick={confirmMeeplePlacement} style={floatingBtnStyle('#27ae60', '#1e8449')}>
-                                ✓ Confirm
+                                {t('game.confirmBtn')}
                             </button>
                             <button onClick={cancelMeeplePlacement} style={floatingBtnStyle('#c0392b', '#922b21')}>
-                                ✕ Cancel
+                                {t('game.cancelActionBtn')}
                             </button>
                         </>
                     )}
                     {turnPhase === 'PLACE_MEEPLE' && interactionState !== 'MEEPLE_SELECTED_TENTATIVELY' && (
                         <>
                             <button onClick={undoTilePlacement} style={floatingBtnStyle('#c0392b', '#922b21')}>
-                                ↩ Undo
+                                {t('game.undoBtn')}
                             </button>
                             <button onClick={skipMeeple} style={floatingBtnStyle('#7f8c8d', '#606c6d')}>
-                                Skip
+                                {t('game.skip')}
                             </button>
                         </>
                     )}
                 </div>
             )}
 
-            {/* ── Tile cursor (replaces hand cursor during PLACE_TILE+IDLE) ─── */}
-            {isCursorMode && currentTile && gameState.staticTileMap[currentTile.definitionId] && (
-                <div style={{
-                    position: 'absolute',
-                    left: cursorPos.x - TILE_CURSOR_SIZE / 2,
-                    top: cursorPos.y - TILE_CURSOR_SIZE / 2,
-                    width: TILE_CURSOR_SIZE,
-                    height: TILE_CURSOR_SIZE,
-                    borderRadius: 6,
-                    overflow: 'hidden',
-                    pointerEvents: 'none',
-                    zIndex: 70,
-                    opacity: 0.88,
-                    boxShadow: `0 4px 16px rgba(0,0,0,0.6), 0 0 0 2px ${currentPlayer.color}80`,
-                }}>
-                    <TileSVG
-                        definition={gameState.staticTileMap[currentTile.definitionId]}
-                        rotation={currentTile.rotation}
-                        size={TILE_CURSOR_SIZE}
-                    />
-                </div>
-            )}
         </div>
     )
 }

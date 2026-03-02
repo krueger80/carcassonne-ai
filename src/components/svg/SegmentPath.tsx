@@ -21,9 +21,10 @@ interface SegmentPathProps {
   segment: Segment
   highlighted?: boolean
   dimmed?: boolean
+  ownerColor?: string
 }
 
-export const SegmentPath = memo(({ segment, highlighted = false, dimmed = false }: SegmentPathProps) => {
+export const SegmentPath = memo(({ segment, highlighted = false, dimmed = false, ownerColor }: SegmentPathProps) => {
   const fill = highlighted
     ? '#ffffaa'
     : TERRAIN_COLORS[segment.type] ?? '#cccccc'
@@ -39,6 +40,9 @@ export const SegmentPath = memo(({ segment, highlighted = false, dimmed = false 
         {/* Cross decoration on cloister */}
         <rect x="48" y="32" width="4" height="36" fill={TERRAIN_STROKE['CLOISTER']} opacity={0.5} />
         <rect x="32" y="48" width="36" height="4" fill={TERRAIN_STROKE['CLOISTER']} opacity={0.5} />
+        {ownerColor && (
+          <rect x="28" y="28" width="44" height="44" fill={ownerColor} opacity={0.3} rx="3" />
+        )}
       </g>
     )
   }
@@ -53,6 +57,9 @@ export const SegmentPath = memo(({ segment, highlighted = false, dimmed = false 
         <path d={segment.svgPath} fill="none" stroke={roadBorder} strokeWidth="12" strokeLinecap="round" strokeLinejoin="round" />
         {/* Inner stroke (road surface) */}
         <path d={segment.svgPath} fill="none" stroke={roadColor} strokeWidth="8" strokeLinecap="round" strokeLinejoin="round" />
+        {ownerColor && (
+          <path d={segment.svgPath} fill="none" stroke={ownerColor} strokeWidth="8" strokeLinecap="round" strokeLinejoin="round" opacity={0.3} />
+        )}
       </g>
     )
   }
@@ -72,12 +79,17 @@ export const SegmentPath = memo(({ segment, highlighted = false, dimmed = false 
   }
 
   return (
-    <path
-      d={segment.svgPath}
-      fill={fill}
-      stroke={stroke}
-      strokeWidth="0.5"
-      opacity={opacity}
-    />
+    <g>
+      <path
+        d={segment.svgPath}
+        fill={fill}
+        stroke={stroke}
+        strokeWidth="0.5"
+        opacity={opacity}
+      />
+      {ownerColor && (
+        <path d={segment.svgPath} fill={ownerColor} opacity={0.25} />
+      )}
+    </g>
   )
 })

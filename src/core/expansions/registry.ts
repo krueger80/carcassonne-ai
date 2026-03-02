@@ -19,6 +19,7 @@ import {
 } from './tradersBuilders.ts'
 import { TRADERS_BUILDERS_C31_EXPANSION } from './tradersBuildersC31.ts'
 import { DRAGON_FAIRY_C31_EXPANSION } from './dragonFairy.ts'
+import { RIVER_C3_EXPANSION } from './river.ts'
 
 export interface ExpansionConfig {
   id: string
@@ -40,6 +41,7 @@ const EXPANSION_REGISTRY: Record<string, ExpansionConfig> = {
   'traders-builders-c3':  TRADERS_BUILDERS_C3_EXPANSION,
   'traders-builders-c31': TRADERS_BUILDERS_C31_EXPANSION,
   'dragon-fairy-c31':     DRAGON_FAIRY_C31_EXPANSION,
+  'river-c3':             RIVER_C3_EXPANSION,
 }
 
 export function getExpansionConfig(id: string): ExpansionConfig | undefined {
@@ -83,6 +85,13 @@ export function buildExpansionConfig(selection: ExpansionSelection): ExpansionCo
       scoringRules: TRADERS_BUILDERS_C2_EXPANSION.scoringRules,
       enableBigMeeple: true,
       enableBuilderAndPig: true,
+    }
+  }
+
+  if (selection.id === 'river') {
+    return {
+      ...RIVER_C3_EXPANSION,
+      id: selection.id,
     }
   }
 

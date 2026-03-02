@@ -1,5 +1,7 @@
+import { useTranslation } from 'react-i18next'
 import { Player, MeepleType } from "../../core/types/player";
 import { MeepleSVG } from "../svg/MeepleSVG";
+import { TileSVG } from "../svg/TileSVG";
 import { TileDefinition, Rotation, Direction } from "../../core/types/tile";
 import { Coordinate } from "../../core/types/board";
 import { Button } from "./Button";
@@ -123,9 +125,10 @@ interface GoodIconProps {
 }
 
 const GoodIcon = ({ type, count, useModernTerminology, isCompact }: GoodIconProps) => {
+    const { t } = useTranslation();
     const size = isCompact ? 20 : 24;
-    const label = type === 'WINE' ? (useModernTerminology ? 'Chicken' : 'Wine') :
-        type === 'WHEAT' ? (useModernTerminology ? 'Grain' : 'Wheat') : 'Cloth';
+    const label = type === 'WINE' ? (useModernTerminology ? t('goods.chicken') : t('goods.wine')) :
+        type === 'WHEAT' ? (useModernTerminology ? t('goods.grain') : t('goods.wheat')) : t('goods.cloth');
 
     return (
         <div style={{ position: 'relative', width: size, height: size, opacity: count > 0 ? 1 : 0.3 }} title={label}>
@@ -150,6 +153,7 @@ const GoodIcon = ({ type, count, useModernTerminology, isCompact }: GoodIconProp
 }
 
 export function PlayerCard({ player, isCurrentTurn, isBuilderBonusTurn = false, hasTradersBuilders, hasInnsCathedrals, hasDragonHeldBy, useModernTerminology = false, turnState, style }: PlayerCardProps) {
+    const { t } = useTranslation();
     const { color, name, score, meeples, traderTokens } = player;
 
     // Interaction logic
@@ -220,6 +224,9 @@ export function PlayerCard({ player, isCurrentTurn, isBuilderBonusTurn = false, 
             )}
 
             {/* 3. Main Content: Split columns if we have a tile preview */}
+            {(() => {
+                const showTilePreview = isCurrentTurn && turnState?.phase === 'PLACE_TILE' && turnState?.tileDefinition && turnState?.currentTile;
+                return (
             <div style={{ display: 'flex', gap: isCurrentTurn ? 16 : 4, alignItems: 'center' }}>
 
                 {/* Left Col: Inventory */}
@@ -243,7 +250,7 @@ export function PlayerCard({ player, isCurrentTurn, isBuilderBonusTurn = false, 
                                     <MeepleIcon
                                         type="NORMAL"
                                         count={getAdjustedCount('NORMAL')}
-                                        tooltip="Meeple"
+                                        tooltip={t('meeple.meeple')}
                                         color={color}
                                         onClick={isCurrentTurn && isMeeplePhase && turnState?.actions.selectMeeple ? () => turnState.actions.selectMeeple?.('NORMAL') : undefined}
                                         isSelected={isMeeplePhase && turnState?.selectedMeepleType === 'NORMAL'}
@@ -254,7 +261,7 @@ export function PlayerCard({ player, isCurrentTurn, isBuilderBonusTurn = false, 
                                         <MeepleIcon
                                             type="BIG"
                                             count={getAdjustedCount('BIG')}
-                                            tooltip="Big Meeple"
+                                            tooltip={t('meeple.bigMeeple')}
                                             color={color}
                                             onClick={isCurrentTurn && isMeeplePhase && turnState?.actions.selectMeeple ? () => turnState.actions.selectMeeple?.('BIG') : undefined}
                                             isSelected={isMeeplePhase && turnState?.selectedMeepleType === 'BIG'}
@@ -267,7 +274,7 @@ export function PlayerCard({ player, isCurrentTurn, isBuilderBonusTurn = false, 
                                             <MeepleIcon
                                                 type="BUILDER"
                                                 count={getAdjustedCount('BUILDER')}
-                                                tooltip="Builder"
+                                                tooltip={t('meeple.builder')}
                                                 color={color}
                                                 onClick={isCurrentTurn && isMeeplePhase && turnState?.actions.selectMeeple ? () => turnState.actions.selectMeeple?.('BUILDER') : undefined}
                                                 isSelected={isMeeplePhase && (turnState?.selectedMeepleType === 'BUILDER' || turnState?.tentativeSecondaryMeepleType === 'BUILDER')}
@@ -277,7 +284,7 @@ export function PlayerCard({ player, isCurrentTurn, isBuilderBonusTurn = false, 
                                             <MeepleIcon
                                                 type="PIG"
                                                 count={getAdjustedCount('PIG')}
-                                                tooltip="Pig"
+                                                tooltip={t('meeple.pig')}
                                                 color={color}
                                                 onClick={isCurrentTurn && isMeeplePhase && turnState?.actions.selectMeeple ? () => turnState.actions.selectMeeple?.('PIG') : undefined}
                                                 isSelected={isMeeplePhase && (turnState?.selectedMeepleType === 'PIG' || turnState?.tentativeSecondaryMeepleType === 'PIG')}
@@ -300,7 +307,7 @@ export function PlayerCard({ player, isCurrentTurn, isBuilderBonusTurn = false, 
                                 border: `1px solid ${isCurrentTurn && (turnState?.phase === 'DRAGON_ORIENT' || turnState?.phase === 'DRAGON_PLACE') ? '#e74c3c' : '#666'}`,
                                 background: isCurrentTurn && (turnState?.phase === 'DRAGON_ORIENT' || turnState?.phase === 'DRAGON_PLACE')
                                     ? 'rgba(231, 76, 60, 0.15)' : 'transparent',
-                            }} title="Dragon">
+                            }} title={t('meeple.dragon')}>
                                 <div style={{ width: isCurrentTurn ? 24 : 20, height: isCurrentTurn ? 24 : 20 }}>
                                     <svg width={isCurrentTurn ? 24 : 20} height={isCurrentTurn ? 24 : 20} viewBox="0 0 24 24"
                                         style={{ filter: 'drop-shadow(0 1px 2px rgba(0,0,0,0.5))' }}>
@@ -309,7 +316,7 @@ export function PlayerCard({ player, isCurrentTurn, isBuilderBonusTurn = false, 
                                         </text>
                                     </svg>
                                 </div>
-                                {isCurrentTurn && <div style={{ fontSize: 9, color: '#e74c3c', marginTop: 2, fontWeight: 'bold' }}>Dragon</div>}
+                                {isCurrentTurn && <div style={{ fontSize: 9, color: '#e74c3c', marginTop: 2, fontWeight: 'bold' }}>{t('meeple.dragon')}</div>}
                             </div>
                         )}
                     </div>
@@ -331,25 +338,46 @@ export function PlayerCard({ player, isCurrentTurn, isBuilderBonusTurn = false, 
                     )}
                 </div>
 
+                {/* Right Col: Tile Preview (active player, PLACE_TILE phase only) */}
+                {showTilePreview && turnState.tileDefinition && turnState.currentTile && (
+                    <div style={{
+                        flexShrink: 0,
+                        width: 80,
+                        height: 80,
+                        borderRadius: 8,
+                        overflow: 'hidden',
+                        border: `2px solid ${color}`,
+                        boxShadow: `0 2px 8px rgba(0,0,0,0.4), 0 0 0 1px ${color}40`,
+                    }}>
+                        <TileSVG
+                            definition={turnState.tileDefinition}
+                            rotation={turnState.currentTile.rotation}
+                            size={80}
+                        />
+                    </div>
+                )}
+
             </div>
+                );
+            })()}
 
             {/* 4. Action Buttons (Active only) */}
             {isCurrentTurn && turnState && (
                 <div style={{ marginTop: 4, display: 'flex', gap: 8 }}>
                     {turnState.phase === 'PLACE_TILE' && turnState.interactionState === 'IDLE' && (
-                        <Button onClick={turnState.actions.rotate!} style={{ flex: 1 }}>⭮ Rotate</Button>
+                        <Button onClick={turnState.actions.rotate!} style={{ flex: 1 }}>⭮ {t('game.rotate')}</Button>
                     )}
                     {/* PLACE_MEEPLE buttons are shown floating near the tile */}
                     {turnState.phase === 'DRAGON_ORIENT' && turnState.actions.confirmDragonOrientation && (
                         <>
-                            <Button onClick={turnState.actions.cycleDragonFacing!} style={{ flex: 1 }}>↻ Cycle</Button>
+                            <Button onClick={turnState.actions.cycleDragonFacing!} style={{ flex: 1 }}>↻ {t('game.cycle')}</Button>
                             <Button
                                 onClick={turnState.actions.confirmDragonOrientation}
                                 primary
                                 style={{ flex: 1 }}
                                 disabled={!turnState.tentativeDragonFacing}
                             >
-                                {turnState.dragonMovesRemaining && turnState.dragonMovesRemaining > 0 ? 'Confirm & Move' : 'Confirm'}
+                                {turnState.dragonMovesRemaining && turnState.dragonMovesRemaining > 0 ? t('game.confirmAndMove') : t('game.confirm')}
                             </Button>
                             {turnState.canUndo && (
                                 <Button
@@ -357,26 +385,26 @@ export function PlayerCard({ player, isCurrentTurn, isBuilderBonusTurn = false, 
                                     danger
                                     style={{ flex: 1 }}
                                 >
-                                    Undo Tile
+                                    {t('game.undoTile')}
                                 </Button>
                             )}
                         </>
                     )}
                     {turnState.phase === 'DRAGON_PLACE' && turnState.dragonPlaceTargets && turnState.dragonPlaceTargets.length > 0 && (
                         <div style={{ fontSize: 12, color: '#e74c3c', textAlign: 'center', flex: 1, padding: '6px 0' }}>
-                            🐉 Click a Dragon Hoard tile on the board
+                            🐉 {t('game.clickDragonHoard')}
                         </div>
                     )}
                     {turnState.phase === 'DRAGON_MOVEMENT' && turnState.actions.executeDragon && (
-                        <Button onClick={turnState.actions.executeDragon} primary style={{ flex: 1 }}>🐉 Move Dragon</Button>
+                        <Button onClick={turnState.actions.executeDragon} primary style={{ flex: 1 }}>🐉 {t('game.moveDragon')}</Button>
                     )}
                     {turnState.phase === 'FAIRY_MOVE' && (
                         <div style={{ display: 'flex', gap: 8, flex: 1 }}>
                             {turnState.actions.cancelMeeple && (
-                                <Button onClick={turnState.actions.cancelMeeple} danger style={{ flex: 1 }}>Cancel</Button>
+                                <Button onClick={turnState.actions.cancelMeeple} danger style={{ flex: 1 }}>{t('game.cancelBtn')}</Button>
                             )}
                             {turnState.actions.skipFairy && (
-                                <Button onClick={turnState.actions.skipFairy} style={{ flex: 1 }}>Skip Fairy</Button>
+                                <Button onClick={turnState.actions.skipFairy} style={{ flex: 1 }}>{t('game.skipFairy')}</Button>
                             )}
                         </div>
                     )}

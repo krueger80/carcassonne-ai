@@ -1,10 +1,54 @@
-import { useRef, useEffect } from 'react'
+import { useRef, useEffect, useMemo } from 'react'
+import { useTranslation } from 'react-i18next'
 import { useGameStore } from '../../store/gameStore.ts'
 import { TileCell } from '../game/TileCell.tsx'
 import { DragonPiece } from '../game/DragonPiece.tsx'
 import { useCastAutoFit } from './useCastAutoFit.ts'
 import { CastScoreboard } from './CastScoreboard.tsx'
+import { getAllFeatures } from '../../core/engine/FeatureDetector.ts'
+import { useUIStore, type TerritoryOverlayMode } from '../../store/uiStore.ts'
+import type { Feature, UnionFindState } from '../../core/types/feature.ts'
+import type { Player } from '../../core/types/player.ts'
 import type { Direction } from '../../core/types/tile.ts'
+
+function getControllingColor(feature: Feature, players: Player[]): string | null {
+  if (feature.meeples.length > 0) {
+    const strength: Record<string, number> = {}
+    for (const m of feature.meeples) {
+      strength[m.playerId] = (strength[m.playerId] ?? 0) + (m.meepleType === 'BIG' ? 2 : 1)
+    }
+    const maxStr = Math.max(...Object.values(strength))
+    const topPlayers = Object.keys(strength).filter(id => strength[id] === maxStr)
+    const player = players.find(p => p.id === topPlayers[0])
+    return player?.color ?? null
+  }
+  if (feature.lastOwnerIds?.length) {
+    const player = players.find(p => p.id === feature.lastOwnerIds![0])
+    return player?.color ?? null
+  }
+  return null
+}
+
+function computeSegmentOwnerMap(
+  uf: UnionFindState,
+  players: Player[],
+  mode: TerritoryOverlayMode,
+): Record<string, Record<string, string>> {
+  if (mode === 'off') return {}
+  const result: Record<string, Record<string, string>> = {}
+  const features = getAllFeatures(uf)
+  for (const feature of features) {
+    if (mode === 'incomplete' && feature.isComplete) continue
+    const color = getControllingColor(feature, players)
+    if (!color) continue
+    for (const node of feature.nodes) {
+      const coordKey = `${node.coordinate.x},${node.coordinate.y}`
+      if (!result[coordKey]) result[coordKey] = {}
+      result[coordKey][node.segmentId] = color
+    }
+  }
+  return result
+}
 
 const CELL_SIZE = 88
 const BOARD_PADDING = 1  // Minimal padding (display only)
@@ -53,6 +97,12 @@ export function CastView() {
 
   const dragonPos = dfData?.dragonPosition ?? null
   const dragonFacing = dfData?.dragonFacing ?? null
+
+  const territoryOverlay = useUIStore(s => s.territoryOverlay)
+  const segmentOwnerMap = useMemo(() => {
+    if (!gameState.featureUnionFind || territoryOverlay === 'off') return {}
+    return computeSegmentOwnerMap(gameState.featureUnionFind, players, territoryOverlay)
+  }, [gameState.featureUnionFind, players, territoryOverlay])
 
   // Build fairy segment map
   const fairySegmentMap: Record<string, string> = {}
@@ -120,6 +170,7 @@ export function CastView() {
                       size={CELL_SIZE}
                       players={players}
                       fairySegmentId={fairySegmentMap[key]}
+                      segmentOwnerColors={segmentOwnerMap[key]}
                     />
                   </div>
                 )
@@ -155,6 +206,7 @@ export function CastView() {
 }
 
 function CastWaitingScreen() {
+  const { t } = useTranslation()
   return (
     <div style={{
       width: '100vw',
@@ -170,9 +222,9 @@ function CastWaitingScreen() {
       <div style={{ fontSize: 48, marginBottom: 16, color: '#b8a47a', fontStyle: 'italic' }}>
         Carcassonne
       </div>
-      <div style={{ fontSize: 18, color: '#666' }}>Waiting for game to start...</div>
+      <div style={{ fontSize: 18, color: '#666' }}>{t('cast.waiting')}</div>
       <div style={{ fontSize: 14, marginTop: 8, color: '#444' }}>
-        Start a game on your device and this screen will update automatically.
+        {t('cast.waitingHint')}
       </div>
     </div>
   )

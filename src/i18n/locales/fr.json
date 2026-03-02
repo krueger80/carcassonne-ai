@@ -1,0 +1,116 @@
+{
+  "setup": {
+    "title": "Carcassonne",
+    "newGame": "Nouvelle Partie",
+    "subtitle": "Le jeu classique de placement de tuiles",
+    "players": "Joueurs",
+    "baseTileSet": "Jeu de tuiles de base",
+    "expansions": "Extensions",
+    "rules": "R\u00e8gles",
+    "tiles": "Tuiles",
+    "cancel": "Annuler",
+    "startGame": "Commencer",
+    "starting": "D\u00e9marrage\u2026",
+    "startFailed": "\u00c9chec du d\u00e9marrage : {{error}}",
+    "playerPlaceholder": "Joueur {{n}}",
+    "browseExtensions": "Catalogue d'extensions",
+    "debugConfigurator": "Configurateur de debug"
+  },
+  "game": {
+    "bonusTurn": "Tour Bonus",
+    "playerTurnBonus": "TOUR BONUS de {{name}}",
+    "playerTurn": "Tour de {{name}}",
+    "drawing": "Pioche\u2026",
+    "rotateConfirm": "Tourner & Confirmer",
+    "placeYourTile": "Placez votre tuile",
+    "confirmOrRemove": "Confirmer ou cliquer pour retirer",
+    "portalPlace": "Portail : Placez un meeple n'importe o\u00f9 !",
+    "placeMeepleOrSkip": "Placer un meeple ou passer",
+    "dragonPlace": "Placez le dragon sur un tr\u00e9sor",
+    "dragonFacing": "Direction {{direction}} \u2014 cliquer pour tourner",
+    "dragonClickOrient": "Cliquer sur le dragon pour l'orienter",
+    "dragonMoving": "Le dragon se d\u00e9place\u2026",
+    "placeFairy": "Placer la f\u00e9e sur un meeple",
+    "returningFarmers": "Retour des fermiers\u2026",
+    "turnEnding": "Fin du tour\u2026",
+    "confirm": "Confirmer",
+    "confirmAndMove": "Confirmer & D\u00e9placer",
+    "cancelBtn": "Annuler",
+    "rotate": "Tourner",
+    "cycle": "Cycle",
+    "undoTile": "Annuler tuile",
+    "clickDragonHoard": "Cliquez sur une tuile tr\u00e9sor du dragon",
+    "moveDragon": "D\u00e9placer le dragon",
+    "skipFairy": "Passer la f\u00e9e",
+    "confirmBtn": "\u2713 Confirmer",
+    "cancelActionBtn": "\u2715 Annuler",
+    "undoBtn": "\u21A9 Annuler",
+    "skip": "Passer",
+    "tilesCount": "{{count}} tuiles",
+    "removeMeeple": "Retirer le meeple",
+    "placeFairyHere": "Placer la f\u00e9e",
+    "placeMeepleOn": "Placer un meeple sur {{type}}"
+  },
+  "menu": {
+    "menu": "Menu",
+    "newGame": "Nouvelle Partie",
+    "extensionCatalog": "Catalogue d'extensions",
+    "debugConfigurator": "Configurateur de debug",
+    "castToTV": "Diffuser sur TV",
+    "scoreboard": "Tableau des scores"
+  },
+  "endGame": {
+    "title": "Fin de Partie",
+    "results": "R\u00e9sultats",
+    "tieMessage": "\u00c9galit\u00e9 entre {{names}} avec {{points}} pts !",
+    "winMessage": "{{name}} gagne avec {{points}} points !",
+    "player": "Joueur",
+    "total": "Total",
+    "viewBoard": "Voir le plateau",
+    "playAgain": "Rejouer",
+    "traderBonus": "Bonus marchands (jetons)",
+    "categories": {
+      "ROAD": "Routes",
+      "CITY": "Cit\u00e9s",
+      "CLOISTER": "Monast\u00e8res",
+      "FIELD": "Fermes",
+      "TRADER": "Marchands"
+    },
+    "categoryDetail": {
+      "ROAD": "1 pt/tuile",
+      "CITY": "2 pts/tuile (compl\u00e8te)",
+      "CLOISTER": "1 pt/tuile adjacente",
+      "FIELD": "3 pts/cit\u00e9 compl\u00e8te",
+      "TRADER": "bonus marchand 10 pts"
+    }
+  },
+  "farmer": {
+    "returnTitle": "Retirer le fermier ?",
+    "returnDescription": "{{name}}, votre cochon vient de marquer {{points}} points et a \u00e9t\u00e9 retir\u00e9. Voulez-vous aussi retirer le fermier associ\u00e9 ?",
+    "yesReturn": "Oui, retirer le fermier",
+    "noKeep": "Non, garder le fermier"
+  },
+  "cast": {
+    "waiting": "En attente du d\u00e9but de la partie\u2026",
+    "waitingHint": "Lancez une partie sur votre appareil et cet \u00e9cran se mettra \u00e0 jour automatiquement.",
+    "bonusTurn": "Tour Bonus"
+  },
+  "meeple": {
+    "meeple": "Meeple",
+    "bigMeeple": "Grand Meeple",
+    "builder": "B\u00e2tisseur",
+    "pig": "Cochon",
+    "dragon": "Dragon"
+  },
+  "goods": {
+    "wine": "Vin",
+    "chicken": "Poulet",
+    "wheat": "Bl\u00e9",
+    "grain": "C\u00e9r\u00e9ales",
+    "cloth": "Tissu"
+  },
+  "language": {
+    "en": "EN",
+    "fr": "FR"
+  }
+}

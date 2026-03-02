@@ -1,4 +1,5 @@
 import { useState } from 'react'
+import { useTranslation } from 'react-i18next'
 import { motion, AnimatePresence } from 'framer-motion'
 import { useGameStore } from '../../store/gameStore.ts'
 import { PLAYER_COLORS } from '../../core/types/player.ts'
@@ -42,6 +43,16 @@ const EXPANSION_META = {
     tileOptions: [] as TileEdition[], // only C3.1 exists
     tileCount: { C1: '', C2: '', C3: '', 'C3.1': '+26 tiles' },
   },
+  'river': {
+    label: 'The River',
+    color: '#00BFFF',
+    border: '#0099CC',
+    bg: 'rgba(0,140,210,0.2)',
+    hasRules: false,
+    rulesLabel: { classic: '', modern: '' },
+    tileOptions: [] as TileEdition[], // only C3 exists for now
+    tileCount: { C1: '', C2: '', C3: '+12 tiles', 'C3.1': '' },
+  },
 } as const
 
 type ExpId = keyof typeof EXPANSION_META
@@ -56,6 +67,7 @@ const DEFAULT_EXP_STATE: Record<ExpId, ExpansionState> = {
   'inns-cathedrals': { enabled: false, rulesVersion: 'modern', tileEdition: 'C3.1' },
   'traders-builders': { enabled: false, rulesVersion: 'modern', tileEdition: 'C3.1' },
   'dragon-fairy': { enabled: false, rulesVersion: 'modern', tileEdition: 'C3.1' },
+  'river': { enabled: false, rulesVersion: 'classic', tileEdition: 'C3' },
 }
 
 // ─── Sub-components ──────────────────────────────────────────────────────────
@@ -101,12 +113,14 @@ interface SetupScreenProps {
 }
 
 export function SetupScreen({ onCancel }: SetupScreenProps) {
+  const { t, i18n } = useTranslation()
   const [playerCount, setPlayerCount] = useState(2)
   const [names, setNames] = useState<string[]>(DEFAULT_NAMES.slice(0, 6))
   const [baseEdition, setBaseEdition] = useState<TileEdition>('C3')
   const [expansions, setExpansions] = useState<Record<ExpId, ExpansionState>>(DEFAULT_EXP_STATE)
   const [isStarting, setIsStarting] = useState(false)
   const { newGame } = useGameStore()
+  const toggleLang = () => i18n.changeLanguage(i18n.language === 'fr' ? 'en' : 'fr')
 
   const setExp = (id: ExpId, patch: Partial<ExpansionState>) =>
     setExpansions(prev => ({ ...prev, [id]: { ...prev[id], ...patch } }))
@@ -143,7 +157,7 @@ export function SetupScreen({ onCancel }: SetupScreenProps) {
       onCancel?.() // close modal after start (no-op in full-page mode)
     } catch (e: any) {
       console.error(e)
-      alert('Failed to start game: ' + (e.message || e))
+      alert(t('setup.startFailed', { error: e.message || e }))
       setIsStarting(false)
     }
   }
@@ -161,19 +175,38 @@ export function SetupScreen({ onCancel }: SetupScreenProps) {
       flexDirection: 'column',
       gap: 16,
     }}>
-      <h2 style={{ margin: 0, color: '#e8d8a0', fontFamily: 'serif', fontSize: onCancel ? 22 : 28, textAlign: 'center' }}>
-        {onCancel ? 'New Game' : 'Carcassonne'}
-      </h2>
+      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+        <div />
+        <h2 style={{ margin: 0, color: '#e8d8a0', fontFamily: 'serif', fontSize: onCancel ? 22 : 28, textAlign: 'center', flex: 1 }}>
+          {onCancel ? t('setup.newGame') : t('setup.title')}
+        </h2>
+        <button
+          onClick={toggleLang}
+          style={{
+            background: 'rgba(255,255,255,0.08)',
+            border: '1px solid #555',
+            color: '#ccc',
+            borderRadius: 6,
+            padding: '4px 10px',
+            fontSize: 12,
+            cursor: 'pointer',
+            fontWeight: 'bold',
+            flexShrink: 0,
+          }}
+        >
+          {i18n.language === 'fr' ? 'EN' : 'FR'}
+        </button>
+      </div>
       {!onCancel && (
         <p style={{ margin: 0, color: '#888', textAlign: 'center', fontSize: 13 }}>
-          The classic tile-placement game
+          {t('setup.subtitle')}
         </p>
       )}
 
       {/* ── Players ── */}
       <div>
         <label style={{ display: 'block', marginBottom: 8, color: '#aaa', fontSize: 12, textTransform: 'uppercase', letterSpacing: 1 }}>
-          Players
+          {t('setup.players')}
         </label>
         <div style={{ display: 'flex', gap: 8, marginBottom: 10 }}>
           {[2, 3, 4, 5, 6].map(n => (
@@ -197,7 +230,7 @@ export function SetupScreen({ onCancel }: SetupScreenProps) {
                   flex: 1, background: '#1a1a2e', border: '1px solid #444',
                   color: '#f0f0f0', padding: '5px 8px', borderRadius: 4, fontSize: 13,
                 }}
-                placeholder={`Player ${i + 1}`}
+                placeholder={t('setup.playerPlaceholder', { n: i + 1 })}
               />
             </div>
           ))}
@@ -208,7 +241,7 @@ export function SetupScreen({ onCancel }: SetupScreenProps) {
       <div>
         <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 6 }}>
           <label style={{ color: '#aaa', fontSize: 12, textTransform: 'uppercase', letterSpacing: 1 }}>
-            Base tile set
+            {t('setup.baseTileSet')}
           </label>
           <TogglePill
             options={['C1', 'C2', 'C3']}
@@ -222,7 +255,7 @@ export function SetupScreen({ onCancel }: SetupScreenProps) {
       {/* ── Expansions ── */}
       <div>
         <label style={{ display: 'block', marginBottom: 8, color: '#aaa', fontSize: 12, textTransform: 'uppercase', letterSpacing: 1 }}>
-          Expansions
+          {t('setup.expansions')}
         </label>
         <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
           {(Object.entries(EXPANSION_META) as [ExpId, typeof EXPANSION_META[ExpId]][]).map(([id, meta]) => {
@@ -261,7 +294,7 @@ export function SetupScreen({ onCancel }: SetupScreenProps) {
                       <div style={{ padding: '6px 12px 10px 37px', display: 'flex', flexDirection: 'column', gap: 6 }}>
                         {meta.hasRules && (
                           <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-                            <span style={{ fontSize: 12, color: '#888', width: 36 }}>Rules</span>
+                            <span style={{ fontSize: 12, color: '#888', width: 36 }}>{t('setup.rules')}</span>
                             <TogglePill
                               options={['classic', 'modern']}
                               value={state.rulesVersion}
@@ -272,7 +305,7 @@ export function SetupScreen({ onCancel }: SetupScreenProps) {
                         )}
                         {meta.tileOptions.length > 0 && (
                           <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-                            <span style={{ fontSize: 12, color: '#888', width: 36 }}>Tiles</span>
+                            <span style={{ fontSize: 12, color: '#888', width: 36 }}>{t('setup.tiles')}</span>
                             <TogglePill
                               options={meta.tileOptions as string[]}
                               value={state.tileEdition}
@@ -302,7 +335,7 @@ export function SetupScreen({ onCancel }: SetupScreenProps) {
               color: '#ccc', fontSize: 15, cursor: 'pointer',
             }}
           >
-            Cancel
+            {t('setup.cancel')}
           </button>
         )}
         <button
@@ -316,7 +349,7 @@ export function SetupScreen({ onCancel }: SetupScreenProps) {
             opacity: isStarting ? 0.7 : 1,
           }}
         >
-          {isStarting ? 'Starting…' : 'Start Game'}
+          {isStarting ? t('setup.starting') : t('setup.startGame')}
         </button>
       </div>
     </div>
@@ -335,12 +368,12 @@ export function SetupScreen({ onCancel }: SetupScreenProps) {
           <a href="#catalog" style={{ color: '#aaa', textDecoration: 'none' }}
             onMouseEnter={e => (e.currentTarget.style.color = '#fff')}
             onMouseLeave={e => (e.currentTarget.style.color = '#aaa')}>
-            Browse Extension Catalog
+            {t('setup.browseExtensions')}
           </a>
           <a href="#debug" style={{ color: '#aaa', textDecoration: 'none' }}
             onMouseEnter={e => (e.currentTarget.style.color = '#fff')}
             onMouseLeave={e => (e.currentTarget.style.color = '#aaa')}>
-            Debug Configurator
+            {t('setup.debugConfigurator')}
           </a>
         </div>
       </div>

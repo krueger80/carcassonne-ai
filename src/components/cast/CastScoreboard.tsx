@@ -1,3 +1,4 @@
+import { useTranslation } from 'react-i18next'
 import type { Player } from '../../core/types/player.ts'
 import type { TurnPhase } from '../../core/types/game.ts'
 
@@ -16,6 +17,7 @@ export function CastScoreboard({
   turnPhase,
   expansionData,
 }: CastScoreboardProps) {
+  const { t } = useTranslation()
   const hasTradersBuilders = (expansionData?.expansions as string[] | undefined)?.includes('traders-builders')
   const tbData = expansionData?.['tradersBuilders'] as { isBuilderBonusTurn?: boolean } | undefined
   const isBuilderBonusTurn = tbData?.isBuilderBonusTurn ?? false
@@ -45,7 +47,7 @@ export function CastScoreboard({
         marginRight: 'auto',
         whiteSpace: 'nowrap',
       }}>
-        {tilesRemaining} tiles
+        {t('game.tilesCount', { count: tilesRemaining })}
       </div>
 
       {/* Player score pills */}
@@ -129,7 +131,7 @@ export function CastScoreboard({
         letterSpacing: 1,
         whiteSpace: 'nowrap',
       }}>
-        {isBuilderBonusTurn ? 'Bonus Turn' : turnPhase.replace(/_/g, ' ')}
+        {isBuilderBonusTurn ? t('cast.bonusTurn') : turnPhase.replace(/_/g, ' ')}
       </div>
     </div>
   )

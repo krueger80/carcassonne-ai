@@ -20,6 +20,8 @@ export interface FlyingElement {
   meepleType?: MeepleType
 }
 
+export type TerritoryOverlayMode = 'off' | 'incomplete' | 'all'
+
 interface UIStore {
   boardScale: number
   boardOffset: { x: number; y: number }
@@ -28,6 +30,8 @@ interface UIStore {
   flyingElements: FlyingElement[]
   showDevGallery: boolean
   selectedMeepleType: MeepleType
+  territoryOverlay: TerritoryOverlayMode
+  cycleTerritoryOverlay: () => void
 
   setBoardScale: (scale: number) => void
   panBoard: (dx: number, dy: number) => void
@@ -49,6 +53,14 @@ export const useUIStore = create<UIStore>((set) => ({
   flyingElements: [],
   showDevGallery: false,
   selectedMeepleType: 'NORMAL' as MeepleType,
+  territoryOverlay: 'off' as TerritoryOverlayMode,
+  cycleTerritoryOverlay: () => set((s) => {
+    const next: TerritoryOverlayMode =
+      s.territoryOverlay === 'off' ? 'incomplete'
+      : s.territoryOverlay === 'incomplete' ? 'all'
+      : 'off'
+    return { territoryOverlay: next }
+  }),
 
   setBoardScale: (scale) => set({ boardScale: Math.max(0.3, Math.min(3, scale)) }),
 

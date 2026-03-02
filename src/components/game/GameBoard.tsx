@@ -4,9 +4,52 @@ import { TileCell } from './TileCell.tsx'
 import { PlaceholderCell } from './PlaceholderCell.tsx'
 import { DragonPiece } from './DragonPiece.tsx'
 import { useGameStore } from '../../store/gameStore.ts'
-import { useUIStore } from '../../store/uiStore.ts'
+import { useUIStore, type TerritoryOverlayMode } from '../../store/uiStore.ts'
 import { GameOverlay } from './GameOverlay.tsx'
 import { getBuilderPigPlaceableSegments } from '../../core/engine/MeeplePlacement.ts'
+import { getAllFeatures } from '../../core/engine/FeatureDetector.ts'
+import type { Feature, UnionFindState } from '../../core/types/feature.ts'
+import type { Player } from '../../core/types/player.ts'
+
+function getControllingColor(feature: Feature, players: Player[]): string | null {
+  if (feature.meeples.length > 0) {
+    const strength: Record<string, number> = {}
+    for (const m of feature.meeples) {
+      strength[m.playerId] = (strength[m.playerId] ?? 0) + (m.meepleType === 'BIG' ? 2 : 1)
+    }
+    const maxStr = Math.max(...Object.values(strength))
+    const topPlayers = Object.keys(strength).filter(id => strength[id] === maxStr)
+    const player = players.find(p => p.id === topPlayers[0])
+    return player?.color ?? null
+  }
+  // Fallback: completed features with meeples already returned
+  if (feature.lastOwnerIds?.length) {
+    const player = players.find(p => p.id === feature.lastOwnerIds![0])
+    return player?.color ?? null
+  }
+  return null
+}
+
+function computeSegmentOwnerMap(
+  uf: UnionFindState,
+  players: Player[],
+  mode: TerritoryOverlayMode,
+): Record<string, Record<string, string>> {
+  if (mode === 'off') return {}
+  const result: Record<string, Record<string, string>> = {}
+  const features = getAllFeatures(uf)
+  for (const feature of features) {
+    if (mode === 'incomplete' && feature.isComplete) continue
+    const color = getControllingColor(feature, players)
+    if (!color) continue
+    for (const node of feature.nodes) {
+      const coordKey = `${node.coordinate.x},${node.coordinate.y}`
+      if (!result[coordKey]) result[coordKey] = {}
+      result[coordKey][node.segmentId] = color
+    }
+  }
+  return result
+}
 
 const CELL_SIZE = 88   // px per tile
 const BOARD_PADDING = 3  // extra cells around the board edge for expansion room
@@ -46,6 +89,7 @@ interface BoardGridProps {
   selectedMeepleType: any
   currentPlayer: any
   undoTilePlacement: () => void
+  segmentOwnerMap: Record<string, Record<string, string>>
 }
 
 const BoardGrid = memo(({
@@ -61,7 +105,8 @@ const BoardGrid = memo(({
   hasPortalTargets,
   rotateTentativeTile, selectTilePlacement, selectMeeplePlacement,
   cycleDragonFacing, placeDragonOnHoard, moveFairy,
-  setHoveredCoord, selectedMeepleType, currentPlayer, undoTilePlacement
+  setHoveredCoord, selectedMeepleType, currentPlayer, undoTilePlacement,
+  segmentOwnerMap,
 }: BoardGridProps) => {
   const { board } = gameState
   const lastKey = gameState.lastPlacedCoord
@@ -179,9 +224,7 @@ const BoardGrid = memo(({
                             ? 'inset 0 0 0 3px #f1c40f, 0 0 12px rgba(241,196,15,0.5)'
                             : isPortalTarget
                               ? 'inset 0 0 0 2px #9955cc, 0 0 10px rgba(153,85,204,0.4)'
-                              : lastPlacedColor
-                                ? `inset 0 0 0 2px ${lastPlacedColor}`
-                                : undefined,
+                              : undefined,
                       borderRadius: (isDragonOrientHere || isDragonPlaceTarget || isFairyTarget || isPortalTarget || lastPlacedColor) ? 2 : undefined,
                       overflow: 'visible', // Allow meeples to overlap neighbors
                     }}
@@ -272,6 +315,7 @@ const BoardGrid = memo(({
                       currentPlayerColor={currentPlayer?.color}
                       fairySegmentId={fairySegmentMap[key]}
                       isFairyMovePhase={isFairyPhase}
+                      segmentOwnerColors={segmentOwnerMap[key]}
                     />
                     {isDragonPlaceTarget && !hasDragon && (
                       <div style={{ position: 'absolute', inset: 0, zIndex: 15, display: 'flex', alignItems: 'center', justifyContent: 'center', background: 'rgba(231, 76, 60, 0.08)' }}>
@@ -279,6 +323,15 @@ const BoardGrid = memo(({
                           <text x="12" y="17" textAnchor="middle" fontSize="14" fill="#e74c3c" opacity="0.6" style={{ filter: 'drop-shadow(0 1px 2px rgba(0,0,0,0.5))' }}>♦</text>
                         </svg>
                       </div>
+                    )}
+                    {lastPlacedColor && (
+                      <div style={{
+                        position: 'absolute', inset: 0, zIndex: 10,
+                        border: `3px solid ${lastPlacedColor}`,
+                        borderRadius: 3,
+                        boxShadow: `0 0 6px ${lastPlacedColor}`,
+                        pointerEvents: 'none',
+                      }} />
                     )}
                   </div>
                 )
@@ -336,7 +389,7 @@ export function GameBoard() {
     undoTilePlacement,
   } = useGameStore()
 
-  const { boardScale, boardOffset, hoveredCoord, setHoveredCoord, setBoardScale, selectedMeepleType, resetView } = useUIStore()
+  const { boardScale, boardOffset, hoveredCoord, setHoveredCoord, setBoardScale, selectedMeepleType, resetView, territoryOverlay } = useUIStore()
 
   const containerRef = useRef<HTMLDivElement>(null)
   const [isPanning, setIsPanning] = useState(false)
@@ -541,6 +594,11 @@ export function GameBoard() {
   }, [magicPortalTargets])
   const hasPortalTargets = magicPortalTargets.length > 0
 
+  const segmentOwnerMap = useMemo(() => {
+    if (!gameState?.featureUnionFind || territoryOverlay === 'off') return {}
+    return computeSegmentOwnerMap(gameState.featureUnionFind, gameState.players, territoryOverlay)
+  }, [gameState?.featureUnionFind, gameState?.players, territoryOverlay])
+
   const boardWidth = (maxX - minX + 1) * CELL_SIZE
   const boardHeight = (maxY - minY + 1) * CELL_SIZE
 
@@ -619,6 +677,7 @@ export function GameBoard() {
           selectedMeepleType={selectedMeepleType}
           currentPlayer={currentPlayer}
           undoTilePlacement={handleUndoTilePlacement}
+          segmentOwnerMap={segmentOwnerMap}
         />
 
         {/* Global Dragon Piece (Animated) */}
@@ -670,6 +729,28 @@ export function GameBoard() {
           style={btnStyle}
           title="Zoom out"
         >−</button>
+        <div style={{ height: 8 }} />
+        <button
+          onClick={() => useUIStore.getState().cycleTerritoryOverlay()}
+          style={{
+            ...btnStyle,
+            fontSize: 11,
+            width: 32,
+            height: 32,
+            background: territoryOverlay === 'off'
+              ? 'rgba(0,0,0,0.6)'
+              : territoryOverlay === 'incomplete'
+                ? 'rgba(80,140,200,0.7)'
+                : 'rgba(200,140,60,0.7)',
+          }}
+          title={
+            territoryOverlay === 'off' ? 'Territory: Off'
+            : territoryOverlay === 'incomplete' ? 'Territory: Incomplete'
+            : 'Territory: All'
+          }
+        >
+          {territoryOverlay === 'off' ? '◇' : territoryOverlay === 'incomplete' ? '◈' : '◆'}
+        </button>
       </div>
 
       {/* ── Bonus Turn Edge Glow ────────────────────────────────────────── */}

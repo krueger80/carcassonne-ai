@@ -1,4 +1,5 @@
 import { useState } from 'react'
+import { useTranslation } from 'react-i18next'
 import type { Player } from '../../core/types/player.ts'
 import { useGameStore } from '../../store/gameStore.ts'
 
@@ -7,12 +8,20 @@ interface EndGameModalProps {
   expansions?: string[]
 }
 
-const CATEGORY_LABELS: Record<string, string> = {
-  ROAD: 'Routes',
-  CITY: 'Cités',
-  CLOISTER: 'Monastères',
-  FIELD: 'Fermes',
-  TRADER: 'Marchands',
+const CATEGORY_KEYS: Record<string, string> = {
+  ROAD: 'endGame.categories.ROAD',
+  CITY: 'endGame.categories.CITY',
+  CLOISTER: 'endGame.categories.CLOISTER',
+  FIELD: 'endGame.categories.FIELD',
+  TRADER: 'endGame.categories.TRADER',
+}
+
+const CATEGORY_DETAIL_KEYS: Record<string, string> = {
+  ROAD: 'endGame.categoryDetail.ROAD',
+  CITY: 'endGame.categoryDetail.CITY',
+  CLOISTER: 'endGame.categoryDetail.CLOISTER',
+  FIELD: 'endGame.categoryDetail.FIELD',
+  TRADER: 'endGame.categoryDetail.TRADER',
 }
 
 const CATEGORY_ICONS: Record<string, string> = {
@@ -32,6 +41,7 @@ const COMMODITY_IMAGES = {
 }
 
 export function EndGameModal({ players, expansions = [] }: EndGameModalProps) {
+  const { t } = useTranslation()
   const { resetGame } = useGameStore()
   const hasTradersBuilders = expansions.includes('traders-builders')
   const [hidden, setHidden] = useState(false)
@@ -56,7 +66,7 @@ export function EndGameModal({ players, expansions = [] }: EndGameModalProps) {
           boxShadow: '0 4px 16px rgba(0,0,0,0.5)',
         }}
       >
-        🏆 Résultats
+        🏆 {t('endGame.results')}
       </button>
     )
   }
@@ -117,21 +127,18 @@ export function EndGameModal({ players, expansions = [] }: EndGameModalProps) {
         <div style={{ textAlign: 'center', marginBottom: 28 }}>
           <div style={{ fontSize: 48, lineHeight: 1 }}>🏆</div>
           <h2 style={{ color: '#e8d8a0', fontSize: 28, margin: '8px 0 4px', fontFamily: 'serif' }}>
-            Fin de Partie
+            {t('endGame.title')}
           </h2>
           {isTie ? (
             <p style={{ color: '#aaa', fontSize: 16, margin: 0 }}>
-              Égalité entre{' '}
-              {sorted.filter(p => p.score === winner.score).map(p =>
-                <span key={p.id} style={{ color: p.color, fontWeight: 'bold' }}>{p.name}</span>
-              ).reduce<React.ReactNode[]>((acc, el, i) => i === 0 ? [el] : [...acc, ' & ', el], [])}
-              {' '}avec{' '}
-              <strong style={{ color: '#e8d8a0' }}>{winner.score} pts</strong> !
+              {t('endGame.tieMessage', {
+                names: sorted.filter(p => p.score === winner.score).map(p => p.name).join(' & '),
+                points: winner.score,
+              })}
             </p>
           ) : (
             <p style={{ color: winner.color, fontSize: 17, margin: 0, fontWeight: 'bold' }}>
-              {winner.name} gagne avec{' '}
-              <span style={{ color: '#e8d8a0' }}>{winner.score} points</span> !
+              {t('endGame.winMessage', { name: winner.name, points: winner.score })}
             </p>
           )}
         </div>
@@ -142,15 +149,15 @@ export function EndGameModal({ players, expansions = [] }: EndGameModalProps) {
             <thead>
               <tr>
                 <th style={{ ...thStyle, textAlign: 'left', paddingLeft: 8, width: 24 }}></th>
-                <th style={{ ...thStyle, textAlign: 'left' }}>Joueur</th>
+                <th style={{ ...thStyle, textAlign: 'left' }}>{t('endGame.player')}</th>
                 {activeCategories.map(cat => (
                   <th key={cat} style={{ ...thStyle, textAlign: 'center', minWidth: 68 }}>
                     <div style={{ fontSize: 18 }}>{CATEGORY_ICONS[cat]}</div>
-                    <div style={{ fontSize: 11, color: '#aaa', marginTop: 2 }}>{CATEGORY_LABELS[cat]}</div>
+                    <div style={{ fontSize: 11, color: '#aaa', marginTop: 2 }}>{t(CATEGORY_KEYS[cat])}</div>
                   </th>
                 ))}
                 <th style={{ ...thStyle, textAlign: 'center', minWidth: 64, borderLeft: '1px solid #444' }}>
-                  <div style={{ fontSize: 14, color: '#e8d8a0', fontWeight: 'bold' }}>Total</div>
+                  <div style={{ fontSize: 14, color: '#e8d8a0', fontWeight: 'bold' }}>{t('endGame.total')}</div>
                 </th>
               </tr>
             </thead>
@@ -222,12 +229,7 @@ export function EndGameModal({ players, expansions = [] }: EndGameModalProps) {
           }}>
             {activeCategories.map(cat => (
               <span key={cat}>
-                {CATEGORY_ICONS[cat]} {CATEGORY_LABELS[cat]}
-                {cat === 'ROAD' && ' : 1 pt/tuile'}
-                {cat === 'CITY' && ' : 2 pts/tuile (complète)'}
-                {cat === 'CLOISTER' && ' : 1 pt/tuile adjacente'}
-                {cat === 'FIELD' && ' : 3 pts/cité complète'}
-                {cat === 'TRADER' && ' : bonus marchand 10 pts'}
+                {CATEGORY_ICONS[cat]} {t(CATEGORY_KEYS[cat])} : {t(CATEGORY_DETAIL_KEYS[cat])}
               </span>
             ))}
           </div>
@@ -243,7 +245,7 @@ export function EndGameModal({ players, expansions = [] }: EndGameModalProps) {
             marginBottom: 20,
           }}>
             <div style={{ fontSize: 12, fontWeight: 'bold', color: '#c8a46e', marginBottom: 8 }}>
-              Bonus marchands (jetons)
+              {t('endGame.traderBonus')}
             </div>
             <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8 }}>
               {traderBonuses.map(b => b && (
@@ -281,7 +283,7 @@ export function EndGameModal({ players, expansions = [] }: EndGameModalProps) {
               fontWeight: 'bold',
             }}
           >
-            🗺️ Voir le plateau
+            🗺️ {t('endGame.viewBoard')}
           </button>
           <button
             onClick={resetGame}
@@ -298,7 +300,7 @@ export function EndGameModal({ players, expansions = [] }: EndGameModalProps) {
               boxShadow: '0 4px 16px rgba(200,164,110,0.3)',
             }}
           >
-            Rejouer
+            {t('endGame.playAgain')}
           </button>
         </div>
       </div>

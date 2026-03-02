@@ -1,4 +1,5 @@
 import { memo } from 'react'
+import { useTranslation } from 'react-i18next'
 import { TileSVG } from '../svg/TileSVG.tsx'
 import { FairyPiece } from './FairyPiece.tsx'
 import type { PlacedTile } from '../../core/types/board.ts'
@@ -41,6 +42,8 @@ interface TileCellProps {
   fairySegmentId?: string
   /** If true, we are in the phase of choosing where to place the fairy */
   isFairyMovePhase?: boolean
+  /** Segment ID → controlling player color for territory tinting */
+  segmentOwnerColors?: Record<string, string>
 }
 
 export const TileCell = memo(({
@@ -57,7 +60,9 @@ export const TileCell = memo(({
   currentPlayerColor = '#ffffff',
   fairySegmentId,
   isFairyMovePhase,
+  segmentOwnerColors,
 }: TileCellProps) => {
+  const { t } = useTranslation()
   const def = definition
   if (!def) return null
 
@@ -123,6 +128,7 @@ export const TileCell = memo(({
         rotation={tile.rotation}
         size={size}
         meeples={meepleColors}
+        segmentOwnerColors={segmentOwnerColors}
       />
 
       {/* Fairy Rendering - placed close to the meeple on the segment */}
@@ -192,10 +198,10 @@ export const TileCell = memo(({
         const isSelected = tentativeMeepleSegment === seg.id
 
         const tooltipTitle = isSelected
-          ? 'Remove meeple'
+          ? t('game.removeMeeple')
           : isFairyMovePhase
-            ? 'Place Fairy'
-            : `Place meeple on ${seg.type.toLowerCase()}`
+            ? t('game.placeFairyHere')
+            : t('game.placeMeepleOn', { type: seg.type.toLowerCase() })
 
         return (
           <div

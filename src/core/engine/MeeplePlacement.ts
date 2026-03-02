@@ -65,6 +65,8 @@ export function getPlaceableSegments(
 
   return def.segments
     .filter(seg => {
+      // Cannot place meeples on river segments
+      if (seg.type === 'RIVER') return false
       const nKey = nodeKey(coord, seg.id)
       return !featureHasMeeples(state, nKey)
     })

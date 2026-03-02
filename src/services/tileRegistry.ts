@@ -11,8 +11,6 @@ import { tileService } from './tileService.ts'
 import { BASE1_TILES } from '../core/data/baseTilesC1.ts'
 import { BASE_TILES } from '../core/data/baseTiles.ts'
 import { BASE3_TILES } from '../core/data/baseTilesC3.ts'
-import { BASE_TILES_C3 } from '../core/data/baseTiles_C3.ts'
-import { IC1_TILES } from '../core/data/innsCathedralsTilesC1.ts'
 import { IC2_TILES } from '../core/data/innsCathedralsTilesC2.ts'
 import { IC_TILES } from '../core/data/innsCathedralsTiles.ts'
 import { IC_C31_TILES } from '../core/data/innsCathedralsC31Tiles.ts'
@@ -21,6 +19,7 @@ import { TB_TILES } from '../core/data/tradersBuildersTiles.ts'
 import { TB3_TILES } from '../core/data/tradersBuildersTilesC3.ts'
 import { TB_C31_TILES } from '../core/data/tradersBuildersC31Tiles.ts'
 import { DF_TILES } from '../core/data/dragonFairyTiles.ts'
+import { RIVER_C3_TILES } from '../core/data/riverTilesC3.ts'
 
 // ─── Cache ───────────────────────────────────────────────────────────────────
 
@@ -30,10 +29,11 @@ let cachedMap: Record<string, TileDefinition> | null = null
 // ─── All hardcoded fallback tiles ────────────────────────────────────────────
 
 const FALLBACK_TILES = () => [
-  ...BASE1_TILES, ...BASE_TILES, ...BASE3_TILES, ...BASE_TILES_C3,
-  ...IC1_TILES, ...IC2_TILES, ...IC_TILES, ...IC_C31_TILES,
+  ...BASE1_TILES, ...BASE_TILES, ...BASE3_TILES,
+  ...IC2_TILES, ...IC_TILES, ...IC_C31_TILES,
   ...TB1_TILES, ...TB_TILES, ...TB3_TILES, ...TB_C31_TILES,
   ...DF_TILES,
+  ...RIVER_C3_TILES,
 ]
 
 // ─── Public API ──────────────────────────────────────────────────────────────

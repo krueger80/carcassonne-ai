@@ -1,0 +1,116 @@
+{
+  "setup": {
+    "title": "Carcassonne",
+    "newGame": "New Game",
+    "subtitle": "The classic tile-placement game",
+    "players": "Players",
+    "baseTileSet": "Base tile set",
+    "expansions": "Expansions",
+    "rules": "Rules",
+    "tiles": "Tiles",
+    "cancel": "Cancel",
+    "startGame": "Start Game",
+    "starting": "Starting\u2026",
+    "startFailed": "Failed to start game: {{error}}",
+    "playerPlaceholder": "Player {{n}}",
+    "browseExtensions": "Browse Extension Catalog",
+    "debugConfigurator": "Debug Configurator"
+  },
+  "game": {
+    "bonusTurn": "Bonus Turn",
+    "playerTurnBonus": "{{name}}'s BONUS TURN",
+    "playerTurn": "{{name}}'s turn",
+    "drawing": "Drawing\u2026",
+    "rotateConfirm": "Rotate & Confirm",
+    "placeYourTile": "Place your tile",
+    "confirmOrRemove": "Confirm or click meeple to remove",
+    "portalPlace": "Portal: Place Meeple Anywhere!",
+    "placeMeepleOrSkip": "Place Meeple or Skip",
+    "dragonPlace": "Place dragon on a Dragon Hoard tile",
+    "dragonFacing": "Facing {{direction}} \u2014 click to rotate",
+    "dragonClickOrient": "Click dragon to orient",
+    "dragonMoving": "Dragon Moving\u2026",
+    "placeFairy": "Place Fairy on a Meeple",
+    "returningFarmers": "Returning Farmers\u2026",
+    "turnEnding": "Turn ending\u2026",
+    "confirm": "Confirm",
+    "confirmAndMove": "Confirm & Move",
+    "cancelBtn": "Cancel",
+    "rotate": "Rotate",
+    "cycle": "Cycle",
+    "undoTile": "Undo Tile",
+    "clickDragonHoard": "Click a Dragon Hoard tile on the board",
+    "moveDragon": "Move Dragon",
+    "skipFairy": "Skip Fairy",
+    "confirmBtn": "\u2713 Confirm",
+    "cancelActionBtn": "\u2715 Cancel",
+    "undoBtn": "\u21A9 Undo",
+    "skip": "Skip",
+    "tilesCount": "{{count}} tiles",
+    "removeMeeple": "Remove meeple",
+    "placeFairyHere": "Place Fairy",
+    "placeMeepleOn": "Place meeple on {{type}}"
+  },
+  "menu": {
+    "menu": "Menu",
+    "newGame": "New Game",
+    "extensionCatalog": "Extension Catalog",
+    "debugConfigurator": "Debug Configurator",
+    "castToTV": "Cast to TV",
+    "scoreboard": "Scoreboard"
+  },
+  "endGame": {
+    "title": "Game Over",
+    "results": "Results",
+    "tieMessage": "Tie between {{names}} with {{points}} pts!",
+    "winMessage": "{{name}} wins with {{points}} points!",
+    "player": "Player",
+    "total": "Total",
+    "viewBoard": "View Board",
+    "playAgain": "Play Again",
+    "traderBonus": "Trader bonuses (tokens)",
+    "categories": {
+      "ROAD": "Roads",
+      "CITY": "Cities",
+      "CLOISTER": "Monasteries",
+      "FIELD": "Farms",
+      "TRADER": "Traders"
+    },
+    "categoryDetail": {
+      "ROAD": "1 pt/tile",
+      "CITY": "2 pts/tile (complete)",
+      "CLOISTER": "1 pt/adjacent tile",
+      "FIELD": "3 pts/complete city",
+      "TRADER": "trader bonus 10 pts"
+    }
+  },
+  "farmer": {
+    "returnTitle": "Return Farmer?",
+    "returnDescription": "{{name}}, your Pig just scored {{points}} points and was returned. Do you want to return the farmer assigned to this pig as well?",
+    "yesReturn": "Yes, Return Farmer",
+    "noKeep": "No, Keep Farmer"
+  },
+  "cast": {
+    "waiting": "Waiting for game to start...",
+    "waitingHint": "Start a game on your device and this screen will update automatically.",
+    "bonusTurn": "Bonus Turn"
+  },
+  "meeple": {
+    "meeple": "Meeple",
+    "bigMeeple": "Big Meeple",
+    "builder": "Builder",
+    "pig": "Pig",
+    "dragon": "Dragon"
+  },
+  "goods": {
+    "wine": "Wine",
+    "chicken": "Chicken",
+    "wheat": "Wheat",
+    "grain": "Grain",
+    "cloth": "Cloth"
+  },
+  "language": {
+    "en": "EN",
+    "fr": "FR"
+  }
+}

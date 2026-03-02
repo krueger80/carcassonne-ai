@@ -1,8 +1,10 @@
 import { useState, useRef, useEffect } from 'react'
 import { tileService } from '../../services/tileService.ts'
+import { getFallbackTiles } from '../../services/tileRegistry.ts'
 import { TileSVG } from '../svg/TileSVG.tsx'
 import type { TileDefinition, Segment, FeatureType, EdgePosition } from '../../core/types/tile.ts'
 import { EDGE_POSITIONS } from '../../core/types/tile.ts'
+import { parseSvgPath, serializeSvgPath } from '../../lib/svgPathParser.ts'
 
 export function TileDebugger() {
     const [viewMode, setViewMode] = useState<'GRID' | 'EDIT'>('GRID')
@@ -237,6 +239,38 @@ export function TileDebugger() {
                     </div>
 
                     <div style={{ display: 'flex', gap: 10 }}>
+                        <button
+                            onClick={async () => {
+                                try {
+                                    const fallback = getFallbackTiles()
+                                    const existingIds = new Set(allTiles.map(t => t.id))
+                                    const missing = fallback.filter(t => !existingIds.has(t.id))
+                                    if (missing.length === 0) {
+                                        setToast({ message: 'All fallback tiles already in DB', type: 'success' })
+                                        return
+                                    }
+                                    if (!confirm(`Upload ${missing.length} missing tiles to DB?\n\n${missing.map(t => t.id).join(', ')}`)) return
+                                    await tileService.upsertMany(missing)
+                                    await loadTiles()
+                                    setToast({ message: `Uploaded ${missing.length} tiles!`, type: 'success' })
+                                } catch (e) {
+                                    setToast({ message: 'Upload failed: ' + e, type: 'error' })
+                                }
+                            }}
+                            style={{
+                                padding: '10px 20px',
+                                background: '#1976d2',
+                                color: 'white',
+                                border: 'none',
+                                borderRadius: 4,
+                                cursor: 'pointer',
+                                fontSize: 14,
+                                boxShadow: '0 2px 5px rgba(0,0,0,0.3)'
+                            }}
+                        >
+                            Upload Missing to DB
+                        </button>
+
                         <button
                             onClick={() => window.location.hash = ''}
                             style={{
@@ -869,30 +903,17 @@ function EditorCanvas({
     showSchematic: boolean
 }) {
     const size = 600
-    // Helper to parse simple polygon paths
-    const parsePath = (d: string) => {
-        const points: { x: number, y: number }[] = []
-        if (!d) return points
-        // Handle M and L, ignore Z
-        const clean = d.replace(/Z/g, '').trim()
-        const parts = clean.split(/[ML]/).filter(p => p.trim())
-        parts.forEach(p => {
-            const [x, y] = p.split(',').map(n => parseFloat(n.trim()))
-            if (!isNaN(x) && !isNaN(y)) points.push({ x, y })
-        })
-        return points
-    }
-
-    const serializePath = (points: { x: number, y: number }[], type: FeatureType) => {
-        if (points.length === 0) return ''
-        const d = `M${points[0].x},${points[0].y} ` + points.slice(1).map(p => `L${p.x},${p.y}`).join(' ')
-        return type === 'ROAD' ? d : d + ' Z'
-    }
 
     const [draggingId, setDraggingId] = useState<string | null>(null)
-    const [draggingPointIndex, setDraggingPointIndex] = useState<number | null>(null)
+    // Node dragging: { index, handle: 'point' | 'control' }
+    const [draggingNode, setDraggingNode] = useState<{ index: number, handle: 'point' | 'control' } | null>(null)
+    const [selectedNodeIdx, setSelectedNodeIdx] = useState<number | null>(null)
     const svgRef = useRef<SVGSVGElement>(null)
     const activeSegment = tile.segments.find(s => s.id === activeSegmentId)
+    const commands = activeSegment ? parseSvgPath(activeSegment.svgPath) : []
+
+    // Reset selected node when switching segments
+    useEffect(() => { setSelectedNodeIdx(null) }, [activeSegmentId])
 
     const handlePointerDown = (e: React.PointerEvent, segId: string) => {
         setDraggingId(segId)
@@ -900,40 +921,73 @@ function EditorCanvas({
         e.stopPropagation()
     }
 
-    const handlePointerDownPoint = (e: React.PointerEvent, index: number) => {
-        setDraggingPointIndex(index)
-        e.currentTarget.setPointerCapture(e.pointerId)
-        e.stopPropagation()
-    }
-
-    const handlePointerMove = (e: React.PointerEvent) => {
-        if ((!draggingId && draggingPointIndex === null) || !svgRef.current) return
-
+    const toSvgCoords = (e: React.PointerEvent) => {
+        if (!svgRef.current) return { x: 0, y: 0 }
         const rect = svgRef.current.getBoundingClientRect()
         const x = ((e.clientX - rect.left) / rect.width) * 100
         const y = ((e.clientY - rect.top) / rect.height) * 100
-        // Snap to grid (optional, but good for 100x100) - making it integer based for cleaner SVG
-        const clampedX = Math.round(Math.max(0, Math.min(100, x)))
-        const clampedY = Math.round(Math.max(0, Math.min(100, y)))
+        return {
+            x: Math.round(Math.max(0, Math.min(100, x))),
+            y: Math.round(Math.max(0, Math.min(100, y))),
+        }
+    }
+
+    const handlePointerMove = (e: React.PointerEvent) => {
+        if (!draggingId && !draggingNode) return
+        const { x, y } = toSvgCoords(e)
 
         if (draggingId) {
-            onSegmentUpdate(draggingId, { meepleCentroid: { x: clampedX, y: clampedY } })
-        } else if (draggingPointIndex !== null && activeSegmentId) {
-            const activeSeg = tile.segments.find(s => s.id === activeSegmentId)
-            if (activeSeg) {
-                const points = parsePath(activeSeg.svgPath)
-                if (points[draggingPointIndex]) {
-                    points[draggingPointIndex] = { x: clampedX, y: clampedY }
-                    onSegmentUpdate(activeSegmentId, { svgPath: serializePath(points, activeSeg.type) })
-                }
+            onSegmentUpdate(draggingId, { meepleCentroid: { x, y } })
+        } else if (draggingNode && activeSegmentId && activeSegment) {
+            const cmds = parseSvgPath(activeSegment.svgPath)
+            const cmd = cmds[draggingNode.index]
+            if (!cmd) return
+            if (draggingNode.handle === 'control') {
+                cmds[draggingNode.index] = { ...cmd, cx: x, cy: y }
+            } else {
+                cmds[draggingNode.index] = { ...cmd, x, y }
             }
+            onSegmentUpdate(activeSegmentId, { svgPath: serializeSvgPath(cmds) })
         }
     }
 
     const handlePointerUp = (e: React.PointerEvent) => {
         setDraggingId(null)
-        setDraggingPointIndex(null)
+        setDraggingNode(null)
         e.currentTarget.releasePointerCapture(e.pointerId)
+    }
+
+    const handleAddNode = () => {
+        if (!activeSegmentId || !activeSegment || selectedNodeIdx === null) return
+        const cmds = [...parseSvgPath(activeSegment.svgPath)]
+        const i = selectedNodeIdx
+        const cur = cmds[i]
+        if (cur.type === 'Z' || cur.x === undefined || cur.y === undefined) return
+
+        // Find the next endpoint to calculate midpoint
+        let nextX: number, nextY: number
+        const nextCmd = cmds[i + 1]
+        if (!nextCmd || nextCmd.type === 'Z') {
+            // Wrap to M (the start point)
+            nextX = cmds[0].x ?? 0; nextY = cmds[0].y ?? 0
+        } else {
+            nextX = nextCmd.x ?? 0; nextY = nextCmd.y ?? 0
+        }
+        const midX = Math.round((cur.x + nextX) / 2)
+        const midY = Math.round((cur.y + nextY) / 2)
+        cmds.splice(i + 1, 0, { type: 'L', x: midX, y: midY })
+        onSegmentUpdate(activeSegmentId, { svgPath: serializeSvgPath(cmds) })
+        setSelectedNodeIdx(i + 1)
+    }
+
+    const handleRemoveNode = () => {
+        if (!activeSegmentId || !activeSegment || selectedNodeIdx === null) return
+        const cmds = [...parseSvgPath(activeSegment.svgPath)]
+        if (selectedNodeIdx === 0) return // Can't remove M
+        if (cmds[selectedNodeIdx]?.type === 'Z') return
+        cmds.splice(selectedNodeIdx, 1)
+        onSegmentUpdate(activeSegmentId, { svgPath: serializeSvgPath(cmds) })
+        setSelectedNodeIdx(Math.max(0, selectedNodeIdx - 1))
     }
 
     const toggleAdjacency = (id1: string, id2: string) => {
@@ -957,7 +1011,7 @@ function EditorCanvas({
         else if (sub === 'CENTER') offset = 50
         else offset = 75 // RIGHT
 
-        // Adjust for visual intuition: 
+        // Adjust for visual intuition:
         if (dir === 'NORTH') return { x: offset, y: 3 }
         if (dir === 'EAST') return { x: 97, y: offset }
         if (dir === 'SOUTH') return { x: 100 - offset, y: 97 } // 100-offset reverses order for South bottom
@@ -966,139 +1020,220 @@ function EditorCanvas({
     }
 
     return (
-        <div
-            style={{ width: size, height: size, position: 'relative' }}
-            onPointerMove={handlePointerMove}
-            onPointerUp={handlePointerUp}
-            onPointerDown={(e) => {
-                // Unselect if clicking the background area
-                if (e.target === e.currentTarget) onSelectSegment(null)
-            }}
-        >
-            <TileSVG definition={tile} size={size} showSchematic={showSchematic} />
-
-            <svg
-                ref={svgRef}
-                style={{ position: 'absolute', top: 0, left: 0, width: '100%', height: '100%', overflow: 'visible' }}
-                viewBox="0 0 100 100"
+        <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 8 }}>
+            <div
+                style={{ width: size, height: size, position: 'relative' }}
+                onPointerMove={handlePointerMove}
+                onPointerUp={handlePointerUp}
+                onPointerDown={(e) => {
+                    // Unselect if clicking the background area
+                    if (e.target === e.currentTarget) onSelectSegment(null)
+                }}
             >
-                {/* 0. Adjacency Lines */}
-                <g opacity="0.6">
-                    {(tile.adjacencies || []).map(([id1, id2], idx) => {
-                        const s1 = tile.segments.find(s => s.id === id1)
-                        const s2 = tile.segments.find(s => s.id === id2)
-                        if (!s1 || !s2) return null
+                <TileSVG definition={tile} size={size} showSchematic={showSchematic} />
 
-                        const isActive = id1 === activeSegmentId || id2 === activeSegmentId
+                <svg
+                    ref={svgRef}
+                    style={{ position: 'absolute', top: 0, left: 0, width: '100%', height: '100%', overflow: 'visible' }}
+                    viewBox="0 0 100 100"
+                >
+                    {/* 0. Adjacency Lines */}
+                    <g opacity="0.6">
+                        {(tile.adjacencies || []).map(([id1, id2], idx) => {
+                            const s1 = tile.segments.find(s => s.id === id1)
+                            const s2 = tile.segments.find(s => s.id === id2)
+                            if (!s1 || !s2) return null
+
+                            const isActive = id1 === activeSegmentId || id2 === activeSegmentId
+
+                            return (
+                                <line
+                                    key={`adj-line-${idx}`}
+                                    x1={s1.meepleCentroid.x} y1={s1.meepleCentroid.y}
+                                    x2={s2.meepleCentroid.x} y2={s2.meepleCentroid.y}
+                                    stroke={isActive ? "#FFD700" : "#fff"}
+                                    strokeWidth={isActive ? 1.5 : 0.8}
+                                    strokeDasharray={isActive ? "none" : "2 1"}
+                                    style={{ pointerEvents: 'none', transition: 'all 0.2s' }}
+                                />
+                            )
+                        })}
+                    </g>
+
+                    {/* 1. Edge Markers */}
+                    {Object.values(EDGE_POSITIONS).flat().map((pos) => {
+                        const { x, y } = getMarkerCoords(pos)
+                        const assignedSegId = tile.edgePositionToSegment?.[pos]
+                        const assignedSeg = tile.segments.find(s => s.id === assignedSegId)
+                        const color = assignedSeg ? getColorForType(assignedSeg.type) : '#333'
+                        const isAssignedToActive = assignedSegId === activeSegmentId
+                        const isSelected = activeSegmentId !== null
 
                         return (
-                            <line
-                                key={`adj-line-${idx}`}
-                                x1={s1.meepleCentroid.x} y1={s1.meepleCentroid.y}
-                                x2={s2.meepleCentroid.x} y2={s2.meepleCentroid.y}
-                                stroke={isActive ? "#FFD700" : "#fff"}
-                                strokeWidth={isActive ? 1.5 : 0.8}
-                                strokeDasharray={isActive ? "none" : "2 1"}
-                                style={{ pointerEvents: 'none', transition: 'all 0.2s' }}
-                            />
+                            <rect
+                                key={pos}
+                                x={x - 2.5}
+                                y={y - 2.5}
+                                width="5"
+                                height="5"
+                                fill={color}
+                                stroke={isAssignedToActive ? '#fff' : '#000'}
+                                strokeWidth={isAssignedToActive ? 0.8 : 0.2}
+                                style={{ cursor: isSelected ? 'pointer' : 'not-allowed' }}
+                                onClick={(e) => {
+                                    e.stopPropagation() // Prevent drag
+                                    if (activeSegmentId) {
+                                        onEdgeUpdate(pos, activeSegmentId)
+                                    } else if (assignedSegId) {
+                                        // If no segment is selected but the edge is assigned, clear it
+                                        onEdgeUpdate(pos, null)
+                                    } else {
+                                        alert('Select a segment first to assign it to this edge.')
+                                    }
+                                }}
+                            >
+                                <title>{`${pos} -> ${assignedSegId || 'None'}`}</title>
+                            </rect>
                         )
                     })}
-                </g>
 
-                {/* 1. Edge Markers */}
-                {Object.values(EDGE_POSITIONS).flat().map((pos) => {
-                    const { x, y } = getMarkerCoords(pos)
-                    const assignedSegId = tile.edgePositionToSegment?.[pos]
-                    const assignedSeg = tile.segments.find(s => s.id === assignedSegId)
-                    const color = assignedSeg ? getColorForType(assignedSeg.type) : '#333'
-                    const isAssignedToActive = assignedSegId === activeSegmentId
-                    const isSelected = activeSegmentId !== null
+                    {/* 2. Pebbles */}
+                    {tile.segments.map(seg => {
+                        const isSelected = seg.id === activeSegmentId
+                        return (
+                            <g
+                                key={seg.id}
+                                transform={`translate(${seg.meepleCentroid.x}, ${seg.meepleCentroid.y})`}
+                                style={{ cursor: 'pointer' }}
+                                onPointerDown={(e) => {
+                                    e.stopPropagation()
 
-                    return (
-                        <rect
-                            key={pos}
-                            x={x - 2.5}
-                            y={y - 2.5}
-                            width="5"
-                            height="5"
-                            fill={color}
-                            stroke={isAssignedToActive ? '#fff' : '#000'}
-                            strokeWidth={isAssignedToActive ? 0.8 : 0.2}
-                            style={{ cursor: isSelected ? 'pointer' : 'not-allowed' }}
-                            onClick={(e) => {
-                                e.stopPropagation() // Prevent drag
-                                if (activeSegmentId) {
-                                    onEdgeUpdate(pos, activeSegmentId)
-                                } else if (assignedSegId) {
-                                    // If no segment is selected but the edge is assigned, clear it
-                                    onEdgeUpdate(pos, null)
-                                } else {
-                                    alert('Select a segment first to assign it to this edge.')
-                                }
-                            }}
-                        >
-                            <title>{`${pos} -> ${assignedSegId || 'None'}`}</title>
-                        </rect>
-                    )
-                })}
+                                    // 1. Toggle Link if another is already selected
+                                    if (activeSegmentId && activeSegmentId !== seg.id) {
+                                        toggleAdjacency(activeSegmentId, seg.id)
+                                        return
+                                    }
 
-                {/* 2. Pebbles */}
-                {tile.segments.map(seg => {
-                    const isSelected = seg.id === activeSegmentId
-                    return (
-                        <g
-                            key={seg.id}
-                            transform={`translate(${seg.meepleCentroid.x}, ${seg.meepleCentroid.y})`}
-                            style={{ cursor: 'pointer' }}
-                            onPointerDown={(e) => {
-                                e.stopPropagation()
+                                    // 2. Toggle selection
+                                    onSelectSegment(isSelected ? null : seg.id)
 
-                                // 1. Toggle Link if another is already selected
-                                if (activeSegmentId && activeSegmentId !== seg.id) {
-                                    toggleAdjacency(activeSegmentId, seg.id)
-                                    return
-                                }
+                                    // 3. Start drag
+                                    handlePointerDown(e, seg.id)
+                                }}
+                            >
+                                <circle r="6" fill="transparent" />
+                                <circle
+                                    r={isSelected ? "4" : "3"}
+                                    fill={isSelected ? "#FFD700" : "#00BFFF"}
+                                    stroke="white"
+                                    strokeWidth={isSelected ? "1.5" : "1"}
+                                />
+                                {isSelected && (
+                                    <circle r="6" fill="none" stroke="#FFD700" strokeWidth="0.5">
+                                        <animate attributeName="r" from="4" to="8" dur="1.5s" repeatCount="indefinite" />
+                                        <animate attributeName="opacity" from="1" to="0" dur="1.5s" repeatCount="indefinite" />
+                                    </circle>
+                                )}
+                                <text y="-6" fontSize="3.5" textAnchor="middle" fill="white" style={{ textShadow: '0 0 3px black', pointerEvents: 'none', fontWeight: 'bold' }}>
+                                    {seg.id}
+                                </text>
+                            </g>
+                        )
+                    })}
 
-                                // 2. Toggle selection
-                                onSelectSegment(isSelected ? null : seg.id)
+                    {/* 3. Shape Editor Handles (Active Segment Only) - Skip for Cloisters */}
+                    {activeSegment && activeSegment.type !== 'CLOISTER' && commands.map((cmd, i) => {
+                        if (cmd.type === 'Z') return null
+                        const isActive = i === selectedNodeIdx
+                        const nodeColor = cmd.type === 'M' ? '#00ff00' : '#5599ff'
+                        const r = isActive ? 3 : 2
 
-                                // 3. Start drag
-                                handlePointerDown(e, seg.id)
-                            }}
-                        >
-                            <circle r="6" fill="transparent" />
-                            <circle
-                                r={isSelected ? "4" : "3"}
-                                fill={isSelected ? "#FFD700" : "#00BFFF"}
-                                stroke="white"
-                                strokeWidth={isSelected ? "1.5" : "1"}
-                            />
-                            {isSelected && (
-                                <circle r="6" fill="none" stroke="#FFD700" strokeWidth="0.5">
-                                    <animate attributeName="r" from="4" to="8" dur="1.5s" repeatCount="indefinite" />
-                                    <animate attributeName="opacity" from="1" to="0" dur="1.5s" repeatCount="indefinite" />
+                        return (
+                            <g key={`handle-${i}`}>
+                                {/* Q control point + dashed line */}
+                                {cmd.type === 'Q' && cmd.cx !== undefined && cmd.cy !== undefined && (
+                                    <>
+                                        <line
+                                            x1={cmd.cx} y1={cmd.cy} x2={cmd.x!} y2={cmd.y!}
+                                            stroke="#ff8800" strokeWidth={0.5} strokeDasharray="2 1"
+                                            style={{ pointerEvents: 'none' }}
+                                        />
+                                        <rect
+                                            x={cmd.cx - 2} y={cmd.cy - 2} width={4} height={4}
+                                            fill="#ff8800" stroke="#fff" strokeWidth={0.5}
+                                            transform={`rotate(45 ${cmd.cx} ${cmd.cy})`}
+                                            style={{ cursor: 'crosshair', pointerEvents: 'auto' }}
+                                            onPointerDown={(e) => {
+                                                e.stopPropagation()
+                                                setSelectedNodeIdx(i)
+                                                setDraggingNode({ index: i, handle: 'control' })
+                                                e.currentTarget.setPointerCapture(e.pointerId)
+                                            }}
+                                        >
+                                            <title>Q control point {i} — drag to reshape curve</title>
+                                        </rect>
+                                    </>
+                                )}
+                                {/* Endpoint circle */}
+                                <circle
+                                    cx={cmd.x} cy={cmd.y} r={r}
+                                    fill={nodeColor}
+                                    stroke={isActive ? '#ffff00' : '#fff'}
+                                    strokeWidth={isActive ? 1 : 0.5}
+                                    style={{ cursor: 'crosshair', pointerEvents: 'auto' }}
+                                    onPointerDown={(e) => {
+                                        e.stopPropagation()
+                                        setSelectedNodeIdx(i)
+                                        setDraggingNode({ index: i, handle: 'point' })
+                                        e.currentTarget.setPointerCapture(e.pointerId)
+                                    }}
+                                >
+                                    <title>{cmd.type} point {i} ({cmd.x},{cmd.y}) — drag to move</title>
                                 </circle>
-                            )}
-                            <text y="-6" fontSize="3.5" textAnchor="middle" fill="white" style={{ textShadow: '0 0 3px black', pointerEvents: 'none', fontWeight: 'bold' }}>
-                                {seg.id}
-                            </text>
-                        </g>
-                    )
-                })}
+                            </g>
+                        )
+                    })}
+                </svg>
+            </div>
 
-                {/* 3. Shape Editor Handles (Active Segment Only) - Skip for Cloisters */}
-                {activeSegment && activeSegment.type !== 'CLOISTER' && parsePath(activeSegment.svgPath).map((p, i) => (
-                    <circle
-                        key={`handle-${i}`}
-                        cx={p.x} cy={p.y} r="2"
-                        fill="white" stroke="red" strokeWidth="0.5"
-                        style={{ cursor: 'crosshair', pointerEvents: 'auto' }}
-                        onPointerDown={(e) => handlePointerDownPoint(e, i)}
+            {/* Node toolbar — only show when a segment is active */}
+            {activeSegment && activeSegment.type !== 'CLOISTER' && (
+                <div style={{ display: 'flex', gap: 8, alignItems: 'center', fontSize: 12 }}>
+                    <button
+                        onClick={handleAddNode}
+                        disabled={selectedNodeIdx === null}
+                        style={{
+                            padding: '4px 10px', background: selectedNodeIdx !== null ? '#336633' : '#444',
+                            color: '#fff', border: '1px solid #555', borderRadius: 4, cursor: selectedNodeIdx !== null ? 'pointer' : 'default',
+                            opacity: selectedNodeIdx !== null ? 1 : 0.5
+                        }}
                     >
-                        <title>Drag to move point {i}</title>
-                    </circle>
-                ))}
-            </svg>
+                        + Add Node
+                    </button>
+                    <button
+                        onClick={handleRemoveNode}
+                        disabled={selectedNodeIdx === null || selectedNodeIdx === 0}
+                        style={{
+                            padding: '4px 10px', background: (selectedNodeIdx !== null && selectedNodeIdx !== 0) ? '#663333' : '#444',
+                            color: '#fff', border: '1px solid #555', borderRadius: 4,
+                            cursor: (selectedNodeIdx !== null && selectedNodeIdx !== 0) ? 'pointer' : 'default',
+                            opacity: (selectedNodeIdx !== null && selectedNodeIdx !== 0) ? 1 : 0.5
+                        }}
+                    >
+                        &minus; Remove Node
+                    </button>
+                    {selectedNodeIdx !== null && commands[selectedNodeIdx] && (
+                        <span style={{ color: '#aaa' }}>
+                            Node {selectedNodeIdx}: <span style={{
+                                color: commands[selectedNodeIdx].type === 'M' ? '#0f0'
+                                    : commands[selectedNodeIdx].type === 'Q' ? '#f80' : '#88f'
+                            }}>{commands[selectedNodeIdx].type}</span>
+                            {' '}({commands[selectedNodeIdx].x},{commands[selectedNodeIdx].y})
+                            {commands[selectedNodeIdx].type === 'Q' && ` cp(${commands[selectedNodeIdx].cx},${commands[selectedNodeIdx].cy})`}
+                        </span>
+                    )}
+                </div>
+            )}
         </div>
     )
 }

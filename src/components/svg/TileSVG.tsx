@@ -18,6 +18,8 @@ interface TileSVGProps {
   isValidTarget?: boolean
   /** Force render of schematic data (segments/features) even if image is present */
   showSchematic?: boolean
+  /** Segment ID → controlling player color for territory tinting */
+  segmentOwnerColors?: Record<string, string>
 }
 
 /**
@@ -44,6 +46,7 @@ export const TileSVG = memo(({
   hovered = false,
   isValidTarget = false,
   showSchematic = false,
+  segmentOwnerColors = {},
 }: TileSVGProps) => {
   // Sort segments: FIELD first (background), then CITY, ROAD, CLOISTER
   const renderOrder: Record<string, number> = { FIELD: 0, RIVER: 1, CITY: 2, ROAD: 3, CLOISTER: 4 }
@@ -93,6 +96,7 @@ export const TileSVG = memo(({
               segment={seg}
               highlighted={highlightedSegments.includes(seg.id)}
               dimmed={highlightedSegments.length > 0 && !highlightedSegments.includes(seg.id)}
+              ownerColor={segmentOwnerColors[seg.id]}
             />
           ))}
 
@@ -174,6 +178,24 @@ export const TileSVG = memo(({
             </g>
           )}
         </>
+      )}
+
+      {/* Layer 3: Territory owner color overlay (renders on top of image) */}
+      {Object.keys(segmentOwnerColors).length > 0 && (
+        <g style={{ pointerEvents: 'none' }}>
+          {sortedSegments.map(seg => {
+            const color = segmentOwnerColors[seg.id]
+            if (!color) return null
+            if (seg.type === 'CLOISTER') {
+              return <rect key={`own-${seg.id}`} x="28" y="28" width="44" height="44" fill={color} opacity={0.3} rx="3" />
+            }
+            if (seg.type === 'ROAD') {
+              return <path key={`own-${seg.id}`} d={seg.svgPath} fill="none" stroke={color} strokeWidth="8" strokeLinecap="round" strokeLinejoin="round" opacity={0.35} />
+            }
+            if (seg.type === 'RIVER') return null
+            return <path key={`own-${seg.id}`} d={seg.svgPath} fill={color} opacity={0.25} />
+          })}
+        </g>
       )}
 
       {/* Tile border */}

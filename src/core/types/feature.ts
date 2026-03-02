@@ -22,6 +22,8 @@ export interface Feature {
   openEdgeCount: number       // 0 = complete (for CITY/ROAD)
   // For farm scoring: set of adjacent city feature root IDs
   touchingCityIds: string[]
+  // Player IDs that controlled this feature when it was completed (for territory overlay)
+  lastOwnerIds?: string[]
   // Extra data for expansions
   metadata: Record<string, unknown>
 }

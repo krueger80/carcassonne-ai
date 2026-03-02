@@ -326,3 +326,173 @@ export function getAllPotentialPlacements(
 
   return valid
 }
+
+// ─── River placement helpers ────────────────────────────────────────────────
+
+export type RiverTurnDirection = 'LEFT' | 'RIGHT' | 'STRAIGHT'
+
+/**
+ * Get the physical directions that have a RIVER at CENTER for a tile+rotation.
+ */
+export function getRiverEdges(def: TileDefinition, rotation: Rotation): Direction[] {
+  const result: Direction[] = []
+  for (const dir of DIRECTIONS) {
+    const features = getEdgeFeatures(def, rotation, dir)
+    if (features[1] === 'RIVER') result.push(dir)
+  }
+  return result
+}
+
+/**
+ * Determine the turn direction of a river tile.
+ * Given the entry direction (where the river flows IN from a neighbor)
+ * and the exit direction (where it flows OUT), compute LEFT/RIGHT/STRAIGHT.
+ */
+export function computeRiverTurn(entryDir: Direction, exitDir: Direction): RiverTurnDirection {
+  const idx: Record<Direction, number> = { NORTH: 0, EAST: 1, SOUTH: 2, WEST: 3 }
+  const forwardIdx = (idx[entryDir] + 2) % 4  // opposite of entry = forward
+  const delta = (idx[exitDir] - forwardIdx + 4) % 4
+  if (delta === 0) return 'STRAIGHT'
+  if (delta === 1) return 'RIGHT'
+  return 'LEFT' // delta === 3
+}
+
+/**
+ * For a river tile placed at `coord` with the given rotation,
+ * find the entry direction (the side connecting to an existing river neighbor)
+ * and the exit direction (the open river end).
+ */
+export function getRiverEntryExit(
+  board: Board,
+  tileMap: Record<string, TileDefinition>,
+  def: TileDefinition,
+  rotation: Rotation,
+  coord: Coordinate,
+): { entry: Direction | null; exit: Direction | null } {
+  const riverEdges = getRiverEdges(def, rotation)
+  let entry: Direction | null = null
+  let exit: Direction | null = null
+  for (const dir of riverEdges) {
+    const neighborCoord = { x: coord.x + DIRECTION_DELTA[dir].dx, y: coord.y + DIRECTION_DELTA[dir].dy }
+    const neighborTile = board.tiles[coordKey(neighborCoord)]
+    if (neighborTile) {
+      const neighborDef = tileMap[neighborTile.definitionId]
+      if (neighborDef) {
+        const neighborFeatures = getEdgeFeatures(neighborDef, neighborTile.rotation, OPPOSITE_DIRECTION[dir])
+        if (neighborFeatures[1] === 'RIVER') {
+          entry = dir
+          continue
+        }
+      }
+    }
+    exit = dir
+  }
+  return { entry, exit }
+}
+
+/**
+ * Check if a river tile placement would create a forbidden U-turn.
+ * Returns true if the placement is ALLOWED (no U-turn violation).
+ */
+export function isRiverPlacementAllowed(
+  board: Board,
+  tileMap: Record<string, TileDefinition>,
+  instance: TileInstance,
+  coord: Coordinate,
+  lastTurnDirection: RiverTurnDirection | null,
+): boolean {
+  // If no previous turn recorded, any placement is fine
+  if (lastTurnDirection === null) return true
+
+  const def = tileMap[instance.definitionId]
+  if (!def) return true
+
+  const { entry, exit } = getRiverEntryExit(board, tileMap, def, instance.rotation, coord)
+  if (!entry || !exit) return true // source/lake tiles, or can't determine — allow
+
+  const turn = computeRiverTurn(entry, exit)
+  // No consecutive same-direction curves (U-turn)
+  if (turn !== 'STRAIGHT' && turn === lastTurnDirection) return false
+  return true
+}
+
+/**
+ * Find the open end(s) of the river — empty cells adjacent to a river edge
+ * that has no matching river neighbor. Returns the set of candidate coordinates.
+ */
+export function findRiverOpenEnds(
+  board: Board,
+  tileMap: Record<string, TileDefinition>,
+): Set<string> {
+  const openEnds = new Set<string>()
+  for (const key of Object.keys(board.tiles)) {
+    const tile = board.tiles[key]
+    const def = tileMap[tile.definitionId]
+    if (!def) continue
+    const riverEdges = getRiverEdges(def, tile.rotation)
+    for (const dir of riverEdges) {
+      const nx = tile.coordinate.x + DIRECTION_DELTA[dir].dx
+      const ny = tile.coordinate.y + DIRECTION_DELTA[dir].dy
+      const neighborKey = coordKey({ x: nx, y: ny })
+      if (!board.tiles[neighborKey]) {
+        openEnds.add(neighborKey)
+      }
+    }
+  }
+  return openEnds
+}
+
+/**
+ * River-aware version of getAllPotentialPlacements.
+ * Only allows placement at the open end of the river, and
+ * filters out rotations that would create a U-turn.
+ */
+export function getAllPotentialRiverPlacements(
+  board: Board,
+  tileMap: Record<string, TileDefinition>,
+  instance: TileInstance,
+  lastTurnDirection: RiverTurnDirection | null,
+): Coordinate[] {
+  // Only consider cells at the open end of the river
+  const openEnds = findRiverOpenEnds(board, tileMap)
+
+  const valid: Coordinate[] = []
+  for (const key of openEnds) {
+    const [x, y] = key.split(',').map(Number)
+    const coord = { x, y }
+    let canFit = false
+    for (const rotation of [0, 90, 180, 270] as Rotation[]) {
+      const inst = { ...instance, rotation }
+      if (isValidPlacement(board, tileMap, inst, coord) &&
+          isRiverPlacementAllowed(board, tileMap, inst, coord, lastTurnDirection)) {
+        canFit = true
+        break
+      }
+    }
+    if (canFit) valid.push(coord)
+  }
+  return valid
+}
+
+/**
+ * River-aware version of getValidRotations.
+ * Filters out rotations that would create a U-turn.
+ */
+export function getValidRiverRotations(
+  board: Board,
+  tileMap: Record<string, TileDefinition>,
+  instance: TileInstance,
+  coord: Coordinate,
+  lastTurnDirection: RiverTurnDirection | null,
+): Rotation[] {
+  // Only allow rotations at the open end of the river
+  const openEnds = findRiverOpenEnds(board, tileMap)
+  if (!openEnds.has(coordKey(coord))) return []
+
+  const rotations: Rotation[] = [0, 90, 180, 270]
+  return rotations.filter(r => {
+    const inst = { ...instance, rotation: r }
+    return isValidPlacement(board, tileMap, inst, coord) &&
+           isRiverPlacementAllowed(board, tileMap, inst, coord, lastTurnDirection)
+  })
+}

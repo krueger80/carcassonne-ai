@@ -15,9 +15,9 @@ import {
   skipMeeple,
   endTurn,
   scoreFeatureCompletion,
-  getAllPotentialPlacements,
+  getPotentialPlacementsForState,
   getAvailableSegmentsForMeeple,
-  isValidPlacement,
+  isValidPlacementForState,
   canPlaceMeeple,
   canPlaceBuilderOrPig,
   placeDragonOnHoard as enginePlaceDragonOnHoard,
@@ -161,7 +161,7 @@ export const useGameStore = create<GameStore>()(
           if (store.gameState.tileBag.length > 0) {
             store.gameState = drawTile(store.gameState)
             store.validPlacements = store.gameState.currentTile
-              ? getAllPotentialPlacements(store.gameState.board, store.gameState.staticTileMap, store.gameState.currentTile)
+              ? getPotentialPlacementsForState(store.gameState)
               : []
           }
           store.interactionState = 'IDLE'
@@ -182,7 +182,7 @@ export const useGameStore = create<GameStore>()(
         store.interactionState = 'IDLE'
         store.tentativeTileCoord = null
         store.validPlacements = store.gameState.currentTile
-          ? getAllPotentialPlacements(store.gameState.board, store.gameState.staticTileMap, store.gameState.currentTile)
+          ? getPotentialPlacementsForState(store.gameState)
           : []
         store.placeableSegments = []
       }),
@@ -198,7 +198,7 @@ export const useGameStore = create<GameStore>()(
 
         // 2. Keep current rotation if valid at the new spot; otherwise find the
         //    next valid rotation starting from the current one.
-        const { board, currentTile } = store.gameState
+        const { currentTile } = store.gameState
         const rotations: Rotation[] = [0, 90, 180, 270]
         const currentIdx = rotations.indexOf(currentTile.rotation as Rotation)
         const orderedRotations = [
@@ -208,7 +208,7 @@ export const useGameStore = create<GameStore>()(
 
         for (const r of orderedRotations) {
           const testTile = { ...currentTile, rotation: r }
-          if (isValidPlacement(board, store.gameState.staticTileMap, testTile, coord)) {
+          if (isValidPlacementForState(store.gameState, testTile, coord)) {
             store.gameState.currentTile.rotation = r
             break
           }
@@ -225,14 +225,14 @@ export const useGameStore = create<GameStore>()(
           return
         }
 
-        const { board, currentTile } = store.gameState
+        const { currentTile } = store.gameState
         const coord = store.tentativeTileCoord
         let r = currentTile.rotation
 
         // Has tentative placement — find next VALID rotation for that cell
         for (let i = 0; i < 4; i++) {
           r = (r + 90) % 360 as Rotation
-          if (isValidPlacement(board, store.gameState.staticTileMap, { ...currentTile, rotation: r }, coord)) {
+          if (isValidPlacementForState(store.gameState, { ...currentTile, rotation: r }, coord)) {
             store.gameState.currentTile.rotation = r
             return
           }
@@ -310,7 +310,7 @@ export const useGameStore = create<GameStore>()(
 
         // Recalculate valid placements for the restored state
         if (store.gameState?.currentTile) {
-          store.validPlacements = getAllPotentialPlacements(store.gameState.board, store.gameState.staticTileMap, store.gameState.currentTile)
+          store.validPlacements = getPotentialPlacementsForState(store.gameState)
         }
       }),
 
@@ -629,11 +629,7 @@ export const useGameStore = create<GameStore>()(
             store.gameState.staticTileMap = { ...store.gameState.staticTileMap, ...tileMap }
             // Recalculate valid placements after staticTileMap refresh (fixes stale placements after page reload)
             if (store.gameState.turnPhase === 'PLACE_TILE' && store.gameState.currentTile) {
-              store.validPlacements = getAllPotentialPlacements(
-                store.gameState.board,
-                store.gameState.staticTileMap,
-                store.gameState.currentTile,
-              )
+              store.validPlacements = getPotentialPlacementsForState(store.gameState)
             }
           })
         } catch (e) {
@@ -684,11 +680,7 @@ export const useGameStore = create<GameStore>()(
           // Finished movement sequence, now place the Dragon card
           if (gameState.currentTile) {
             set(store => {
-              store.validPlacements = getAllPotentialPlacements(
-                gameState.board,
-                gameState.staticTileMap,
-                gameState.currentTile!
-              )
+              store.validPlacements = getPotentialPlacementsForState(gameState)
             })
           }
         }
@@ -776,11 +768,7 @@ export const useGameStore = create<GameStore>()(
           } else if (newState.turnPhase === 'PLACE_TILE') {
             if (newState.currentTile) {
               set((store) => {
-                store.validPlacements = getAllPotentialPlacements(
-                  newState.board,
-                  newState.staticTileMap,
-                  newState.currentTile!
-                )
+                store.validPlacements = getPotentialPlacementsForState(newState)
               })
             }
           } else if (newState.turnPhase === 'DRAGON_ORIENT') {
@@ -852,12 +840,12 @@ export const useGameStore = create<GameStore>()(
           // Simplest: Duplicate the rotate logic here briefly:
 
           if (!store.gameState?.currentTile || !store.tentativeTileCoord) return
-          const { board, currentTile } = store.gameState
+          const { currentTile } = store.gameState
           const coord = store.tentativeTileCoord
           let r = currentTile.rotation
           for (let i = 0; i < 4; i++) {
             r = (r + 90) % 360 as Rotation
-            if (isValidPlacement(board, store.gameState.staticTileMap, { ...currentTile, rotation: r }, coord)) {
+            if (isValidPlacementForState(store.gameState, { ...currentTile, rotation: r }, coord)) {
               store.gameState.currentTile.rotation = r
               return
             }
@@ -889,11 +877,7 @@ export const useGameStore = create<GameStore>()(
           }
           // Recompute validPlacements so the board is immediately interactive after F5
           if (merged.gameState.turnPhase === 'PLACE_TILE' && merged.gameState.currentTile) {
-            merged.validPlacements = getAllPotentialPlacements(
-              merged.gameState.board,
-              merged.gameState.staticTileMap,
-              merged.gameState.currentTile,
-            )
+            merged.validPlacements = getPotentialPlacementsForState(merged.gameState)
             // Always reset tentative state on refresh — avoids the "tile at wrong place"
             // visual confusion caused by restoring a mid-placement state.
             merged.interactionState = 'IDLE'
