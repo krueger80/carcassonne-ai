@@ -519,6 +519,8 @@ export function GameOverlay() {
                         alignItems: 'center',
                     }}
                     title="Tableau des scores"
+                    aria-label="Tableau des scores"
+                    aria-expanded={showScoreboard}
                 >
                     🏆
                 </button>
@@ -640,6 +642,8 @@ export function GameOverlay() {
                 <div style={{ position: 'relative', pointerEvents: 'auto', alignSelf: 'flex-start', marginBottom: 20 }} onPointerDown={(e) => e.stopPropagation()}>
                     <button
                         onClick={(e) => { e.stopPropagation(); setIsMenuOpen(!isMenuOpen) }}
+                        aria-label="Menu"
+                        aria-expanded={isMenuOpen}
                         style={{
                             background: 'rgba(0,0,0,0.6)',
                             border: '1px solid #555',
