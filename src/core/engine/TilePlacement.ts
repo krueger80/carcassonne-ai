@@ -579,7 +579,7 @@ export function isRiverPlacementAllowed(
   }
 
   if (entries.length === 0) return true // Source/isolated, allow placement
-  
+
   if (exits.length === 0) {
     // No open ends remaining. This is only allowed for LAKES (exactly 1 external edge).
     // If it has 2+ edges but no exits, it's closing a loop.
@@ -595,18 +595,40 @@ export function isRiverPlacementAllowed(
     const turn = computeRiverTurn(entry.dir, exit.dir)
     if (turn === 'STRAIGHT') continue
 
-    // Dynamic neighbor turn detection
+    // Dynamic neighbor turn detection using strictly 1x1 local geometry
     let neighborTurn: RiverTurnDirection | null = null
     const neighborX = entry.partCoord.x + DIRECTION_DELTA[entry.dir].dx
     const neighborY = entry.partCoord.y + DIRECTION_DELTA[entry.dir].dy
-    
-    const rootInfo = getRootTileInfo(board, tileMap, { x: neighborX, y: neighborY })
-    if (rootInfo) {
-      const { entry: nEntry, exit: nExit } = getRiverEntryExit(board, tileMap, rootInfo.def, rootInfo.rotation, rootInfo.coordinate)
-      if (nEntry && nExit) {
-        neighborTurn = computeRiverTurn(nEntry, nExit)
-      } else if (rootInfo.def.startingTile) {
-        neighborTurn = 'STRAIGHT'
+    const neighborKey = coordKey({ x: neighborX, y: neighborY })
+    const neighborTile = board.tiles[neighborKey]
+
+    if (neighborTile) {
+      const neighborDef = tileMap[neighborTile.definitionId]
+      if (neighborDef) {
+        // Find exactly which physical edges of this 1x1 cell have a river
+        const localRiverEdges = getRiverEdges(neighborDef, neighborTile.rotation)
+
+        if (localRiverEdges.length === 2) {
+          // If the cell connects exactly 2 ways, its turn is geometrically definite
+          const [dirA, dirB] = localRiverEdges
+
+          // The river flowed *out* of us into 'entry.dir'.
+          // So from the neighbor's perspective, it flowed *in* from 'OPPOSITE_DIRECTION[entry.dir]'
+          const inDir = OPPOSITE_DIRECTION[entry.dir]
+
+          // The other edge is where it came from before that
+          const outDir = dirA === inDir ? dirB : dirA
+
+          // Compute the turn the neighbor made to get TO us
+          // i.e., water flows outDir -> inDir(which points back to us)
+          neighborTurn = computeRiverTurn(outDir, inDir)
+        } else if (localRiverEdges.length === 1) {
+          // It's a dead end like a spring or lake tip
+          neighborTurn = 'STRAIGHT'
+        } else if (localRiverEdges.length > 2) {
+          // Not technically possible in vanilla Carcassonne but just in case
+          neighborTurn = 'STRAIGHT'
+        }
       }
     }
 
