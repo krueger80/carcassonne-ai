@@ -80,9 +80,21 @@ const MeepleIcon = ({ type, count, tooltip, color, onClick, isSelected, disabled
     const isInteractive = !!onClick;
     const size = isCompact ? 20 : 24;
 
+    const Element = isInteractive ? 'button' : 'div';
+    const buttonProps = isInteractive ? {
+        type: 'button' as const,
+        'aria-label': `${tooltip} (${count} available)`,
+        'aria-pressed': isSelected,
+        disabled: disabled,
+    } : {
+        'aria-label': `${tooltip} (${count} available)`,
+        role: 'img'
+    };
+
     return (
-        <div
+        <Element
             onClick={!disabled && onClick ? onClick : undefined}
+            {...buttonProps}
             style={{
                 display: 'flex',
                 flexDirection: 'column',
@@ -98,7 +110,7 @@ const MeepleIcon = ({ type, count, tooltip, color, onClick, isSelected, disabled
             title={tooltip}
         >
             <div style={{ width: size, height: size, position: 'relative' }}>
-                <svg width={size} height={size} viewBox="0 0 24 24" style={{ filter: 'drop-shadow(0 1px 2px rgba(0,0,0,0.5))', overflow: 'visible' }}>
+                <svg width={size} height={size} viewBox="0 0 24 24" style={{ filter: 'drop-shadow(0 1px 2px rgba(0,0,0,0.5))', overflow: 'visible' }} aria-hidden="true">
                     <MeepleSVG
                         color={color}
                         x={12} y={20}
@@ -115,11 +127,11 @@ const MeepleIcon = ({ type, count, tooltip, color, onClick, isSelected, disabled
                     padding: '1px 3px', borderRadius: 4,
                     border: '1px solid #555',
                     pointerEvents: 'none',
-                }}>
+                }} aria-hidden="true">
                     {count}
                 </div>
             </div>
-        </div>
+        </Element>
     );
 };
 
@@ -137,12 +149,13 @@ const GoodIcon = ({ type, count, useModernTerminology, isCompact }: GoodIconProp
         type === 'WHEAT' ? (useModernTerminology ? t('goods.grain') : t('goods.wheat')) : t('goods.cloth');
 
     return (
-        <div style={{ position: 'relative', width: size, height: size, opacity: count > 0 ? 1 : 0.3 }} title={label}>
+        <div style={{ position: 'relative', width: size, height: size, opacity: count > 0 ? 1 : 0.3 }} title={label} role="img" aria-label={`${label} (${count})`}>
             <img
                 src={COMMODITY_IMAGES[type]}
                 width={size} height={size}
-                alt={type}
+                alt=""
                 style={{ filter: 'drop-shadow(0 1px 2px rgba(0,0,0,0.5))' }}
+                aria-hidden="true"
             />
             <div style={{
                 position: 'absolute', bottom: isCompact ? -4 : -2, right: isCompact ? -6 : -4,
@@ -151,7 +164,7 @@ const GoodIcon = ({ type, count, useModernTerminology, isCompact }: GoodIconProp
                 padding: '1px 3px', borderRadius: 4,
                 border: '1px solid #555',
                 pointerEvents: 'none',
-            }}>
+            }} aria-hidden="true">
                 {count}
             </div>
         </div>
