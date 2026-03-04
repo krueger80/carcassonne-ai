@@ -19,6 +19,7 @@ const floatingBtnStyle = (from: string, to: string): React.CSSProperties => ({
     fontWeight: 'bold',
     cursor: 'pointer',
     boxShadow: '0 3px 12px rgba(0,0,0,0.5)',
+    flexShrink: 0,
 })
 
 export function GameOverlay() {
@@ -297,6 +298,49 @@ export function GameOverlay() {
             y: window.innerHeight / 2 + boardOffset.y + dy * boardScale + 8,
         }
     }, [floatingCoord, gameState, boardOffset, boardScale])
+
+    // ── Auto-pan to keep action buttons in view ─────────────────────────────
+    useEffect(() => {
+        if (!tileButtonPos) return
+
+        // Wait a tick for the DOM to potentially update button dimensions
+        // but we'll use a conservative estimate: buttons are ~180px wide and ~40px tall.
+        const BUTTON_AREA_WIDTH = 200
+        const BUTTON_AREA_HEIGHT = 60
+        const MARGIN = 40
+
+        const screenX = tileButtonPos.x
+        const screenY = tileButtonPos.y
+
+        let panX = 0
+        let panY = 0
+
+        // Check horizontal bounds
+        const leftEdge = screenX - BUTTON_AREA_WIDTH / 2
+        const rightEdge = screenX + BUTTON_AREA_WIDTH / 2
+
+        if (leftEdge < MARGIN) {
+            panX = MARGIN - leftEdge
+        } else if (rightEdge > window.innerWidth - MARGIN) {
+            panX = (window.innerWidth - MARGIN) - rightEdge
+        }
+
+        // Check vertical bounds (bottom)
+        const bottomEdge = screenY + BUTTON_AREA_HEIGHT
+        if (bottomEdge > window.innerHeight - MARGIN) {
+            panY = (window.innerHeight - MARGIN) - bottomEdge
+        }
+
+        if (panX !== 0 || panY !== 0) {
+            const currentOffset = useUIStore.getState().boardOffset
+            useUIStore.setState({
+                boardOffset: {
+                    x: currentOffset.x + panX,
+                    y: currentOffset.y + panY
+                }
+            })
+        }
+    }, [tileButtonPos])
 
     return (
         <div style={{
@@ -878,6 +922,7 @@ export function GameOverlay() {
                         gap: 8,
                         zIndex: 60,
                         pointerEvents: 'auto',
+                        whiteSpace: 'nowrap',
                     }}
                     onPointerDown={(e) => e.stopPropagation()}
                 >
