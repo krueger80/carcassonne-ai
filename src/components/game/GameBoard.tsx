@@ -389,11 +389,10 @@ export function GameBoard() {
     undoTilePlacement,
   } = useGameStore()
 
-  const { boardScale, boardOffset, hoveredCoord, setHoveredCoord, setBoardScale, selectedMeepleType, resetView, territoryOverlay } = useUIStore()
+  const { boardScale, boardOffset, hoveredCoord, setHoveredCoord, setBoardScale, selectedMeepleType, resetView, territoryOverlay, isManualInteraction, setIsManualInteraction } = useUIStore()
 
   const containerRef = useRef<HTMLDivElement>(null)
   const [isPanning, setIsPanning] = useState(false)
-  const [isManualInteraction, setIsManualInteraction] = useState(false)
   const isPointerDown = useRef(false)
   const panStart = useRef({ x: 0, y: 0, offsetX: 0, offsetY: 0 })
 
@@ -422,6 +421,7 @@ export function GameBoard() {
 
     const handleWheel = (e: WheelEvent) => {
       e.preventDefault() // Block browser zoom/scroll
+      e.stopPropagation()
       setIsManualInteraction(true)
 
       const scaleFactor = e.deltaY > 0 ? 0.9 : 1.1
@@ -745,8 +745,8 @@ export function GameBoard() {
           }}
           title={
             territoryOverlay === 'off' ? 'Territory: Off'
-            : territoryOverlay === 'incomplete' ? 'Territory: Incomplete'
-            : 'Territory: All'
+              : territoryOverlay === 'incomplete' ? 'Territory: Incomplete'
+                : 'Territory: All'
           }
         >
           {territoryOverlay === 'off' ? '◇' : territoryOverlay === 'incomplete' ? '◈' : '◆'}

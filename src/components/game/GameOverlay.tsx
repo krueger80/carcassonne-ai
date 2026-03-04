@@ -4,7 +4,7 @@ import { useUIStore } from '../../store/uiStore.ts'
 import { getPotentialPlacementsForState, getValidMeepleTypes } from '../../core/engine/GameEngine.ts'
 import { getFallbackTileMap } from '../../services/tileRegistry.ts'
 import { motion, AnimatePresence } from 'framer-motion'
-import { useEffect, useState, useMemo } from 'react'
+import { useEffect, useState, useMemo, useRef } from 'react'
 import { SetupScreen } from '../setup/SetupScreen.tsx'
 import { PlayerCard } from '../ui/PlayerCard.tsx'
 import { useCastSender } from '../../cast/useCastSender.ts'
@@ -54,7 +54,7 @@ export function GameOverlay() {
         validPlacements,
     } = useGameStore()
 
-    const { selectedMeepleType, setSelectedMeepleType, boardScale, boardOffset } = useUIStore()
+    const { selectedMeepleType, setSelectedMeepleType, boardScale, boardOffset, isManualInteraction } = useUIStore()
     const { sdkReady } = useCastSender()
 
     const [isMenuOpen, setIsMenuOpen] = useState(false)
@@ -71,6 +71,7 @@ export function GameOverlay() {
     useEffect(() => {
         if (gameState?.turnPhase !== 'PLACE_TILE') return
         const handleWheel = (e: WheelEvent) => {
+            if (e.ctrlKey || e.metaKey) return // Ignore zoom
             e.preventDefault()
             rotateTentativeTile()
         }
@@ -274,6 +275,7 @@ export function GameOverlay() {
     const CELL_SIZE = 88
     const BOARD_PADDING = 3
     const tentativeTileCoord = useGameStore(s => s.tentativeTileCoord)
+    const lastAutoPanCoordRef = useRef<string | null>(null)
 
     // Which coordinate to anchor floating buttons to
     const floatingCoord = interactionState === 'TILE_PLACED_TENTATIVELY'
@@ -301,7 +303,13 @@ export function GameOverlay() {
 
     // ── Auto-pan to keep action buttons in view ─────────────────────────────
     useEffect(() => {
-        if (!tileButtonPos) return
+        if (!tileButtonPos || isManualInteraction) return
+
+        // Only auto-pan if the coordinate we are anchoring to has changed
+        // This allows the user to pan away and not have the board jump back.
+        const currentCoordKey = floatingCoord ? `${floatingCoord.x},${floatingCoord.y}` : null
+        if (currentCoordKey === lastAutoPanCoordRef.current) return
+        lastAutoPanCoordRef.current = currentCoordKey
 
         // Wait a tick for the DOM to potentially update button dimensions
         // but we'll use a conservative estimate: buttons are ~180px wide and ~40px tall.
@@ -869,10 +877,10 @@ export function GameOverlay() {
                                     initial={{ opacity: 0, x: -20 }}
                                     animate={
                                         isActive
-                                            ? { opacity: 1, scale: 1, x: 0 }
+                                            ? { opacity: 1, scale: 1, x: 0, marginBottom: 0 }
                                             : showOpponents
-                                                ? { opacity: 0.7, scale: 0.95, x: 0 }
-                                                : { opacity: 0.5, scale: 0.92, x: 0 }
+                                                ? { opacity: 0.7, scale: 0.95, x: 0, marginBottom: 0 }
+                                                : { opacity: 0.6, scale: 0.85, x: 16, marginBottom: -32 }
                                     }
                                     transition={{ type: 'spring', stiffness: 300, damping: 25 }}
                                     style={{
@@ -880,11 +888,6 @@ export function GameOverlay() {
                                         zIndex: isActive ? 10 : 1,
                                         pointerEvents: 'auto',
                                         cursor: isActive ? 'default' : 'pointer',
-                                        ...(!isActive && !showOpponents ? {
-                                            height: 8,
-                                            overflow: 'hidden',
-                                            marginBottom: -4,
-                                        } : {}),
                                     }}
                                     onPointerDown={(e) => e.stopPropagation()}
                                     onClick={(e) => {

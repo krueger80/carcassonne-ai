@@ -31,7 +31,9 @@ interface UIStore {
   showDevGallery: boolean
   selectedMeepleType: MeepleType
   territoryOverlay: TerritoryOverlayMode
+  isManualInteraction: boolean
   cycleTerritoryOverlay: () => void
+  setIsManualInteraction: (isManual: boolean) => void
 
   setBoardScale: (scale: number) => void
   panBoard: (dx: number, dy: number) => void
@@ -54,11 +56,12 @@ export const useUIStore = create<UIStore>((set) => ({
   showDevGallery: false,
   selectedMeepleType: 'NORMAL' as MeepleType,
   territoryOverlay: 'off' as TerritoryOverlayMode,
+  isManualInteraction: false,
   cycleTerritoryOverlay: () => set((s) => {
     const next: TerritoryOverlayMode =
       s.territoryOverlay === 'off' ? 'incomplete'
-      : s.territoryOverlay === 'incomplete' ? 'all'
-      : 'off'
+        : s.territoryOverlay === 'incomplete' ? 'all'
+          : 'off'
     return { territoryOverlay: next }
   }),
 
@@ -91,4 +94,6 @@ export const useUIStore = create<UIStore>((set) => ({
   resetView: () => set({ boardScale: 1, boardOffset: { x: 0, y: 0 } }),
 
   setSelectedMeepleType: (type) => set({ selectedMeepleType: type }),
+
+  setIsManualInteraction: (isManual) => set({ isManualInteraction: isManual }),
 }))

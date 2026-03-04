@@ -231,7 +231,7 @@ export function PlayerCard({ player, isCurrentTurn, isBuilderBonusTurn = false, 
 
             {/* 3. Main Content: Split columns if we have a tile preview */}
             {(() => {
-                const showTilePreview = isCurrentTurn && turnState?.phase === 'PLACE_TILE' && turnState?.tileDefinition && turnState?.currentTile;
+                const showTilePreview = isCurrentTurn && turnState?.phase === 'PLACE_TILE' && turnState?.tileDefinition && turnState?.currentTile && turnState?.interactionState === 'IDLE';
                 return (
                     <div style={{ display: 'flex', gap: isCurrentTurn ? 16 : 4, alignItems: 'center' }}>
 
@@ -416,7 +416,15 @@ export function PlayerCard({ player, isCurrentTurn, isBuilderBonusTurn = false, 
 
             {/* 4. Action Buttons (Active only) */}
             {isCurrentTurn && turnState && (
-                <div style={{ marginTop: 4, display: 'flex', gap: 8 }}>
+                <div style={{
+                    marginTop: (turnState.phase === 'PLACE_TILE' && turnState.interactionState === 'IDLE') ||
+                        (turnState.phase === 'DRAGON_ORIENT' && turnState.actions.confirmDragonOrientation) ||
+                        (turnState.phase === 'FAIRY_MOVE') ||
+                        (turnState.phase === 'DRAGON_MOVEMENT' && turnState.actions.executeDragon)
+                        ? 4 : 0,
+                    display: 'flex',
+                    gap: 8
+                }}>
                     {turnState.phase === 'PLACE_TILE' && turnState.interactionState === 'IDLE' && (
                         <>
                             <Button onClick={turnState.actions.rotate!} style={{ flex: 1 }}>⭮ {t('game.rotate')}</Button>
