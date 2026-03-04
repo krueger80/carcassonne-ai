@@ -80,6 +80,7 @@ interface GameStore {
   // Tile Placement Phase
   selectTilePlacement: (coord: Coordinate) => void
   rotateTentativeTile: () => void
+  flipTile: () => void
   confirmTilePlacement: () => void
   cancelTilePlacement: () => void
   undoTilePlacement: () => void
@@ -109,6 +110,8 @@ interface GameStore {
 
   // Old actions kept for compatibility if needed, but likely to be replaced
   rotateTile: () => void
+
+  playDoubleLake: () => void
 }
 
 export const useGameStore = create<GameStore>()(
@@ -187,6 +190,24 @@ export const useGameStore = create<GameStore>()(
         store.placeableSegments = []
       }),
 
+      playDoubleLake: () => set((store) => {
+        if (!store.gameState || store.gameState.turnPhase !== 'PLACE_TILE' || !store.gameState.currentTile) return
+
+        const dfData = store.gameState.expansionData['dragonFairy'] as any
+        if (dfData?.doubleLakeAvailable) {
+          // Push current tile back onto the top of the bag
+          store.gameState.tileBag.unshift(store.gameState.currentTile)
+          // Set current tile to the Double Lake
+          store.gameState.currentTile = { definitionId: 'df31_B_front_bottom', rotation: 0 }
+          dfData.doubleLakeAvailable = false
+
+          store.interactionState = 'IDLE'
+          store.tentativeTileCoord = null
+          store.validPlacements = getPotentialPlacementsForState(store.gameState)
+          store.placeableSegments = []
+        }
+      }),
+
       // ── New Tile Placement Workflow ──────────────────────────────────────
 
       selectTilePlacement: (coord) => set((store) => {
@@ -226,16 +247,26 @@ export const useGameStore = create<GameStore>()(
         }
 
         const { currentTile } = store.gameState
-        const coord = store.tentativeTileCoord
+        let coord = store.tentativeTileCoord
         let r = currentTile.rotation
 
-        // Has tentative placement — find next VALID rotation for that cell
-        for (let i = 0; i < 4; i++) {
-          r = (r + 90) % 360 as Rotation
-          if (isValidPlacementForState(store.gameState, { ...currentTile, rotation: r }, coord)) {
-            store.gameState.currentTile.rotation = r
-            return
+        // find next valid rotation...
+        let nextRot = (r + 90) % 360 as Rotation
+        while (nextRot !== r) {
+          if (isValidPlacementForState(store.gameState, { ...currentTile, rotation: nextRot }, coord)) {
+            store.gameState.currentTile.rotation = nextRot
+            break
           }
+          nextRot = (nextRot + 90) % 360 as Rotation
+        }
+      }),
+
+      flipTile: () => set((store) => {
+        if (!store.gameState?.currentTile || store.interactionState !== 'IDLE') return;
+        const currentDef = store.gameState.staticTileMap[store.gameState.currentTile.definitionId]
+        if (currentDef?.flipSideDefinitionId) {
+          store.gameState.currentTile.definitionId = currentDef.flipSideDefinitionId
+          store.validPlacements = getPotentialPlacementsForState(store.gameState)
         }
       }),
 
@@ -625,8 +656,33 @@ export const useGameStore = create<GameStore>()(
           const tileMap = await loadTileMap()
           set((store) => {
             if (!store.gameState) return
-            // Merge registry definitions into existing map
-            store.gameState.staticTileMap = { ...store.gameState.staticTileMap, ...tileMap }
+            // Merge registry definitions into existing map, preserving hardcoded
+            // fields (imageConfig, linkedTiles, etc.) that the DB may not have.
+            const merged = { ...store.gameState.staticTileMap }
+            for (const [id, dbDef] of Object.entries(tileMap)) {
+              const existing = merged[id]
+              if (existing) {
+                // Preserve hardcoded RIVER segments when DB tile lacks them
+                const existingHasRiver = existing.segments?.some((s: any) => s.type === 'RIVER')
+                const dbHasRiver = dbDef.segments?.some((s: any) => s.type === 'RIVER')
+                const preserveSegments = existingHasRiver && !dbHasRiver
+                merged[id] = {
+                  ...existing,
+                  ...dbDef,
+                  ...(preserveSegments && {
+                    segments: existing.segments,
+                    edgePositionToSegment: existing.edgePositionToSegment,
+                  }),
+                  imageConfig: dbDef.imageConfig ?? existing.imageConfig,
+                  linkedTiles: dbDef.linkedTiles ?? existing.linkedTiles,
+                  flipSideDefinitionId: dbDef.flipSideDefinitionId ?? existing.flipSideDefinitionId,
+                  isDragonHoard: dbDef.isDragonHoard ?? existing.isDragonHoard,
+                }
+              } else {
+                merged[id] = dbDef
+              }
+            }
+            store.gameState.staticTileMap = merged
             // Recalculate valid placements after staticTileMap refresh (fixes stale placements after page reload)
             if (store.gameState.turnPhase === 'PLACE_TILE' && store.gameState.currentTile) {
               store.validPlacements = getPotentialPlacementsForState(store.gameState)

@@ -152,12 +152,20 @@ function getNeighborCoord(coord: Coordinate, dir: Direction): Coordinate {
   return { x: coord.x + dx, y: coord.y + dy }
 }
 
+export function getRotatedOffset(dx: number, dy: number, rotation: Rotation): { dx: number, dy: number } {
+  if (rotation === 0) return { dx, dy }
+  if (rotation === 90) return { dx: -dy, dy: dx }
+  if (rotation === 180) return { dx: -dx, dy: -dy }
+  if (rotation === 270) return { dx: dy, dy: -dx }
+  return { dx, dy }
+}
+
 /**
  * Returns true if placing `instance` at `coord` on `board` is valid.
  * Rules:
- *  1. The cell must be empty.
- *  2. The cell must be adjacent to at least one placed tile.
- *  3. All adjacent tile edges must match on the shared edge (checking all 3 sub-positions).
+ *  1. The entire footprint (base tile + linked tiles) must be on empty cells.
+ *  2. At least one tile in the footprint must be adjacent to an existing board tile.
+ *  3. All adjacent tile edges (between footprint and board) must match.
  */
 export function isValidPlacement(
   board: Board,
@@ -165,43 +173,67 @@ export function isValidPlacement(
   instance: TileInstance,
   coord: Coordinate,
 ): boolean {
-  const key = coordKey(coord)
-  if (board.tiles[key]) return false  // cell occupied
-
   const def = tileMap[instance.definitionId]
   if (!def) return false
 
-  // Empty board: only (0,0) is a valid starting position
+  // Compute footprint: [ { coord, defId } ]
+  const footprint: { coord: Coordinate, defId: string }[] = [
+    { coord, defId: instance.definitionId }
+  ]
+  if (def.linkedTiles) {
+    for (const link of def.linkedTiles) {
+      const { dx, dy } = getRotatedOffset(link.dx, link.dy, instance.rotation)
+      footprint.push({
+        coord: { x: coord.x + dx, y: coord.y + dy },
+        defId: link.definitionId
+      })
+    }
+  }
+
+  // 1. All cells in footprint must be empty
+  const footprintKeys = new Set(footprint.map(f => coordKey(f.coord)))
+  for (const f of footprint) {
+    if (board.tiles[coordKey(f.coord)]) return false
+  }
+
+  // Empty board: only (0,0) is a valid starting position, and the base tile must be at (0,0)
   if (Object.keys(board.tiles).length === 0) {
+    // Note: The base tile was clicked at (0,0). So coord === (0,0).
     return coord.x === 0 && coord.y === 0
   }
 
   let hasNeighbor = false
 
-  for (const dir of DIRECTIONS) {
-    const neighborCoord = getNeighborCoord(coord, dir)
-    const neighborKey = coordKey(neighborCoord)
-    const neighborTile = board.tiles[neighborKey]
+  // 2 & 3. Check adjacency and edge matching for all tiles in footprint
+  for (const f of footprint) {
+    const subDef = tileMap[f.defId]
+    if (!subDef) return false
 
-    if (!neighborTile) continue
-    hasNeighbor = true
+    for (const dir of DIRECTIONS) {
+      const neighborCoord = getNeighborCoord(f.coord, dir)
+      const neighborKey = coordKey(neighborCoord)
 
-    const neighborDef = tileMap[neighborTile.definitionId]
-    if (!neighborDef) return false
+      // If the neighbor is part of the footprint being placed, ignore it
+      // (we assume the compound tile itself is internally consistent)
+      if (footprintKeys.has(neighborKey)) continue
 
-    // My physical edge facing this neighbor
-    const myFeatures = getEdgeFeatures(def, instance.rotation, dir)
-    // Neighbor's physical edge facing back at me
-    const neighborDir = OPPOSITE_DIRECTION[dir]
-    const neighborFeatures = getEdgeFeatures(neighborDef, neighborTile.rotation, neighborDir)
+      const neighborTile = board.tiles[neighborKey]
+      if (!neighborTile) continue
 
-    // Compare matching sub-positions:
-    // My LEFT matches Neighbor's RIGHT
-    // My CENTER matches Neighbor's CENTER
-    // My RIGHT matches Neighbor's LEFT
-    if (myFeatures[0] !== neighborFeatures[2]) return false
-    if (myFeatures[1] !== neighborFeatures[1]) return false
-    if (myFeatures[2] !== neighborFeatures[0]) return false
+      hasNeighbor = true
+
+      const neighborDef = tileMap[neighborTile.definitionId]
+      if (!neighborDef) return false
+
+      // Check edges
+      const myFeatures = getEdgeFeatures(subDef, instance.rotation, dir)
+      const neighborDir = OPPOSITE_DIRECTION[dir]
+      const neighborFeatures = getEdgeFeatures(neighborDef, neighborTile.rotation, neighborDir)
+
+      if (myFeatures[0] !== neighborFeatures[2]) return false
+      if (myFeatures[1] !== neighborFeatures[1]) return false
+      if (myFeatures[2] !== neighborFeatures[0]) return false
+    }
   }
 
   return hasNeighbor
@@ -234,14 +266,33 @@ export function getValidPositions(
     candidates.add('0,0')
   }
 
-  const valid: Coordinate[] = []
+  const valid = new Set<string>()
+  const def = tileMap[instance.definitionId]
+  if (!def) return []
+
   for (const key of candidates) {
-    const [x, y] = key.split(',').map(Number)
-    if (isValidPlacement(board, tileMap, instance, { x, y })) {
-      valid.push({ x, y })
+    const [cx, cy] = key.split(',').map(Number)
+
+    // For the given instance rotation, what are the footprint offsets?
+    const offsets = [{ dx: 0, dy: 0 }]
+    if (def.linkedTiles) {
+      for (const lt of def.linkedTiles) {
+        offsets.push(getRotatedOffset(lt.dx, lt.dy, instance.rotation))
+      }
+    }
+
+    for (const off of offsets) {
+      const testCoord = { x: cx - off.dx, y: cy - off.dy }
+      if (isValidPlacement(board, tileMap, instance, testCoord)) {
+        valid.add(coordKey(testCoord))
+      }
     }
   }
-  return valid
+
+  return Array.from(valid).map(k => {
+    const [x, y] = k.split(',').map(Number)
+    return { x, y }
+  })
 }
 
 /**
@@ -303,28 +354,36 @@ export function getAllPotentialPlacements(
     candidates.add('0,0')
   }
 
-  const valid: Coordinate[] = []
+  const valid = new Set<string>()
+  const def = tileMap[instance.definitionId]
+  if (!def) return []
 
   // 2. Check each candidate
   for (const key of candidates) {
-    const [x, y] = key.split(',').map(Number)
-    const coord = { x, y }
+    const [cx, cy] = key.split(',').map(Number)
 
     // Check if ANY rotation works here
-    let canFit = false
     for (const rotation of [0, 90, 180, 270] as Rotation[]) {
-      if (isValidPlacement(board, tileMap, { ...instance, rotation }, coord)) {
-        canFit = true
-        break
+      const offsets = [{ dx: 0, dy: 0 }]
+      if (def.linkedTiles) {
+        for (const lt of def.linkedTiles) {
+          offsets.push(getRotatedOffset(lt.dx, lt.dy, rotation))
+        }
       }
-    }
 
-    if (canFit) {
-      valid.push(coord)
+      for (const off of offsets) {
+        const testCoord = { x: cx - off.dx, y: cy - off.dy }
+        if (isValidPlacement(board, tileMap, { ...instance, rotation }, testCoord)) {
+          valid.add(coordKey(testCoord))
+        }
+      }
     }
   }
 
-  return valid
+  return Array.from(valid).map(k => {
+    const [x, y] = k.split(',').map(Number)
+    return { x, y }
+  })
 }
 
 // ─── River placement helpers ────────────────────────────────────────────────
@@ -358,9 +417,51 @@ export function computeRiverTurn(entryDir: Direction, exitDir: Direction): River
 }
 
 /**
- * For a river tile placed at `coord` with the given rotation,
- * find the entry direction (the side connecting to an existing river neighbor)
- * and the exit direction (the open river end).
+ * Find the root tile info for a given coordinate. 
+ * If the tile at coord is a linked sub-tile, finds its root.
+ */
+export function getRootTileInfo(
+  board: Board,
+  tileMap: Record<string, TileDefinition>,
+  coord: Coordinate
+): { def: TileDefinition; coordinate: Coordinate; rotation: Rotation } | null {
+  const tile = board.tiles[coordKey(coord)]
+  if (!tile) return null
+  const def = tileMap[tile.definitionId]
+  if (!def) return null
+
+  // If it has linkedTiles, it's likely the root
+  if (def.linkedTiles && def.linkedTiles.length > 0) {
+    return { def, coordinate: tile.coordinate, rotation: tile.rotation }
+  }
+
+  // Otherwise, search neighbors to see if we are a linked tile of someone else.
+  // We only need to check immediate neighbors as compound tiles are contiguous.
+  const neighbors = [
+    { dx: 1, dy: 0 }, { dx: -1, dy: 0 }, { dx: 0, dy: 1 }, { dx: 0, dy: -1 }
+  ]
+  for (const d of neighbors) {
+    const nx = coord.x + d.dx, ny = coord.y + d.dy
+    const neighbor = board.tiles[coordKey({ x: nx, y: ny })]
+    if (!neighbor) continue
+    const neighborDef = tileMap[neighbor.definitionId]
+    if (neighborDef?.linkedTiles) {
+      for (const lt of neighborDef.linkedTiles) {
+        const off = getRotatedOffset(lt.dx, lt.dy, neighbor.rotation)
+        if (nx + off.dx === coord.x && ny + off.dy === coord.y) {
+          return { def: neighborDef, coordinate: neighbor.coordinate, rotation: neighbor.rotation }
+        }
+      }
+    }
+  }
+
+  // Fallback: it's a single tile
+  return { def, coordinate: tile.coordinate, rotation: tile.rotation }
+}
+
+/**
+ * For a river tile (possibly compound) placed at `coord` with the given rotation,
+ * find the entry direction (connecting to existing river) and exit direction.
  */
 export function getRiverEntryExit(
   board: Board,
@@ -369,30 +470,56 @@ export function getRiverEntryExit(
   rotation: Rotation,
   coord: Coordinate,
 ): { entry: Direction | null; exit: Direction | null } {
-  const riverEdges = getRiverEdges(def, rotation)
+  // Trace all outwards river edges of the entire compound footprint
+  const footprint = [{ dx: 0, dy: 0, defId: def.id }]
+  if (def.linkedTiles) {
+    for (const lt of def.linkedTiles) {
+      footprint.push({ ...getRotatedOffset(lt.dx, lt.dy, rotation), defId: lt.definitionId })
+    }
+  }
+
   let entry: Direction | null = null
   let exit: Direction | null = null
-  for (const dir of riverEdges) {
-    const neighborCoord = { x: coord.x + DIRECTION_DELTA[dir].dx, y: coord.y + DIRECTION_DELTA[dir].dy }
-    const neighborTile = board.tiles[coordKey(neighborCoord)]
-    if (neighborTile) {
-      const neighborDef = tileMap[neighborTile.definitionId]
-      if (neighborDef) {
-        const neighborFeatures = getEdgeFeatures(neighborDef, neighborTile.rotation, OPPOSITE_DIRECTION[dir])
-        if (neighborFeatures[1] === 'RIVER') {
-          entry = dir
-          continue
+
+  for (const part of footprint) {
+    const partDef = tileMap[part.defId]
+    if (!partDef) continue
+    const partCoord = { x: coord.x + part.dx, y: coord.y + part.dy }
+    const riverEdges = getRiverEdges(partDef, rotation)
+
+    for (const dir of riverEdges) {
+      const nx = partCoord.x + DIRECTION_DELTA[dir].dx
+      const ny = partCoord.y + DIRECTION_DELTA[dir].dy
+      const isInternal = footprint.some(f => (coord.x + f.dx) === nx && (coord.y + f.dy) === ny)
+      if (isInternal) continue
+
+      const neighborKey = coordKey({ x: nx, y: ny })
+      const neighborTile = board.tiles[neighborKey]
+      let connectsToRiver = false
+
+      if (neighborTile) {
+        const neighborDef = tileMap[neighborTile.definitionId]
+        if (neighborDef) {
+          const neighborFeatures = getEdgeFeatures(neighborDef, neighborTile.rotation, OPPOSITE_DIRECTION[dir])
+          if (neighborFeatures[1] === 'RIVER') {
+            connectsToRiver = true
+          }
         }
       }
+
+      if (connectsToRiver) {
+        entry = dir // connects to existing river
+      } else {
+        exit = dir // open end, will connect to future tiles
+      }
     }
-    exit = dir
   }
   return { entry, exit }
 }
 
 /**
- * Check if a river tile placement would create a forbidden U-turn.
- * Returns true if the placement is ALLOWED (no U-turn violation).
+ * Check if a river tile placement would create a forbidden U-turn or loop.
+ * Returns true if the placement is ALLOWED.
  */
 export function isRiverPlacementAllowed(
   board: Board,
@@ -401,18 +528,92 @@ export function isRiverPlacementAllowed(
   coord: Coordinate,
   lastTurnDirection: RiverTurnDirection | null,
 ): boolean {
-  // If no previous turn recorded, any placement is fine
-  if (lastTurnDirection === null) return true
-
   const def = tileMap[instance.definitionId]
   if (!def) return true
 
-  const { entry, exit } = getRiverEntryExit(board, tileMap, def, instance.rotation, coord)
-  if (!entry || !exit) return true // source/lake tiles, or can't determine — allow
+  // Trace all outwards river edges of the entire compound footprint
+  const footprint = [{ dx: 0, dy: 0, defId: def.id }]
+  if (def.linkedTiles) {
+    for (const lt of def.linkedTiles) {
+      footprint.push({ ...getRotatedOffset(lt.dx, lt.dy, instance.rotation), defId: lt.definitionId })
+    }
+  }
 
-  const turn = computeRiverTurn(entry, exit)
-  // No consecutive same-direction curves (U-turn)
-  if (turn !== 'STRAIGHT' && turn === lastTurnDirection) return false
+  let externalRiverEdgeCount = 0
+  let entries: { dir: Direction; partCoord: Coordinate }[] = []
+  let exits: { dir: Direction; partCoord: Coordinate }[] = []
+
+  for (const part of footprint) {
+    const partDef = tileMap[part.defId]
+    if (!partDef) continue
+    const partCoord = { x: coord.x + part.dx, y: coord.y + part.dy }
+    const riverEdges = getRiverEdges(partDef, instance.rotation)
+
+    for (const dir of riverEdges) {
+      const nx = partCoord.x + DIRECTION_DELTA[dir].dx
+      const ny = partCoord.y + DIRECTION_DELTA[dir].dy
+      const isInternal = footprint.some(f => (coord.x + f.dx) === nx && (coord.y + f.dy) === ny)
+      if (isInternal) continue
+
+      externalRiverEdgeCount++
+      const neighborKey = coordKey({ x: nx, y: ny })
+      const neighborTile = board.tiles[neighborKey]
+      let connectsToRiver = false
+
+      if (neighborTile) {
+        const neighborDef = tileMap[neighborTile.definitionId]
+        if (neighborDef) {
+          const neighborFeatures = getEdgeFeatures(neighborDef, neighborTile.rotation, OPPOSITE_DIRECTION[dir])
+          if (neighborFeatures[1] === 'RIVER') {
+            connectsToRiver = true
+          }
+        }
+      }
+
+      if (connectsToRiver) {
+        entries.push({ dir, partCoord })
+      } else {
+        exits.push({ dir, partCoord })
+      }
+    }
+  }
+
+  if (entries.length === 0) return true // Source/isolated, allow placement
+  
+  if (exits.length === 0) {
+    // No open ends remaining. This is only allowed for LAKES (exactly 1 external edge).
+    // If it has 2+ edges but no exits, it's closing a loop.
+    return externalRiverEdgeCount === 1
+  }
+
+  // Loop closure: if it connects to the river at more than one point, it's a loop.
+  if (entries.length > 1) return false
+
+  const exit = exits[0] // Standard tiles have 1 exit. 
+
+  for (const entry of entries) {
+    const turn = computeRiverTurn(entry.dir, exit.dir)
+    if (turn === 'STRAIGHT') continue
+
+    // Dynamic neighbor turn detection
+    let neighborTurn: RiverTurnDirection | null = null
+    const neighborX = entry.partCoord.x + DIRECTION_DELTA[entry.dir].dx
+    const neighborY = entry.partCoord.y + DIRECTION_DELTA[entry.dir].dy
+    
+    const rootInfo = getRootTileInfo(board, tileMap, { x: neighborX, y: neighborY })
+    if (rootInfo) {
+      const { entry: nEntry, exit: nExit } = getRiverEntryExit(board, tileMap, rootInfo.def, rootInfo.rotation, rootInfo.coordinate)
+      if (nEntry && nExit) {
+        neighborTurn = computeRiverTurn(nEntry, nExit)
+      } else if (rootInfo.def.startingTile) {
+        neighborTurn = 'STRAIGHT'
+      }
+    }
+
+    const previousTurn = neighborTurn !== null ? neighborTurn : lastTurnDirection
+    if (turn === previousTurn) return false
+  }
+
   return true
 }
 
@@ -425,20 +626,53 @@ export function findRiverOpenEnds(
   tileMap: Record<string, TileDefinition>,
 ): Set<string> {
   const openEnds = new Set<string>()
+
+  // Build a set of all occupied physical cells
+  const occupied = new Set<string>()
   for (const key of Object.keys(board.tiles)) {
     const tile = board.tiles[key]
     const def = tileMap[tile.definitionId]
     if (!def) continue
-    const riverEdges = getRiverEdges(def, tile.rotation)
-    for (const dir of riverEdges) {
-      const nx = tile.coordinate.x + DIRECTION_DELTA[dir].dx
-      const ny = tile.coordinate.y + DIRECTION_DELTA[dir].dy
-      const neighborKey = coordKey({ x: nx, y: ny })
-      if (!board.tiles[neighborKey]) {
-        openEnds.add(neighborKey)
+    occupied.add(key)
+    if (def.linkedTiles) {
+      for (const lt of def.linkedTiles) {
+        const off = getRotatedOffset(lt.dx, lt.dy, tile.rotation)
+        occupied.add(coordKey({ x: tile.coordinate.x + off.dx, y: tile.coordinate.y + off.dy }))
       }
     }
   }
+
+  for (const key of Object.keys(board.tiles)) {
+    const tile = board.tiles[key]
+    const def = tileMap[tile.definitionId]
+    if (!def) continue
+
+    // Check all parts of the footprint for river edges
+    const parts = [{ dx: 0, dy: 0, defId: def.id }]
+    if (def.linkedTiles) {
+      for (const lt of def.linkedTiles) {
+        parts.push({ ...getRotatedOffset(lt.dx, lt.dy, tile.rotation), defId: lt.definitionId })
+      }
+    }
+
+    for (const part of parts) {
+      const partDef = tileMap[part.defId]
+      if (!partDef) continue
+      const riverEdges = getRiverEdges(partDef, tile.rotation)
+      const partX = tile.coordinate.x + part.dx
+      const partY = tile.coordinate.y + part.dy
+
+      for (const dir of riverEdges) {
+        const nx = partX + DIRECTION_DELTA[dir].dx
+        const ny = partY + DIRECTION_DELTA[dir].dy
+        const neighborKey = coordKey({ x: nx, y: ny })
+        if (!occupied.has(neighborKey)) {
+          openEnds.add(neighborKey)
+        }
+      }
+    }
+  }
+
   return openEnds
 }
 
@@ -456,22 +690,53 @@ export function getAllPotentialRiverPlacements(
   // Only consider cells at the open end of the river
   const openEnds = findRiverOpenEnds(board, tileMap)
 
-  const valid: Coordinate[] = []
+  const valid = new Set<string>()
+  const def = tileMap[instance.definitionId]
+  if (!def) return []
+
+  const isCompound = !!(def.linkedTiles && def.linkedTiles.length > 0)
+  if (isCompound) {
+    console.log(`[RIVER_PLACEMENT] Compound tile ${instance.definitionId}, openEnds:`, Array.from(openEnds))
+  }
+
   for (const key of openEnds) {
-    const [x, y] = key.split(',').map(Number)
-    const coord = { x, y }
-    let canFit = false
+    const [cx, cy] = key.split(',').map(Number)
+
     for (const rotation of [0, 90, 180, 270] as Rotation[]) {
       const inst = { ...instance, rotation }
-      if (isValidPlacement(board, tileMap, inst, coord) &&
-          isRiverPlacementAllowed(board, tileMap, inst, coord, lastTurnDirection)) {
-        canFit = true
-        break
+      const offsets = [{ dx: 0, dy: 0 }]
+      if (def.linkedTiles) {
+        for (const lt of def.linkedTiles) {
+          offsets.push(getRotatedOffset(lt.dx, lt.dy, rotation))
+        }
+      }
+
+      for (const off of offsets) {
+        const testCoord = { x: cx - off.dx, y: cy - off.dy }
+        const validPlacement = isValidPlacement(board, tileMap, inst, testCoord)
+        const riverAllowed = isRiverPlacementAllowed(board, tileMap, inst, testCoord, lastTurnDirection)
+
+        if (isCompound) {
+          console.log(`[RIVER_PLACEMENT] openEnd=(${cx},${cy}) rot=${rotation} off=(${off.dx},${off.dy}) root@(${testCoord.x},${testCoord.y}): valid=${validPlacement} riverAllowed=${riverAllowed}`)
+        }
+
+        if (validPlacement && riverAllowed) {
+          valid.add(coordKey(testCoord))
+        }
       }
     }
-    if (canFit) valid.push(coord)
   }
-  return valid
+
+  const result = Array.from(valid).map(k => {
+    const [x, y] = k.split(',').map(Number)
+    return { x, y }
+  })
+
+  if (isCompound) {
+    console.log(`[RIVER_PLACEMENT] Final valid placements for ${instance.definitionId}:`, result)
+  }
+
+  return result
 }
 
 /**
@@ -485,14 +750,33 @@ export function getValidRiverRotations(
   coord: Coordinate,
   lastTurnDirection: RiverTurnDirection | null,
 ): Rotation[] {
-  // Only allow rotations at the open end of the river
   const openEnds = findRiverOpenEnds(board, tileMap)
-  if (!openEnds.has(coordKey(coord))) return []
+  const def = tileMap[instance.definitionId]
 
   const rotations: Rotation[] = [0, 90, 180, 270]
   return rotations.filter(r => {
     const inst = { ...instance, rotation: r }
+
+    // Check if the tile or any of its footprint parts lie on an open river end
+    let isAtOpenEnd = false
+    const offsets = [{ dx: 0, dy: 0 }]
+    if (def?.linkedTiles) {
+      for (const lt of def.linkedTiles) {
+        offsets.push(getRotatedOffset(lt.dx, lt.dy, r))
+      }
+    }
+
+    for (const off of offsets) {
+      const footprintCoord = { x: coord.x + off.dx, y: coord.y + off.dy }
+      if (openEnds.has(coordKey(footprintCoord))) {
+        isAtOpenEnd = true
+        break
+      }
+    }
+
+    if (!isAtOpenEnd) return false
+
     return isValidPlacement(board, tileMap, inst, coord) &&
-           isRiverPlacementAllowed(board, tileMap, inst, coord, lastTurnDirection)
+      isRiverPlacementAllowed(board, tileMap, inst, coord, lastTurnDirection)
   })
 }

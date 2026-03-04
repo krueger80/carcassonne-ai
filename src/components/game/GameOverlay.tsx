@@ -48,6 +48,9 @@ export function GameOverlay() {
         dragonPlaceTargets,
         placeDragonOnHoard,
         resolveFarmerReturn,
+        playDoubleLake,
+        flipTile,
+        validPlacements,
     } = useGameStore()
 
     const { selectedMeepleType, setSelectedMeepleType, boardScale, boardOffset } = useUIStore()
@@ -93,7 +96,7 @@ export function GameOverlay() {
                 }
             })
         }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
+        // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [gameState?.turnPhase, gameState?.currentTile?.definitionId, gameState?.currentTile?.rotation])
 
     // Auto-draw if in DRAW_TILE phase (handles refresh/persistence)
@@ -157,6 +160,7 @@ export function GameOverlay() {
         fairyPosition?: { coordinate: { x: number; y: number }; segmentId: string } | null;
         dragonHeldBy?: string | null;
         dragonMovement?: { movesRemaining: number; nextPhase: string } | null;
+        doubleLakeAvailable?: boolean;
     } | undefined
 
     const pendingFarmerReturns = tbData?.pendingFarmerReturns as { playerId: string; pigNodeKey: string; fieldFeatureId: string; points: number }[] | undefined
@@ -214,10 +218,12 @@ export function GameOverlay() {
         tileDefinition: currentTile ? gameState.staticTileMap[currentTile.definitionId] : undefined,
         actions: {
             rotate: rotateTentativeTile,
+            flip: flipTile,
             confirm: confirmTilePlacement,
             cancel: cancelTilePlacement,
             skip: skipMeeple,
             undo: undoTilePlacement,
+            discardTile: drawTile,
             selectMeeple: (type: any) => {
                 if (useModernTerminology && (type === 'BUILDER' || type === 'PIG')) {
                     const currentSecondary = useGameStore.getState().tentativeSecondaryMeepleType
@@ -248,6 +254,7 @@ export function GameOverlay() {
             cycleDragonFacing: cycleDragonFacing,
             confirmDragonOrientation: confirmDragonOrientation,
             placeDragonOnHoard: placeDragonOnHoard,
+            playDoubleLake: dfData?.doubleLakeAvailable ? playDoubleLake : undefined,
         },
         selectedMeepleType: selectedMeepleType,
         tentativeMeepleType: tentativeMeepleType,
@@ -258,6 +265,8 @@ export function GameOverlay() {
         dragonPlaceTargets,
         dragonMovesRemaining: dfData?.dragonMovement?.movesRemaining,
         canUndo: turnPhase === 'DRAGON_ORIENT' && !dfData?.dragonMovement && !!gameState.lastPlacedCoord,
+        staticTileMap: gameState.staticTileMap,
+        hasValidPlacements: validPlacements.length > 0,
     }
 
     // ── Floating buttons near the active tile ──────────────────────────────────
@@ -277,14 +286,14 @@ export function GameOverlay() {
         const maxX = board.maxX + BOARD_PADDING
         const minY = board.minY - BOARD_PADDING
         const maxY = board.maxY + BOARD_PADDING
-        const boardWidth  = (maxX - minX + 1) * CELL_SIZE
+        const boardWidth = (maxX - minX + 1) * CELL_SIZE
         const boardHeight = (maxY - minY + 1) * CELL_SIZE
         const { x: cx, y: cy } = floatingCoord
         // Bottom-center of the tile in screen coords
-        const dx = (cx - minX + 0.5) * CELL_SIZE - boardWidth  / 2
-        const dy = (cy - minY + 1)   * CELL_SIZE - boardHeight / 2
+        const dx = (cx - minX + 0.5) * CELL_SIZE - boardWidth / 2
+        const dy = (cy - minY + 1) * CELL_SIZE - boardHeight / 2
         return {
-            x: window.innerWidth  / 2 + boardOffset.x + dx * boardScale,
+            x: window.innerWidth / 2 + boardOffset.x + dx * boardScale,
             y: window.innerHeight / 2 + boardOffset.y + dy * boardScale + 8,
         }
     }, [floatingCoord, gameState, boardOffset, boardScale])
@@ -316,11 +325,13 @@ export function GameOverlay() {
                         }}
                     >
                         <motion.div
-                            animate={{ boxShadow: [
-                                `0 0 15px ${currentPlayer.color}60, 0 4px 20px rgba(0,0,0,0.5)`,
-                                `0 0 35px ${currentPlayer.color}90, 0 4px 20px rgba(0,0,0,0.5)`,
-                                `0 0 15px ${currentPlayer.color}60, 0 4px 20px rgba(0,0,0,0.5)`,
-                            ]}}
+                            animate={{
+                                boxShadow: [
+                                    `0 0 15px ${currentPlayer.color}60, 0 4px 20px rgba(0,0,0,0.5)`,
+                                    `0 0 35px ${currentPlayer.color}90, 0 4px 20px rgba(0,0,0,0.5)`,
+                                    `0 0 15px ${currentPlayer.color}60, 0 4px 20px rgba(0,0,0,0.5)`,
+                                ]
+                            }}
                             transition={{ duration: 2, repeat: Infinity, ease: 'easeInOut' }}
                             style={{
                                 background: 'rgba(20, 25, 35, 0.92)',

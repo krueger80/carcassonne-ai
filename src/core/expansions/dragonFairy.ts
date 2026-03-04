@@ -33,6 +33,8 @@ export interface DragonFairyState {
     movesRemaining: number  // 2, 1, or 0
     nextPhase: 'PLACE_TILE' | 'SCORE' // Where to go after movement ends
   } | null
+  /** Whether the Double Lake tile is available to be played (if River is active) */
+  doubleLakeAvailable?: boolean
 }
 
 export function createInitialDragonFairyState(): DragonFairyState {
@@ -44,6 +46,7 @@ export function createInitialDragonFairyState(): DragonFairyState {
     canMoveFairy: false,
     dragonHeldBy: null,
     dragonMovement: null,
+    doubleLakeAvailable: false,
   }
 }
 

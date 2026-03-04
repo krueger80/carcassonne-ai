@@ -6,11 +6,10 @@
  */
 
 import type { GameState, ScoreEvent } from '../types/game.ts'
-import type { Coordinate, MeeplePlacement } from '../types/board.ts'
+import { type Coordinate, coordKey, emptyBoard, keyToCoord, type PlacedTile, type MeeplePlacement } from '../types/board.ts'
 import type { TileDefinition, TileInstance, Rotation, Direction } from '../types/tile.ts'
 import { type Player, type MeepleType, availableMeepleCount } from '../types/player.ts'
-import { type ExpansionSelection, getVersionedExpansionId } from '../types/setup.ts'
-import { coordKey, emptyBoard, keyToCoord } from '../types/board.ts'
+import { type ExpansionSelection } from '../types/setup.ts'
 import { emptyUnionFindState } from '../types/feature.ts'
 import { createPlayer, PLAYER_COLORS } from '../types/player.ts'
 import { getFallbackBaseTiles } from '../../services/tileRegistry.ts'
@@ -29,16 +28,18 @@ import {
   isRiverPlacementAllowed,
   getRiverEntryExit,
   computeRiverTurn,
+  getRotatedOffset,
   type RiverTurnDirection,
 } from './TilePlacement.ts'
 
-// Re-export specifically for GameStore usage
 export {
   isValidPlacement,
   getAllPotentialPlacements,
   getAllPotentialRiverPlacements,
   canPlaceMeeple,
   canPlaceBuilderOrPig,
+  findRoot,
+  getFeature,
 }
 
 import { addTileToUnionFind, updateFeatureMeeples, findRoot, getFeature } from './FeatureDetector.ts'
@@ -157,7 +158,7 @@ export function initGame(config: GameConfig): GameState {
     ...(hasRiver ? ['river'] : []),
   ]
 
-  let allExtraTiles: TileDefinition[] = []
+  let allHardcodedExtraTiles: TileDefinition[] = []
   let activeRules = scoringRules
 
   if (expansionSelections) {
@@ -167,20 +168,8 @@ export function initGame(config: GameConfig): GameState {
 
     for (const sel of expansionSelections) {
       const expConfig = buildExpansionConfig(sel)
-      // Use DB tiles (extraTileDefinitions) when available, otherwise hardcoded
-      const versionedId = expConfig.id === sel.id
-        ? getVersionedExpansionId(sel)
-        : expConfig.id
-      const hasDbTiles = extraTileDefinitions.some(t => t.expansionId === versionedId)
-      if (!hasDbTiles) {
-        allExtraTiles = [...allExtraTiles, ...expConfig.tiles]
-      }
+      allHardcodedExtraTiles = [...allHardcodedExtraTiles, ...expConfig.tiles]
     }
-    // Also include DB extra tiles that matched a versioned expansion ID
-    allExtraTiles = [
-      ...allExtraTiles,
-      ...extraTileDefinitions.filter(t => t.expansionId && t.expansionId !== 'base-c2' && t.expansionId !== 'base-c31'),
-    ]
 
     if (icSel) {
       activeRules = buildExpansionConfig(icSel).scoringRules
@@ -191,16 +180,11 @@ export function initGame(config: GameConfig): GameState {
     }
   } else {
     // ── Legacy path: expansion ID string array ───────────────────────────────
-    allExtraTiles = extraTileDefinitions.filter(
-      t => !t.expansionId || expansions.includes(t.expansionId)
-    )
-
     if (hasIc) {
       const icId = expansions.includes('inns-cathedrals-c31') ? 'inns-cathedrals-c31' : 'inns-cathedrals-c3'
       const ic = getExpansionConfig(icId)
       if (ic) {
-        const hasDbIcTiles = allExtraTiles.some(t => t.expansionId === icId)
-        if (!hasDbIcTiles) allExtraTiles = [...allExtraTiles, ...ic.tiles]
+        allHardcodedExtraTiles = [...allHardcodedExtraTiles, ...ic.tiles]
         activeRules = ic.scoringRules
       }
     }
@@ -209,8 +193,7 @@ export function initGame(config: GameConfig): GameState {
       const tbId = expansions.includes('traders-builders-c31') ? 'traders-builders-c31' : 'traders-builders-c2'
       const tb = getExpansionConfig(tbId)
       if (tb) {
-        const hasDbTbTiles = allExtraTiles.some(t => t.expansionId === tbId)
-        if (!hasDbTbTiles) allExtraTiles = [...allExtraTiles, ...tb.tiles]
+        allHardcodedExtraTiles = [...allHardcodedExtraTiles, ...tb.tiles]
         activeRules = hasIc ? buildCombinedIcTbRules(activeRules) : tb.scoringRules
       }
     }
@@ -219,11 +202,58 @@ export function initGame(config: GameConfig): GameState {
       const dfId = 'dragon-fairy-c31'
       const df = getExpansionConfig(dfId)
       if (df) {
-        const hasDbDfTiles = allExtraTiles.some(t => t.expansionId === dfId)
-        if (!hasDbDfTiles) allExtraTiles = [...allExtraTiles, ...df.tiles]
+        allHardcodedExtraTiles = [...allHardcodedExtraTiles, ...df.tiles]
+      }
+    }
+
+    if (hasRiver) {
+      const river = getExpansionConfig('river-c3')
+      if (river) {
+        allHardcodedExtraTiles = [...allHardcodedExtraTiles, ...river.tiles]
       }
     }
   }
+
+  // Combine hardcoded and DB tiles. Because we deduplicate by ID later (tileMap),
+  // placing DB tiles after hardcoded tiles ensures DB takes precedence while
+  // preserving any hardcoded tiles (e.g., new River variants) that aren't in the DB.
+
+  const mergedExtraTiles = allHardcodedExtraTiles.map(hcTile => {
+    const dbTile = extraTileDefinitions.find(t => t.id === hcTile.id)
+    if (dbTile) {
+      // Merge DB tile over hardcoded tile, BUT preserve new compound/river logic if DB tile lacks them.
+      // If the hardcoded tile has RIVER segments but the DB tile doesn't, keep hardcoded segments
+      // (DB may have stale data from before river support was added).
+      const hcHasRiver = hcTile.segments?.some(s => s.type === 'RIVER')
+      const dbHasRiver = dbTile.segments?.some(s => s.type === 'RIVER')
+      const useHcSegments = hcHasRiver && !dbHasRiver
+
+      return {
+        ...hcTile,
+        ...dbTile,
+        imageConfig: dbTile.imageConfig ?? hcTile.imageConfig,
+        linkedTiles: dbTile.linkedTiles ?? hcTile.linkedTiles,
+        flipSideDefinitionId: dbTile.flipSideDefinitionId ?? hcTile.flipSideDefinitionId,
+        isDragonHoard: dbTile.isDragonHoard ?? hcTile.isDragonHoard,
+        // Preserve hardcoded segments/edges when DB is missing RIVER data
+        ...(useHcSegments && {
+          segments: hcTile.segments,
+          edgePositionToSegment: hcTile.edgePositionToSegment,
+        }),
+      } as TileDefinition
+    }
+    return hcTile
+  })
+
+  // Include DB tiles that are completely new (no hardcoded base)
+  const additionalDbTiles = extraTileDefinitions.filter(t =>
+    t.expansionId && t.expansionId !== 'base-c2' && t.expansionId !== 'base-c31' && !allHardcodedExtraTiles.some(hc => hc.id === t.id)
+  )
+
+  const allExtraTiles: TileDefinition[] = [
+    ...mergedExtraTiles,
+    ...additionalDbTiles,
+  ]
 
   // Compute a serialisable key for the active scoring rules so they survive
   // JSON round-trips (Zustand persist) and can be resolved at runtime.
@@ -240,8 +270,18 @@ export function initGame(config: GameConfig): GameState {
   )
 
   // ── Detect tiles that have river segments (from any expansion) ──
-  const hasRiverSegment = (d: TileDefinition) =>
-    d.segments.some(s => s.type === 'RIVER')
+  const hasRiverSegment = (d: TileDefinition) => {
+    if (d.segments.some(s => s.type === 'RIVER')) return true
+    if (d.linkedTiles) {
+      // Find linked parts dynamically if available
+      for (const lt of d.linkedTiles) {
+        // At this point we can't search allExpTiles directly if it's not defined, but we know linked tiles are often defined.
+        // Let's use a simpler heuristic for Dragon & Fairy specifically or try to find it.
+        if (lt.definitionId === 'df31_B_front_top' || lt.definitionId === 'df31_A_left') return true
+      }
+    }
+    return false
+  }
 
   // When river is active: pull river tiles from ALL expansions into the river bag
   // When river is NOT active: exclude river tiles entirely (they shouldn't appear)
@@ -256,16 +296,38 @@ export function initGame(config: GameConfig): GameState {
   // Build main bag (without river tiles when river is active)
   const { bag, startingTile: baseStartingTile } = createTileBag(nonRiverDefs, [], debugPrioritizeExpansions)
 
-  // ── River bag: source as starting tile, lakes at bottom, rest shuffled ─────
   let riverBag: TileInstance[] = []
   let effectiveStartingTile = baseStartingTile
 
+  // Optional: keep track of whether we set aside the double lake for the UI button
+  // We'll set this to false because the Double Lake will instead be drawn from the bottom of the river bag.
+  let doubleLakeAvailable = false
+
   if (hasRiver && riverDefs.length > 0) {
-    const riverSource = riverDefs.find(d => d.startingTile)
+    let riverSource = riverDefs.find(d => d.startingTile)
+
+    // Dragon & Fairy river rules
+    if (hasDf) {
+      const dfSource = riverDefs.find(d => d.id === 'df31_A_right')
+      if (dfSource) riverSource = dfSource
+      // We do NOT set doubleLakeAvailable = true here. We put it in the bag.
+      // doubleLakeAvailable = true 
+    }
+
     // Lake tiles: river enters from only one edge (endpoint tiles — I and L)
     const isLakeTile = (d: TileDefinition) => {
-      if (!hasRiverSegment(d) || d.startingTile) return false
-      // A lake tile has exactly 1 edge with a river (river on only one side)
+      // Exclude back sides
+      if (d.startingTile || d.id === 'df31_B_back_bottom') return false
+
+      if (hasDf) {
+        // If playing D&F, ONLY the Double Lake ends the river. 
+        // The original single lake from River C3 is just a normal middle tile.
+        return d.id === 'df31_B_front_bottom'
+      }
+
+      // If no D&F: check if exactly 1 river edge
+      if (!hasRiverSegment(d)) return false
+
       const edgeMap = d.edgePositionToSegment
       const dirs = ['NORTH', 'EAST', 'SOUTH', 'WEST'] as const
       let riverEdgeCount = 0
@@ -278,7 +340,9 @@ export function initGame(config: GameConfig): GameState {
     }
 
     const lakes = riverDefs.filter(d => isLakeTile(d) && !d.startingTile)
-    const middleTiles = riverDefs.filter(d => !d.startingTile && !isLakeTile(d))
+    // The middle tiles are all river tiles that are NEITHER starting NOR lake tiles
+    // Exclude back side explicitly.
+    const middleTiles = riverDefs.filter(d => !d.startingTile && !isLakeTile(d) && d.id !== 'df31_B_back_bottom')
 
     // Shuffle middle tiles
     const middleInstances: TileInstance[] = []
@@ -289,7 +353,7 @@ export function initGame(config: GameConfig): GameState {
     }
     for (let i = middleInstances.length - 1; i > 0; i--) {
       const j = Math.floor(Math.random() * (i + 1))
-      ;[middleInstances[i], middleInstances[j]] = [middleInstances[j], middleInstances[i]]
+        ;[middleInstances[i], middleInstances[j]] = [middleInstances[j], middleInstances[i]]
     }
 
     // Lake instances go at the end
@@ -302,7 +366,7 @@ export function initGame(config: GameConfig): GameState {
     // Shuffle lakes among themselves (if multiple) then append
     for (let i = lakeInstances.length - 1; i > 0; i--) {
       const j = Math.floor(Math.random() * (i + 1))
-      ;[lakeInstances[i], lakeInstances[j]] = [lakeInstances[j], lakeInstances[i]]
+        ;[lakeInstances[i], lakeInstances[j]] = [lakeInstances[j], lakeInstances[i]]
     }
 
     riverBag = [...middleInstances, ...lakeInstances]
@@ -316,16 +380,37 @@ export function initGame(config: GameConfig): GameState {
   }
 
   const board = emptyBoard()
-  board.tiles['0,0'] = {
-    coordinate: { x: 0, y: 0 },
-    definitionId: effectiveStartingTile.definitionId,
-    rotation: effectiveStartingTile.rotation,
-    meeples: {},
-  }
+  const startingDef = tileMap[effectiveStartingTile.definitionId]
+  const startingRotation = effectiveStartingTile.rotation
 
-  // Initialize union-find with the starting tile's segments
-  const ufState = emptyUnionFindState()
-  const { state: initialUfState } = addTileToUnionFind(ufState, board, tileMap, board.tiles['0,0'])
+  const startingParts: { coord: Coordinate; defId: string }[] = [
+    { coord: { x: 0, y: 0 }, defId: startingDef.id },
+    ...(startingDef.linkedTiles || []).map(lt => {
+      const offset = getRotatedOffset(lt.dx, lt.dy, startingRotation)
+      return {
+        coord: { x: offset.dx, y: offset.dy },
+        defId: lt.definitionId
+      }
+    })
+  ]
+
+  let ufState = emptyUnionFindState()
+  for (const part of startingParts) {
+    const placedPart: PlacedTile = {
+      coordinate: part.coord,
+      definitionId: part.defId,
+      rotation: startingRotation,
+      meeples: {},
+    }
+    board.tiles[coordKey(part.coord)] = placedPart
+    board.minX = Math.min(board.minX, part.coord.x)
+    board.maxX = Math.max(board.maxX, part.coord.x)
+    board.minY = Math.min(board.minY, part.coord.y)
+    board.maxY = Math.max(board.maxY, part.coord.y)
+
+    const { state: newUf } = addTileToUnionFind(ufState, board, tileMap, placedPart)
+    ufState = newUf
+  }
 
   return {
     phase: 'PLAYING',
@@ -338,7 +423,7 @@ export function initGame(config: GameConfig): GameState {
     lastPlacedCoord: null,
     lastPlacedCoordByPlayer: {},
     completedFeatureIds: [],
-    featureUnionFind: initialUfState,
+    featureUnionFind: ufState,
     lastScoreEvents: [],
     boardMeeples: {},
     expansionData: {
@@ -347,7 +432,7 @@ export function initGame(config: GameConfig): GameState {
       expansions: canonicalExpansions,
       ...(hasRiver && riverBag.length > 0 ? { river: { bag: riverBag } } : {}),
       ...(hasTb ? { tradersBuilders: { isBuilderBonusTurn: false, pendingBuilderBonus: false, useModernTerminology: usesC31TbTiles } } : {}),
-      ...(hasDf ? { dragonFairy: createInitialDragonFairyState() } : {}),
+      ...(hasDf ? { dragonFairy: { ...createInitialDragonFairyState(), doubleLakeAvailable } } : {}),
     },
     staticTileMap: tileMap,
 
@@ -431,6 +516,22 @@ export function rotateTile(state: GameState): GameState {
   }
 }
 
+export function flipTile(state: GameState): GameState {
+  if (state.turnPhase !== 'PLACE_TILE' || !state.currentTile) return state
+
+  const def = state.staticTileMap[state.currentTile.definitionId]
+  if (!def || !def.flipSideDefinitionId) return state
+
+  return {
+    ...state,
+    currentTile: {
+      ...state.currentTile,
+      definitionId: def.flipSideDefinitionId,
+      rotation: 0 // Reset rotation on flip
+    }
+  }
+}
+
 export function placeTile(state: GameState, coord: Coordinate): GameState {
   if (state.turnPhase !== 'PLACE_TILE' || !state.currentTile) return state
 
@@ -438,28 +539,56 @@ export function placeTile(state: GameState, coord: Coordinate): GameState {
     return state  // invalid placement — no change
   }
 
-  const placedTile = {
-    coordinate: coord,
-    definitionId: state.currentTile.definitionId,
-    rotation: state.currentTile.rotation,
-    meeples: {},
+  const def = state.staticTileMap[state.currentTile.definitionId]
+  if (!def) return state
+
+  const footprint: { coord: Coordinate, instance: TileInstance }[] = [
+    { coord, instance: state.currentTile }
+  ]
+  if (def.linkedTiles) {
+    for (const link of def.linkedTiles) {
+      const { dx, dy } = getRotatedOffset(link.dx, link.dy, state.currentTile.rotation)
+      footprint.push({
+        coord: { x: coord.x + dx, y: coord.y + dy },
+        instance: { definitionId: link.definitionId, rotation: state.currentTile.rotation }
+      })
+    }
   }
 
-  const newBoard = {
-    ...state.board,
-    tiles: { ...state.board.tiles, [coordKey(coord)]: placedTile },
-    minX: Math.min(state.board.minX, coord.x),
-    maxX: Math.max(state.board.maxX, coord.x),
-    minY: Math.min(state.board.minY, coord.y),
-    maxY: Math.max(state.board.maxY, coord.y),
+  let newBoard = { ...state.board }
+  for (const f of footprint) {
+    const placedTile = {
+      coordinate: f.coord,
+      definitionId: f.instance.definitionId,
+      rotation: f.instance.rotation,
+      meeples: {},
+    }
+    newBoard = {
+      ...newBoard,
+      tiles: { ...newBoard.tiles, [coordKey(f.coord)]: placedTile },
+      minX: Math.min(newBoard.minX, f.coord.x),
+      maxX: Math.max(newBoard.maxX, f.coord.x),
+      minY: Math.min(newBoard.minY, f.coord.y),
+      maxY: Math.max(newBoard.maxY, f.coord.y),
+    }
   }
 
-  const { state: newUfState, completedFeatureIds } = addTileToUnionFind(
-    state.featureUnionFind,
-    newBoard,
-    state.staticTileMap,
-    placedTile,
-  )
+  let newUfState = state.featureUnionFind
+  const allCompletedFeatureIds: string[] = []
+
+  for (const f of footprint) {
+    const placedTile = newBoard.tiles[coordKey(f.coord)]!
+    const result = addTileToUnionFind(
+      newUfState,
+      newBoard,
+      state.staticTileMap,
+      placedTile,
+    )
+    newUfState = result.state
+    allCompletedFeatureIds.push(...result.completedFeatureIds)
+  }
+
+  const completedFeatureIds = [...new Set(allCompletedFeatureIds)]
 
   // ── Builder bonus detection (T&B) ─────────────────────────────────────────
   const tbData = state.expansionData['tradersBuilders'] as
@@ -1368,7 +1497,19 @@ export function getValidPlacements(state: GameState): Coordinate[] {
   const riverData = state.expansionData['river'] as { bag: TileInstance[]; lastTurnDirection?: RiverTurnDirection | null } | undefined
   if (riverData) {
     const tileDef = state.staticTileMap[state.currentTile.definitionId]
-    const isRiver = tileDef?.segments.some(s => s.type === 'RIVER')
+    let isRiver = false
+    if (tileDef) {
+      isRiver = tileDef.segments.some(s => s.type === 'RIVER')
+      if (!isRiver && tileDef.linkedTiles) {
+        for (const lt of tileDef.linkedTiles) {
+          const linkedDef = state.staticTileMap[lt.definitionId]
+          if (linkedDef && linkedDef.segments.some(s => s.type === 'RIVER')) {
+            isRiver = true
+            break
+          }
+        }
+      }
+    }
     if (isRiver) {
       return getAllPotentialRiverPlacements(
         state.board, state.staticTileMap, state.currentTile,
@@ -1384,7 +1525,19 @@ export function getValidTileRotations(state: GameState, coord: Coordinate): Rota
   const riverData = state.expansionData['river'] as { bag: TileInstance[]; lastTurnDirection?: RiverTurnDirection | null } | undefined
   if (riverData) {
     const tileDef = state.staticTileMap[state.currentTile.definitionId]
-    const isRiver = tileDef?.segments.some(s => s.type === 'RIVER')
+    let isRiver = false
+    if (tileDef) {
+      isRiver = tileDef.segments.some(s => s.type === 'RIVER')
+      if (!isRiver && tileDef.linkedTiles) {
+        for (const lt of tileDef.linkedTiles) {
+          const linkedDef = state.staticTileMap[lt.definitionId]
+          if (linkedDef && linkedDef.segments.some(s => s.type === 'RIVER')) {
+            isRiver = true
+            break
+          }
+        }
+      }
+    }
     if (isRiver) {
       return getValidRiverRotations(
         state.board, state.staticTileMap, state.currentTile, coord,
@@ -1404,7 +1557,22 @@ export function getPotentialPlacementsForState(state: GameState): Coordinate[] {
   const riverData = state.expansionData['river'] as { bag: TileInstance[]; lastTurnDirection?: RiverTurnDirection | null } | undefined
   if (riverData) {
     const tileDef = state.staticTileMap[state.currentTile.definitionId]
-    const isRiver = tileDef?.segments.some(s => s.type === 'RIVER')
+
+    // Check if the tile or any of its linked tiles have a RIVER segment
+    let isRiver = false
+    if (tileDef) {
+      isRiver = tileDef.segments.some(s => s.type === 'RIVER')
+      if (!isRiver && tileDef.linkedTiles) {
+        for (const lt of tileDef.linkedTiles) {
+          const linkedDef = state.staticTileMap[lt.definitionId]
+          if (linkedDef && linkedDef.segments.some(s => s.type === 'RIVER')) {
+            isRiver = true
+            break
+          }
+        }
+      }
+    }
+    console.log("getPotentialPlacementsForState: isRiver=", isRiver, "riverData=", riverData ? "exists" : "undefined", "tile=", state.currentTile.definitionId)
     if (isRiver) {
       return getAllPotentialRiverPlacements(
         state.board, state.staticTileMap, state.currentTile,
@@ -1427,7 +1595,19 @@ export function isValidPlacementForState(
   const riverData = state.expansionData['river'] as { bag: TileInstance[]; lastTurnDirection?: RiverTurnDirection | null } | undefined
   if (riverData) {
     const tileDef = state.staticTileMap[instance.definitionId]
-    const isRiver = tileDef?.segments.some(s => s.type === 'RIVER')
+    let isRiver = false
+    if (tileDef) {
+      isRiver = tileDef.segments.some(s => s.type === 'RIVER')
+      if (!isRiver && tileDef.linkedTiles) {
+        for (const lt of tileDef.linkedTiles) {
+          const linkedDef = state.staticTileMap[lt.definitionId]
+          if (linkedDef && linkedDef.segments.some(s => s.type === 'RIVER')) {
+            isRiver = true
+            break
+          }
+        }
+      }
+    }
     if (isRiver) {
       return isRiverPlacementAllowed(
         state.board, state.staticTileMap, instance, coord,

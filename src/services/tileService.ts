@@ -30,6 +30,10 @@ export const tileService = {
             hasDragon: row.config?.hasDragon,
             hasMagicPortal: row.config?.hasMagicPortal,
             adjacencies: row.config?.adjacencies,
+            // Compound / river / flip fields (may be stored in config by upsert)
+            linkedTiles: row.config?.linkedTiles,
+            flipSideDefinitionId: row.config?.flipSideDefinitionId,
+            imageConfig: row.config?.imageConfig,
         }))
     },
 
@@ -84,6 +88,9 @@ function buildPayload(def: TileDefinition) {
             ...(def.hasDragon != null && { hasDragon: def.hasDragon }),
             ...(def.hasMagicPortal != null && { hasMagicPortal: def.hasMagicPortal }),
             ...(def.adjacencies != null && { adjacencies: def.adjacencies }),
+            ...(def.linkedTiles != null && { linkedTiles: def.linkedTiles }),
+            ...(def.flipSideDefinitionId != null && { flipSideDefinitionId: def.flipSideDefinitionId }),
+            ...(def.imageConfig != null && { imageConfig: def.imageConfig }),
         },
     }
 }

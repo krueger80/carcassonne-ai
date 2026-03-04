@@ -31,7 +31,7 @@ describe('Traders & Builders C3.1 Scoring Verification', () => {
         state = {
             ...state,
             turnPhase: 'PLACE_TILE',
-            currentTile: { definitionId: 'tb31_Q', rotation: 0 }
+            currentTile: { definitionId: 'tb31_Q', rotation: 90 }
         }
         state = placeTile(state, { x: 0, y: -1 })
         if (!state.board.tiles[coordKey({ x: 0, y: -1 })]) {
@@ -69,12 +69,10 @@ describe('Traders & Builders C3.1 Scoring Verification', () => {
         // Let's place S at (0, -1) with 0 rotation. Its South is ROAD. 
         // Wait, start tile (0,0) north is CITY. 
         // So S at (0, -1) needs its SOUTH to be CITY.
-        // S rotated 180: Logical North becomes South. Logical North is CITY.
-
         state = {
             ...state,
             turnPhase: 'PLACE_TILE',
-            currentTile: { definitionId: 'tb31_S', rotation: 180 }
+            currentTile: { definitionId: 'tb31_S', rotation: 90 }
         }
         state = placeTile(state, { x: 0, y: -1 })
 

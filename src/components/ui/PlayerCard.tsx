@@ -5,6 +5,7 @@ import { TileSVG } from "../svg/TileSVG";
 import { TileDefinition, Rotation, Direction } from "../../core/types/tile";
 import { Coordinate } from "../../core/types/board";
 import { Button } from "./Button";
+import { getRotatedOffset } from "../../core/engine/TilePlacement";
 
 interface TurnState {
     phase: string;
@@ -15,6 +16,7 @@ interface TurnState {
     tileDefinition?: TileDefinition;
     actions: {
         rotate?: () => void;
+        flip?: () => void;
         confirm?: () => void;
         cancel?: () => void;
         skip?: () => void;
@@ -28,6 +30,8 @@ interface TurnState {
         cycleDragonFacing?: () => void;
         confirmDragonOrientation?: () => void;
         placeDragonOnHoard?: (coord: Coordinate) => void;
+        playDoubleLake?: () => void;
+        discardTile?: () => void;
     };
     selectedMeepleType?: MeepleType;
     tentativeMeepleType?: MeepleType | null;
@@ -38,6 +42,8 @@ interface TurnState {
     dragonPlaceTargets?: Coordinate[];
     dragonMovesRemaining?: number;
     canUndo?: boolean;
+    staticTileMap?: Record<string, TileDefinition>;
+    hasValidPlacements?: boolean;
 }
 
 interface PlayerCardProps {
@@ -227,137 +233,184 @@ export function PlayerCard({ player, isCurrentTurn, isBuilderBonusTurn = false, 
             {(() => {
                 const showTilePreview = isCurrentTurn && turnState?.phase === 'PLACE_TILE' && turnState?.tileDefinition && turnState?.currentTile;
                 return (
-            <div style={{ display: 'flex', gap: isCurrentTurn ? 16 : 4, alignItems: 'center' }}>
+                    <div style={{ display: 'flex', gap: isCurrentTurn ? 16 : 4, alignItems: 'center' }}>
 
-                {/* Left Col: Inventory */}
-                <div style={{ display: 'flex', flexDirection: isCurrentTurn ? 'column' : 'row', gap: isCurrentTurn ? 8 : 2, flex: isCurrentTurn ? 1 : '0 1 auto', flexWrap: 'wrap', alignItems: isCurrentTurn ? 'flex-start' : 'center' }}>
-                    {/* Meeple Row/Grid */}
-                    <div style={{ display: 'flex', gap: isCurrentTurn ? 6 : 2, flexWrap: 'wrap' }}>
-                        {(() => {
-                            const getAdjustedCount = (type: MeepleType) => {
-                                let count = meeples.available[type] || 0;
-                                if (isCurrentTurn && turnState?.interactionState === 'MEEPLE_SELECTED_TENTATIVELY' && turnState.tentativeMeepleType === type) {
-                                    count = Math.max(0, count - 1);
-                                }
-                                if (isCurrentTurn && turnState?.interactionState === 'MEEPLE_SELECTED_TENTATIVELY' && turnState.tentativeSecondaryMeepleType === type) {
-                                    count = Math.max(0, count - 1);
-                                }
-                                return count;
-                            };
+                        {/* Left Col: Inventory */}
+                        <div style={{ display: 'flex', flexDirection: isCurrentTurn ? 'column' : 'row', gap: isCurrentTurn ? 8 : 2, flex: isCurrentTurn ? 1 : '0 1 auto', flexWrap: 'wrap', alignItems: isCurrentTurn ? 'flex-start' : 'center' }}>
+                            {/* Meeple Row/Grid */}
+                            <div style={{ display: 'flex', gap: isCurrentTurn ? 6 : 2, flexWrap: 'wrap' }}>
+                                {(() => {
+                                    const getAdjustedCount = (type: MeepleType) => {
+                                        let count = meeples.available[type] || 0;
+                                        if (isCurrentTurn && turnState?.interactionState === 'MEEPLE_SELECTED_TENTATIVELY' && turnState.tentativeMeepleType === type) {
+                                            count = Math.max(0, count - 1);
+                                        }
+                                        if (isCurrentTurn && turnState?.interactionState === 'MEEPLE_SELECTED_TENTATIVELY' && turnState.tentativeSecondaryMeepleType === type) {
+                                            count = Math.max(0, count - 1);
+                                        }
+                                        return count;
+                                    };
 
-                            return (
-                                <>
-                                    <MeepleIcon
-                                        type="NORMAL"
-                                        count={getAdjustedCount('NORMAL')}
-                                        tooltip={t('meeple.meeple')}
-                                        color={color}
-                                        onClick={isCurrentTurn && isMeeplePhase && turnState?.actions.selectMeeple ? () => turnState.actions.selectMeeple?.('NORMAL') : undefined}
-                                        isSelected={isMeeplePhase && turnState?.selectedMeepleType === 'NORMAL'}
-                                        disabled={!isCurrentTurn || !isMeeplePhase || meeples.available.NORMAL <= 0 || (turnState?.validMeepleTypes && !turnState.validMeepleTypes.includes('NORMAL'))}
-                                        isCompact={!isCurrentTurn}
-                                    />
-                                    {hasInnsCathedrals && (
-                                        <MeepleIcon
-                                            type="BIG"
-                                            count={getAdjustedCount('BIG')}
-                                            tooltip={t('meeple.bigMeeple')}
-                                            color={color}
-                                            onClick={isCurrentTurn && isMeeplePhase && turnState?.actions.selectMeeple ? () => turnState.actions.selectMeeple?.('BIG') : undefined}
-                                            isSelected={isMeeplePhase && turnState?.selectedMeepleType === 'BIG'}
-                                            disabled={!isCurrentTurn || !isMeeplePhase || (meeples.available.BIG ?? 0) <= 0 || (turnState?.validMeepleTypes && !turnState.validMeepleTypes.includes('BIG'))}
-                                            isCompact={!isCurrentTurn}
-                                        />
-                                    )}
-                                    {hasTradersBuilders && (
+                                    return (
                                         <>
                                             <MeepleIcon
-                                                type="BUILDER"
-                                                count={getAdjustedCount('BUILDER')}
-                                                tooltip={t('meeple.builder')}
+                                                type="NORMAL"
+                                                count={getAdjustedCount('NORMAL')}
+                                                tooltip={t('meeple.meeple')}
                                                 color={color}
-                                                onClick={isCurrentTurn && isMeeplePhase && turnState?.actions.selectMeeple ? () => turnState.actions.selectMeeple?.('BUILDER') : undefined}
-                                                isSelected={isMeeplePhase && (turnState?.selectedMeepleType === 'BUILDER' || turnState?.tentativeSecondaryMeepleType === 'BUILDER')}
-                                                disabled={!isCurrentTurn || !isMeeplePhase || (meeples.available.BUILDER ?? 0) <= 0 || (turnState?.validMeepleTypes && !turnState.validMeepleTypes.includes('BUILDER'))}
+                                                onClick={isCurrentTurn && isMeeplePhase && turnState?.actions.selectMeeple ? () => turnState.actions.selectMeeple?.('NORMAL') : undefined}
+                                                isSelected={isMeeplePhase && turnState?.selectedMeepleType === 'NORMAL'}
+                                                disabled={!isCurrentTurn || !isMeeplePhase || meeples.available.NORMAL <= 0 || (turnState?.validMeepleTypes && !turnState.validMeepleTypes.includes('NORMAL'))}
                                                 isCompact={!isCurrentTurn}
                                             />
-                                            <MeepleIcon
-                                                type="PIG"
-                                                count={getAdjustedCount('PIG')}
-                                                tooltip={t('meeple.pig')}
-                                                color={color}
-                                                onClick={isCurrentTurn && isMeeplePhase && turnState?.actions.selectMeeple ? () => turnState.actions.selectMeeple?.('PIG') : undefined}
-                                                isSelected={isMeeplePhase && (turnState?.selectedMeepleType === 'PIG' || turnState?.tentativeSecondaryMeepleType === 'PIG')}
-                                                disabled={!isCurrentTurn || !isMeeplePhase || (meeples.available.PIG ?? 0) <= 0 || (turnState?.validMeepleTypes && !turnState.validMeepleTypes.includes('PIG'))}
-                                                isCompact={!isCurrentTurn}
-                                            />
+                                            {hasInnsCathedrals && (
+                                                <MeepleIcon
+                                                    type="BIG"
+                                                    count={getAdjustedCount('BIG')}
+                                                    tooltip={t('meeple.bigMeeple')}
+                                                    color={color}
+                                                    onClick={isCurrentTurn && isMeeplePhase && turnState?.actions.selectMeeple ? () => turnState.actions.selectMeeple?.('BIG') : undefined}
+                                                    isSelected={isMeeplePhase && turnState?.selectedMeepleType === 'BIG'}
+                                                    disabled={!isCurrentTurn || !isMeeplePhase || (meeples.available.BIG ?? 0) <= 0 || (turnState?.validMeepleTypes && !turnState.validMeepleTypes.includes('BIG'))}
+                                                    isCompact={!isCurrentTurn}
+                                                />
+                                            )}
+                                            {hasTradersBuilders && (
+                                                <>
+                                                    <MeepleIcon
+                                                        type="BUILDER"
+                                                        count={getAdjustedCount('BUILDER')}
+                                                        tooltip={t('meeple.builder')}
+                                                        color={color}
+                                                        onClick={isCurrentTurn && isMeeplePhase && turnState?.actions.selectMeeple ? () => turnState.actions.selectMeeple?.('BUILDER') : undefined}
+                                                        isSelected={isMeeplePhase && (turnState?.selectedMeepleType === 'BUILDER' || turnState?.tentativeSecondaryMeepleType === 'BUILDER')}
+                                                        disabled={!isCurrentTurn || !isMeeplePhase || (meeples.available.BUILDER ?? 0) <= 0 || (turnState?.validMeepleTypes && !turnState.validMeepleTypes.includes('BUILDER'))}
+                                                        isCompact={!isCurrentTurn}
+                                                    />
+                                                    <MeepleIcon
+                                                        type="PIG"
+                                                        count={getAdjustedCount('PIG')}
+                                                        tooltip={t('meeple.pig')}
+                                                        color={color}
+                                                        onClick={isCurrentTurn && isMeeplePhase && turnState?.actions.selectMeeple ? () => turnState.actions.selectMeeple?.('PIG') : undefined}
+                                                        isSelected={isMeeplePhase && (turnState?.selectedMeepleType === 'PIG' || turnState?.tentativeSecondaryMeepleType === 'PIG')}
+                                                        disabled={!isCurrentTurn || !isMeeplePhase || (meeples.available.PIG ?? 0) <= 0 || (turnState?.validMeepleTypes && !turnState.validMeepleTypes.includes('PIG'))}
+                                                        isCompact={!isCurrentTurn}
+                                                    />
+                                                </>
+                                            )}
                                         </>
-                                    )}
-                                </>
+                                    );
+                                })()}
+                                {/* Dragon held by this player */}
+                                {hasDragonHeldBy === player.id && (
+                                    <div style={{
+                                        display: 'flex',
+                                        flexDirection: 'column',
+                                        alignItems: 'center',
+                                        padding: isCurrentTurn ? 4 : 2,
+                                        borderRadius: 6,
+                                        border: `1px solid ${isCurrentTurn && (turnState?.phase === 'DRAGON_ORIENT' || turnState?.phase === 'DRAGON_PLACE') ? '#e74c3c' : '#666'}`,
+                                        background: isCurrentTurn && (turnState?.phase === 'DRAGON_ORIENT' || turnState?.phase === 'DRAGON_PLACE')
+                                            ? 'rgba(231, 76, 60, 0.15)' : 'transparent',
+                                    }} title={t('meeple.dragon')}>
+                                        <div style={{ width: isCurrentTurn ? 24 : 20, height: isCurrentTurn ? 24 : 20 }}>
+                                            <svg width={isCurrentTurn ? 24 : 20} height={isCurrentTurn ? 24 : 20} viewBox="0 0 24 24"
+                                                style={{ filter: 'drop-shadow(0 1px 2px rgba(0,0,0,0.5))' }}>
+                                                <text x="12" y="18" textAnchor="middle" fontSize={isCurrentTurn ? 16 : 14} fill="#e74c3c">
+                                                    🐉
+                                                </text>
+                                            </svg>
+                                        </div>
+                                        {isCurrentTurn && <div style={{ fontSize: 9, color: '#e74c3c', marginTop: 2, fontWeight: 'bold' }}>{t('meeple.dragon')}</div>}
+                                    </div>
+                                )}
+                            </div>
+
+                            {/* Goods Collection (Traders) */}
+                            {hasTradersBuilders && (
+                                <div style={{
+                                    display: 'flex', gap: isCurrentTurn ? 10 : 6,
+                                    paddingTop: isCurrentTurn ? 8 : 0,
+                                    marginTop: isCurrentTurn ? 4 : 0,
+                                    borderTop: isCurrentTurn ? '1px solid rgba(255,255,255,0.1)' : 'none',
+                                    paddingLeft: !isCurrentTurn ? 4 : 0,
+                                    borderLeft: !isCurrentTurn ? '1px solid rgba(255,255,255,0.1)' : 'none',
+                                }}>
+                                    <GoodIcon type="WINE" count={traderTokens?.WINE ?? 0} useModernTerminology={useModernTerminology} isCompact={!isCurrentTurn} />
+                                    <GoodIcon type="WHEAT" count={traderTokens?.WHEAT ?? 0} useModernTerminology={useModernTerminology} isCompact={!isCurrentTurn} />
+                                    <GoodIcon type="CLOTH" count={traderTokens?.CLOTH ?? 0} useModernTerminology={useModernTerminology} isCompact={!isCurrentTurn} />
+                                </div>
+                            )}
+                        </div>
+
+                        {/* Right Col: Tile Preview (active player, PLACE_TILE phase only) */}
+                        {showTilePreview && turnState.tileDefinition && turnState.currentTile && (() => {
+                            const def = turnState.tileDefinition;
+                            const currentRot = turnState.currentTile.rotation;
+                            const parts = [{ dx: 0, dy: 0, defId: def.id }];
+                            if (def.linkedTiles) {
+                                for (const lt of def.linkedTiles) {
+                                    parts.push({ ...getRotatedOffset(lt.dx, lt.dy, currentRot), defId: lt.definitionId });
+                                }
+                            }
+
+                            let minDx = 0, maxDx = 0, minDy = 0, maxDy = 0;
+                            parts.forEach(p => {
+                                if (p.dx < minDx) minDx = p.dx;
+                                if (p.dx > maxDx) maxDx = p.dx;
+                                if (p.dy < minDy) minDy = p.dy;
+                                if (p.dy > maxDy) maxDy = p.dy;
+                            });
+
+                            const gridW = maxDx - minDx + 1;
+                            const gridH = maxDy - minDy + 1;
+
+                            // Base size of each cell
+                            const CELL_SIZE = 80;
+                            // Scale down if it's very large? Double tiles can just take more space or we can scale.
+                            // Better to just let the container be larger. 
+                            // But usually we don't want it to overflow the screen. 
+                            // 80x80 is default. Let's make it gridW*80 x gridH*80, but scaled down if it's > 2.
+                            const scale = Math.max(1, Math.max(gridW, gridH) / 1.5); // scale down a bit if it's 2 or 3
+                            const displayCellSize = CELL_SIZE / scale;
+
+                            return (
+                                <div style={{
+                                    flexShrink: 0,
+                                    width: gridW * displayCellSize,
+                                    height: gridH * displayCellSize,
+                                    borderRadius: 8,
+                                    position: 'relative',
+                                    border: `2px solid ${color}`,
+                                    boxShadow: `0 2px 8px rgba(0,0,0,0.4), 0 0 0 1px ${color}40`,
+                                    background: '#000', // optional background to hide gaps if any
+                                }}>
+                                    {parts.map((p, idx) => {
+                                        const partDef = turnState.staticTileMap ? turnState.staticTileMap[p.defId] : (p.defId === def.id ? def : null);
+                                        if (!partDef) return null;
+                                        return (
+                                            <div key={idx} style={{
+                                                position: 'absolute',
+                                                left: (p.dx - minDx) * displayCellSize,
+                                                top: (p.dy - minDy) * displayCellSize,
+                                                width: displayCellSize,
+                                                height: displayCellSize,
+                                                overflow: 'hidden',
+                                            }}>
+                                                <TileSVG
+                                                    definition={partDef}
+                                                    rotation={currentRot}
+                                                    size={displayCellSize}
+                                                />
+                                            </div>
+                                        );
+                                    })}
+                                </div>
                             );
                         })()}
-                        {/* Dragon held by this player */}
-                        {hasDragonHeldBy === player.id && (
-                            <div style={{
-                                display: 'flex',
-                                flexDirection: 'column',
-                                alignItems: 'center',
-                                padding: isCurrentTurn ? 4 : 2,
-                                borderRadius: 6,
-                                border: `1px solid ${isCurrentTurn && (turnState?.phase === 'DRAGON_ORIENT' || turnState?.phase === 'DRAGON_PLACE') ? '#e74c3c' : '#666'}`,
-                                background: isCurrentTurn && (turnState?.phase === 'DRAGON_ORIENT' || turnState?.phase === 'DRAGON_PLACE')
-                                    ? 'rgba(231, 76, 60, 0.15)' : 'transparent',
-                            }} title={t('meeple.dragon')}>
-                                <div style={{ width: isCurrentTurn ? 24 : 20, height: isCurrentTurn ? 24 : 20 }}>
-                                    <svg width={isCurrentTurn ? 24 : 20} height={isCurrentTurn ? 24 : 20} viewBox="0 0 24 24"
-                                        style={{ filter: 'drop-shadow(0 1px 2px rgba(0,0,0,0.5))' }}>
-                                        <text x="12" y="18" textAnchor="middle" fontSize={isCurrentTurn ? 16 : 14} fill="#e74c3c">
-                                            🐉
-                                        </text>
-                                    </svg>
-                                </div>
-                                {isCurrentTurn && <div style={{ fontSize: 9, color: '#e74c3c', marginTop: 2, fontWeight: 'bold' }}>{t('meeple.dragon')}</div>}
-                            </div>
-                        )}
+
                     </div>
-
-                    {/* Goods Collection (Traders) */}
-                    {hasTradersBuilders && (
-                        <div style={{
-                            display: 'flex', gap: isCurrentTurn ? 10 : 6,
-                            paddingTop: isCurrentTurn ? 8 : 0,
-                            marginTop: isCurrentTurn ? 4 : 0,
-                            borderTop: isCurrentTurn ? '1px solid rgba(255,255,255,0.1)' : 'none',
-                            paddingLeft: !isCurrentTurn ? 4 : 0,
-                            borderLeft: !isCurrentTurn ? '1px solid rgba(255,255,255,0.1)' : 'none',
-                        }}>
-                            <GoodIcon type="WINE" count={traderTokens?.WINE ?? 0} useModernTerminology={useModernTerminology} isCompact={!isCurrentTurn} />
-                            <GoodIcon type="WHEAT" count={traderTokens?.WHEAT ?? 0} useModernTerminology={useModernTerminology} isCompact={!isCurrentTurn} />
-                            <GoodIcon type="CLOTH" count={traderTokens?.CLOTH ?? 0} useModernTerminology={useModernTerminology} isCompact={!isCurrentTurn} />
-                        </div>
-                    )}
-                </div>
-
-                {/* Right Col: Tile Preview (active player, PLACE_TILE phase only) */}
-                {showTilePreview && turnState.tileDefinition && turnState.currentTile && (
-                    <div style={{
-                        flexShrink: 0,
-                        width: 80,
-                        height: 80,
-                        borderRadius: 8,
-                        overflow: 'hidden',
-                        border: `2px solid ${color}`,
-                        boxShadow: `0 2px 8px rgba(0,0,0,0.4), 0 0 0 1px ${color}40`,
-                    }}>
-                        <TileSVG
-                            definition={turnState.tileDefinition}
-                            rotation={turnState.currentTile.rotation}
-                            size={80}
-                        />
-                    </div>
-                )}
-
-            </div>
                 );
             })()}
 
@@ -365,7 +418,29 @@ export function PlayerCard({ player, isCurrentTurn, isBuilderBonusTurn = false, 
             {isCurrentTurn && turnState && (
                 <div style={{ marginTop: 4, display: 'flex', gap: 8 }}>
                     {turnState.phase === 'PLACE_TILE' && turnState.interactionState === 'IDLE' && (
-                        <Button onClick={turnState.actions.rotate!} style={{ flex: 1 }}>⭮ {t('game.rotate')}</Button>
+                        <>
+                            <Button onClick={turnState.actions.rotate!} style={{ flex: 1 }}>⭮ {t('game.rotate')}</Button>
+                            {turnState.tileDefinition?.flipSideDefinitionId && turnState.actions.flip && (
+                                <Button onClick={turnState.actions.flip} style={{ flex: 1 }}>⇅ {t('game.flip', 'Flip')}</Button>
+                            )}
+                            {turnState.actions.playDoubleLake && (
+                                <Button
+                                    onClick={turnState.actions.playDoubleLake}
+                                    style={{ flex: 1, background: '#0099CC', color: '#fff', border: 'none' }}
+                                >
+                                    🌊 {t('game.playDoubleLake', 'Play Double Lake')}
+                                </Button>
+                            )}
+                            {turnState.hasValidPlacements === false && !turnState.actions.playDoubleLake && turnState.actions.discardTile && (
+                                <Button
+                                    onClick={turnState.actions.discardTile}
+                                    style={{ flex: 1, background: '#cc3300', color: '#fff', border: 'none' }}
+                                    title="No valid placements available for this tile/side"
+                                >
+                                    🗑️ Discard
+                                </Button>
+                            )}
+                        </>
                     )}
                     {/* PLACE_MEEPLE buttons are shown floating near the tile */}
                     {turnState.phase === 'DRAGON_ORIENT' && turnState.actions.confirmDragonOrientation && (

@@ -72,10 +72,10 @@ export const TileSVG = memo(({
         <image
           href={definition.imageUrl}
           xlinkHref={definition.imageUrl}
-          x="0"
-          y="0"
-          width="100"
-          height="100"
+          x={definition.imageConfig ? -definition.imageConfig.offsetX * 100 * definition.imageConfig.widthFactor : 0}
+          y={definition.imageConfig ? -definition.imageConfig.offsetY * 100 * definition.imageConfig.heightFactor : 0}
+          width={definition.imageConfig ? 100 * definition.imageConfig.widthFactor : 100}
+          height={definition.imageConfig ? 100 * definition.imageConfig.heightFactor : 100}
           preserveAspectRatio="none"
           style={{ pointerEvents: 'none', userSelect: 'none' }}
         />

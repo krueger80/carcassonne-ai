@@ -54,6 +54,20 @@ export interface TileDefinition {
   isDragonHoard?: boolean      // Dragon spawns here, player orients; no meeple placement
   hasDragon?: boolean          // Triggers dragon movement when placed
   hasMagicPortal?: boolean     // Player can place meeple on any unoccupied feature
+
+  // Double-sided tile support
+  flipSideDefinitionId?: string // If present, the tile can be flipped to this definition before placement
+
+  // Compound (2x1, 2x2, etc) tile support
+  linkedTiles?: { dx: number; dy: number; definitionId: string }[] // Additional tiles placed automatically relative to this one
+
+  // Image cropping/positioning for compound tiles
+  imageConfig?: {
+    widthFactor: number;  // e.g. 2 for a horizontal 2x1 image
+    heightFactor: number; // e.g. 1
+    offsetX: number;     // e.g. 0.5 to show the right half of a 2x1 image
+    offsetY: number;
+  }
 }
 
 // An instance of a tile (either in the bag or placed on the board)

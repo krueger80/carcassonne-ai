@@ -105,8 +105,8 @@ function buildLinearBoard(
 // ─── Tile definitions ─────────────────────────────────────────────────────────
 
 describe('D&F tile definitions', () => {
-  it('has 26 land tile definitions', () => {
-    expect(DF_TILES.length).toBe(26)
+  it('has 32 land/river tile definitions', () => {
+    expect(DF_TILES.length).toBe(32)
   })
 
   it('all tiles have expansionId set to dragon-fairy', () => {
@@ -158,7 +158,7 @@ describe('D&F expansion config', () => {
     expect(DRAGON_FAIRY_EXPANSION.id).toBe('dragon-fairy-c31')
     expect(DRAGON_FAIRY_EXPANSION.enableDragonAndFairy).toBe(true)
     expect(DRAGON_FAIRY_EXPANSION.enableBigMeeple).toBe(false)
-    expect(DRAGON_FAIRY_EXPANSION.tiles.length).toBe(26)
+    expect(DRAGON_FAIRY_EXPANSION.tiles.length).toBe(32)
   })
 })
 
