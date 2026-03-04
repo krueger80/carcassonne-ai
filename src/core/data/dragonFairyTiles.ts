@@ -171,7 +171,13 @@ export const DF_TILES: TileDefinition[] = [
         "field1",
         "city0"
       ]
-    ]
+    ],
+    "imageConfig": {
+      "offsetX": 0,
+      "offsetY": 0,
+      "widthFactor": 2,
+      "heightFactor": 1
+    }
   },
   {
     "id": "df31_A_right",
@@ -251,7 +257,13 @@ export const DF_TILES: TileDefinition[] = [
         "dy": 0,
         "definitionId": "df31_A_left"
       }
-    ]
+    ],
+    "imageConfig": {
+      "offsetX": 0.5,
+      "offsetY": 0,
+      "widthFactor": 2,
+      "heightFactor": 1
+    }
   },
   {
     "id": "df31_B_back_bottom",
@@ -306,7 +318,13 @@ export const DF_TILES: TileDefinition[] = [
         "definitionId": "df31_B_back_top"
       }
     ],
-    "flipSideDefinitionId": "df31_B_front_bottom"
+    "flipSideDefinitionId": "df31_B_front_bottom",
+    "imageConfig": {
+      "offsetX": 0,
+      "offsetY": 0.5,
+      "widthFactor": 1,
+      "heightFactor": 2
+    }
   },
   {
     "id": "df31_B_back_top",
@@ -366,7 +384,13 @@ export const DF_TILES: TileDefinition[] = [
         "river0"
       ]
     ],
-    "flipSideDefinitionId": "df31_B_front_top"
+    "flipSideDefinitionId": "df31_B_front_top",
+    "imageConfig": {
+      "offsetX": 0,
+      "offsetY": 0,
+      "widthFactor": 1,
+      "heightFactor": 2
+    }
   },
   {
     "id": "df31_B_front_bottom",
@@ -421,7 +445,13 @@ export const DF_TILES: TileDefinition[] = [
         "definitionId": "df31_B_front_top"
       }
     ],
-    "flipSideDefinitionId": "df31_B_back_bottom"
+    "flipSideDefinitionId": "df31_B_back_bottom",
+    "imageConfig": {
+      "offsetX": 0,
+      "offsetY": 0.5,
+      "widthFactor": 1,
+      "heightFactor": 2
+    }
   },
   {
     "id": "df31_B_front_top",
@@ -452,8 +482,8 @@ export const DF_TILES: TileDefinition[] = [
         "type": "FIELD",
         "svgPath": "M0,57 L28,61 L42,78 L41,100 L0,100 Z",
         "meepleCentroid": {
-          "x": 50,
-          "y": 50
+          "x": 22,
+          "y": 78
         }
       }
     ],
@@ -477,7 +507,13 @@ export const DF_TILES: TileDefinition[] = [
         "field0"
       ]
     ],
-    "flipSideDefinitionId": "df31_B_back_top"
+    "flipSideDefinitionId": "df31_B_back_top",
+    "imageConfig": {
+      "offsetX": 0,
+      "offsetY": 0,
+      "widthFactor": 1,
+      "heightFactor": 2
+    }
   },
   {
     "id": "df31_C",
