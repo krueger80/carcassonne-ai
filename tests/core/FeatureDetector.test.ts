@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest'
-import { addTileToUnionFind, getAllFeatures, countSurroundingTiles } from '../../src/core/engine/FeatureDetector.ts'
+import { addTileToUnionFind, getAllFeatures, countSurroundingTiles, getFeatureRoot } from '../../src/core/engine/FeatureDetector.ts'
 import { emptyUnionFindState } from '../../src/core/types/feature.ts'
 import { emptyBoard } from '../../src/core/types/board.ts'
 import { getFallbackTileMap } from '../../src/services/tileRegistry.ts'
@@ -116,6 +116,44 @@ describe('Single tile placement', () => {
     const features = getAllFeatures(state)
     expect(features.filter(f => f.type === 'ROAD')).toHaveLength(4)
     expect(features.filter(f => f.type === 'FIELD')).toHaveLength(4)
+  })
+})
+
+// ─── getFeatureRoot ───────────────────────────────────────────────────────────
+
+describe('getFeatureRoot', () => {
+  it('returns the key itself if it does not exist in state.parent', () => {
+    const uf = emptyUnionFindState()
+    expect(getFeatureRoot(uf, '0,0:A')).toBe('0,0:A')
+  })
+
+  it('returns the key itself if it is its own parent (it is a root)', () => {
+    const uf = emptyUnionFindState()
+    uf.parent['0,0:A'] = '0,0:A'
+    expect(getFeatureRoot(uf, '0,0:A')).toBe('0,0:A')
+  })
+
+  it('follows the parent chain to return the root when the parent is a root', () => {
+    const uf = emptyUnionFindState()
+    uf.parent['0,0:A'] = '0,0:B'
+    uf.parent['0,0:B'] = '0,0:B' // B is a root
+    expect(getFeatureRoot(uf, '0,0:A')).toBe('0,0:B')
+  })
+
+  it('follows a multi-level parent chain to return the root without modifying the state.parent object', () => {
+    const uf = emptyUnionFindState()
+    uf.parent['0,0:A'] = '0,0:B'
+    uf.parent['0,0:B'] = '0,0:C'
+    uf.parent['0,0:C'] = '0,0:C' // C is a root
+
+    const originalParentA = uf.parent['0,0:A']
+    const originalParentB = uf.parent['0,0:B']
+
+    expect(getFeatureRoot(uf, '0,0:A')).toBe('0,0:C')
+
+    // Verify ufFindReadOnly doesn't compress the path
+    expect(uf.parent['0,0:A']).toBe(originalParentA)
+    expect(uf.parent['0,0:B']).toBe(originalParentB)
   })
 })
 
