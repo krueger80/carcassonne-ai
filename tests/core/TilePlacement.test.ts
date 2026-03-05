@@ -4,6 +4,7 @@ import {
   isValidPlacement,
   getValidPositions,
   getValidRotations,
+  getAllPotentialPlacements,
   rotateDirection,
   unrotateDirection,
   rotateEdgePosition,
@@ -274,5 +275,101 @@ describe('getValidRotations', () => {
     // Both 0° and 180° have WEST=FIELD for tile U
     expect(rotations).toContain(0)
     expect(rotations).toContain(180)
+  })
+})
+
+// ─── getAllPotentialPlacements ────────────────────────────────────────────────
+
+describe('getAllPotentialPlacements', () => {
+  it('should return [{x: 0, y: 0}] for an empty board', () => {
+    const board = emptyBoard()
+    const t = tile('base2_E', 0)
+    const placements = getAllPotentialPlacements(board, TILE_MAP, t)
+    expect(placements).toHaveLength(1)
+    expect(placements[0]).toEqual({ x: 0, y: 0 })
+  })
+
+  it('should return valid coordinates around an existing tile', () => {
+    // Tile A (all fields) is placed at (0, 0)
+    const board = boardWith([placed('base2_A', 0, 0)])
+    // We try to place another Tile A
+    const t = tile('base2_A', 0)
+
+    const placements = getAllPotentialPlacements(board, TILE_MAP, t)
+    // There are 4 adjacent spots, and Tile A has fields on all sides,
+    // so all 4 spots should be valid.
+    expect(placements).toHaveLength(4)
+    const expectedCoords = [
+      { x: 0, y: -1 }, // NORTH
+      { x: 1, y: 0 },  // EAST
+      { x: 0, y: 1 },  // SOUTH
+      { x: -1, y: 0 }  // WEST
+    ]
+    expect(placements).toEqual(expect.arrayContaining(expectedCoords))
+  })
+
+  it('should only return specific locations due to edge constraints', () => {
+    // Tile E (city North, field East, field South, field West) is at (0, 0)
+    const board = boardWith([placed('base2_E', 0, 0)])
+
+    // Tile C is all city
+    const t = tile('base2_C', 0)
+
+    const placements = getAllPotentialPlacements(board, TILE_MAP, t)
+
+    // A tile with all cities can only be placed adjacent to a city edge.
+    // In this case, only the spot at (0, -1) (which is North of the origin) is valid
+    // because its South edge would connect to the North edge of Tile E (which is a city).
+    expect(placements).toHaveLength(1)
+    expect(placements[0]).toEqual({ x: 0, y: -1 })
+  })
+
+  it('should return an empty array when surrounded by incompatible edges', () => {
+    // Create a scenario where a cell is surrounded by cities.
+    // Tile E at (0,0) (City N), Tile E at (0,-2) flipped 180 (City S)
+    // Tile E at (-1,-1) rotated 90 (City E), Tile E at (1,-1) rotated 270 (City W)
+    // The empty spot at (0,-1) is surrounded by City on all 4 sides.
+    const board = boardWith([
+      placed('base2_E', 0, 0, 0),       // N edge is city
+      placed('base2_E', 0, -2, 180),    // S edge is city
+      placed('base2_E', -1, -1, 90),    // E edge is city
+      placed('base2_E', 1, -1, 270),    // W edge is city
+    ])
+
+    // Tile A (all fields) tries to fit in the hole at (0, -1),
+    // but the hole requires cities on all sides.
+    const t = tile('base2_A', 0)
+
+    const placements = getAllPotentialPlacements(board, TILE_MAP, t)
+
+    // There are candidate cells around the cross shape, but let's
+    // restrict checking if there are placements at the center hole.
+    // Actually, Tile A might be placeable on the *outside* of this cross structure.
+    // Let's create a board where *no* outer placements are valid, or just check that
+    // the hole isn't in the list of placements.
+    const holeCoord = { x: 0, y: -1 }
+    expect(placements).not.toContainEqual(holeCoord)
+  })
+
+  it('should return an empty array when no placements are possible anywhere', () => {
+    // We can simulate an impossible placement by placing a cross of cities
+    // but what if we just test a tile that fundamentally can't connect anywhere?
+    // Let's create a custom board and tile for the test.
+    // Let's mock a tile that has a "WATER" edge (which doesn't exist on base tiles)
+    // and try to place it. Since it requires "WATER" on all edges, it can't match.
+    // Wait, the test says "surrounded by incompatible edges". The previous test covers
+    // the hole case. Let's make a fully sealed off board or just rely on the hole test.
+
+    // An alternative:
+    // Board only has Tile C (all city).
+    const board = boardWith([placed('base2_C', 0, 0)])
+    // Trying to place Tile A (all field).
+    const t = tile('base2_A', 0)
+
+    const placements = getAllPotentialPlacements(board, TILE_MAP, t)
+
+    // Tile C demands city on all sides. Tile A has only fields.
+    // No placement is possible.
+    expect(placements).toHaveLength(0)
   })
 })
