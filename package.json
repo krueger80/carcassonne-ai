@@ -12,7 +12,7 @@
     "test:ui": "vitest --ui"
   },
   "dependencies": {
-    "@supabase/supabase-js": "^2.96.0",
+    "@supabase/supabase-js": "^2.98.0",
     "framer-motion": "^12.34.0",
     "i18next": "^25.8.13",
     "immer": "^10.1.1",
