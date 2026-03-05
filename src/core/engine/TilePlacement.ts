@@ -141,7 +141,7 @@ export function getEdgeFeatures(
   return sides.map(side => {
     const physicalPos = `${physicalDir}_${side}` as EdgePosition
     const segId = getSegmentAtEdgePosition(def, rotation, physicalPos)
-    const seg = def.segments.find(s => s.id === segId)
+    const seg = def.segmentMap?.[segId] || def.segments.find(s => s.id === segId)
     // Fallback to FIELD if missing, but data integrity should prevent this
     return seg ? seg.type : 'FIELD'
   }) as [FeatureType, FeatureType, FeatureType]

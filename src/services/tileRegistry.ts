@@ -26,6 +26,18 @@ import { RIVER_C3_TILES } from '../core/data/riverTilesC3.ts'
 let cachedTiles: TileDefinition[] | null = null
 let cachedMap: Record<string, TileDefinition> | null = null
 
+// ─── Helpers ─────────────────────────────────────────────────────────────────
+
+export function populateSegmentMaps(tiles: TileDefinition[]): void {
+    for (const tile of tiles) {
+        if (!tile.segmentMap) {
+            tile.segmentMap = Object.fromEntries(
+                tile.segments.map(s => [s.id, s])
+            )
+        }
+    }
+}
+
 // ─── All hardcoded fallback tiles ────────────────────────────────────────────
 
 const FALLBACK_TILES = () => [
@@ -48,6 +60,7 @@ export async function loadAllTiles(): Promise<TileDefinition[]> {
     try {
         const dbTiles = await tileService.fetchAll()
         if (dbTiles.length > 0) {
+            populateSegmentMaps(dbTiles)
             cachedTiles = dbTiles
             cachedMap = null
             return cachedTiles
@@ -56,7 +69,9 @@ export async function loadAllTiles(): Promise<TileDefinition[]> {
         console.warn('[TileRegistry] DB fetch failed, using hardcoded fallback', e)
     }
 
-    cachedTiles = FALLBACK_TILES()
+    const fallbackTiles = FALLBACK_TILES()
+    populateSegmentMaps(fallbackTiles)
+    cachedTiles = fallbackTiles
     cachedMap = null
     return cachedTiles
 }
@@ -91,15 +106,21 @@ export async function loadExpansionTiles(expansionId: string): Promise<TileDefin
  * Get all hardcoded fallback tiles (synchronous, no DB).
  */
 export function getFallbackTiles(): TileDefinition[] {
-    return FALLBACK_TILES()
+    const tiles = FALLBACK_TILES()
+    populateSegmentMaps(tiles)
+    return tiles
 }
 
 export function getFallbackBaseTiles(): TileDefinition[] {
-    return BASE_TILES
+    const tiles = BASE_TILES
+    populateSegmentMaps(tiles)
+    return tiles
 }
 
 export function getFallbackTileMap(): Record<string, TileDefinition> {
-    return Object.fromEntries(FALLBACK_TILES().map(t => [t.id, t]))
+    const tiles = FALLBACK_TILES()
+    populateSegmentMaps(tiles)
+    return Object.fromEntries(tiles.map(t => [t.id, t]))
 }
 
 /**
