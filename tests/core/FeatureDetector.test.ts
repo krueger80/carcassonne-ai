@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest'
-import { addTileToUnionFind, getAllFeatures, countSurroundingTiles } from '../../src/core/engine/FeatureDetector.ts'
+import { addTileToUnionFind, getAllFeatures, countSurroundingTiles, findRoot } from '../../src/core/engine/FeatureDetector.ts'
 import { emptyUnionFindState } from '../../src/core/types/feature.ts'
 import { emptyBoard } from '../../src/core/types/board.ts'
 import { getFallbackTileMap } from '../../src/services/tileRegistry.ts'
@@ -325,5 +325,49 @@ describe('countSurroundingTiles', () => {
     }
     const { board } = buildBoard(tiles)
     expect(countSurroundingTiles(board, { x: 0, y: 0 })).toBe(8)
+  })
+})
+
+// ─── findRoot ─────────────────────────────────────────────────────────────────
+
+describe('findRoot', () => {
+  it('returns the key itself if it is not in the parent map', () => {
+    const uf = emptyUnionFindState()
+    expect(findRoot(uf, '0,0:some-segment')).toBe('0,0:some-segment')
+  })
+
+  it('returns the key itself if it is its own parent (a root)', () => {
+    const uf = emptyUnionFindState()
+    uf.parent['0,0:root-segment'] = '0,0:root-segment'
+    expect(findRoot(uf, '0,0:root-segment')).toBe('0,0:root-segment')
+  })
+
+  it('correctly follows the parent chain to find the root', () => {
+    const uf = emptyUnionFindState()
+    uf.parent['0,0:child'] = '0,0:parent'
+    uf.parent['0,0:parent'] = '0,0:root'
+    uf.parent['0,0:root'] = '0,0:root'
+
+    expect(findRoot(uf, '0,0:child')).toBe('0,0:root')
+  })
+
+  it('does not mutate the original state object during path compression', () => {
+    const uf = emptyUnionFindState()
+    uf.parent['0,0:child'] = '0,0:parent'
+    uf.parent['0,0:parent'] = '0,0:root'
+    uf.parent['0,0:root'] = '0,0:root'
+
+    // Create a copy of the parent map to compare later
+    const originalParentMap = { ...uf.parent }
+
+    // findRoot uses path compression internally on its working copy
+    const root = findRoot(uf, '0,0:child')
+
+    expect(root).toBe('0,0:root')
+
+    // The original state should NOT have path compression applied
+    // (i.e. '0,0:child' should still point to '0,0:parent', not '0,0:root')
+    expect(uf.parent).toEqual(originalParentMap)
+    expect(uf.parent['0,0:child']).toBe('0,0:parent')
   })
 })
