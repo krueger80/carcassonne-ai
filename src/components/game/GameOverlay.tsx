@@ -174,6 +174,7 @@ export function GameOverlay() {
 
     const pendingFarmerReturns = tbData?.pendingFarmerReturns as { playerId: string; pigNodeKey: string; fieldFeatureId: string; points: number }[] | undefined
     const activeFarmerPrompt = turnPhase === 'RETURN_FARMER' && pendingFarmerReturns && pendingFarmerReturns.length > 0 ? pendingFarmerReturns[0] : null
+    const activeFarmerPlayer = activeFarmerPrompt ? players.find(p => p.id === activeFarmerPrompt.playerId) : null
 
     // Determine status text
     let statusText = isBuilderBonusTurn
@@ -474,7 +475,7 @@ export function GameOverlay() {
                     >
                         <h2 style={{ margin: 0, color: '#fff', fontSize: 20 }}>{t('farmer.returnTitle')}</h2>
                         <p style={{ margin: 0, color: '#ccc', fontSize: 14 }}>
-                            {t('farmer.returnDescription', { name: players.find(p => p.id === activeFarmerPrompt.playerId)?.name, points: activeFarmerPrompt.points })}
+                            {t('farmer.returnDescription', { name: activeFarmerPlayer?.name, points: activeFarmerPrompt.points })}
                         </p>
                         <div style={{ display: 'flex', gap: 12, width: '100%', marginTop: 8 }}>
                             <button
