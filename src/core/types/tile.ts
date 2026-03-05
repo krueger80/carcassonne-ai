@@ -41,6 +41,8 @@ export interface TileDefinition {
 
   // The terrain segments
   segments: Segment[]
+  // Fast map lookup by segment ID
+  segmentMap?: Record<string, Segment>
   // Bridge from edge sub-position → segment id (used by FeatureDetector)
   edgePositionToSegment: Record<EdgePosition, string>
   startingTile?: boolean
