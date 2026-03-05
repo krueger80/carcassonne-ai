@@ -531,6 +531,18 @@ export function GameBoard() {
 
     if (activePointers.current.size < 2) {
       lastPinchDist.current = null
+
+      // If exactly one finger is left down, recalibrate the pan origin
+      // so it doesn't jump using the old start coordinates
+      if (activePointers.current.size === 1) {
+        const remainingPointer = Array.from(activePointers.current.values())[0]
+        panStart.current = {
+          x: remainingPointer.x,
+          y: remainingPointer.y,
+          offsetX: boardOffset.x,
+          offsetY: boardOffset.y
+        }
+      }
     }
 
     if (activePointers.current.size === 0) {
