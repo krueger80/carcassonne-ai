@@ -1,9 +1,9 @@
 import type { Board, Coordinate } from '../types/board.ts'
 import type { TileDefinition, TileInstance, Direction, EdgeType, EdgePosition, Rotation, FeatureType } from '../types/tile.ts'
-import { coordKey } from '../types/board.ts'
+import { coordKey, keyToCoord } from '../types/board.ts'
 
 // Re-export for convenience
-export { coordKey }
+export { coordKey, keyToCoord }
 
 // ─── Direction utilities ──────────────────────────────────────────────────────
 
@@ -250,8 +250,8 @@ export function getValidPositions(
 ): Coordinate[] {
   const candidates = new Set<string>()
 
-  for (const key of Object.keys(board.tiles)) {
-    const [x, y] = key.split(',').map(Number)
+  for (const tile of Object.values(board.tiles)) {
+    const { x, y } = tile.coordinate
     for (const dir of DIRECTIONS) {
       const { dx, dy } = DIRECTION_DELTA[dir]
       const candidateKey = coordKey({ x: x + dx, y: y + dy })
@@ -271,7 +271,7 @@ export function getValidPositions(
   if (!def) return []
 
   for (const key of candidates) {
-    const [cx, cy] = key.split(',').map(Number)
+    const { x: cx, y: cy } = keyToCoord(key)
 
     // For the given instance rotation, what are the footprint offsets?
     const offsets = [{ dx: 0, dy: 0 }]
@@ -289,10 +289,7 @@ export function getValidPositions(
     }
   }
 
-  return Array.from(valid).map(k => {
-    const [x, y] = k.split(',').map(Number)
-    return { x, y }
-  })
+  return Array.from(valid).map(keyToCoord)
 }
 
 /**
@@ -338,8 +335,8 @@ export function getAllPotentialPlacements(
   const candidates = new Set<string>()
 
   // 1. Identify all candidate cells (empty cells adjacent to existing tiles)
-  for (const key of Object.keys(board.tiles)) {
-    const [x, y] = key.split(',').map(Number)
+  for (const tile of Object.values(board.tiles)) {
+    const { x, y } = tile.coordinate
     for (const dir of DIRECTIONS) {
       const { dx, dy } = DIRECTION_DELTA[dir]
       const candidateKey = coordKey({ x: x + dx, y: y + dy })
@@ -360,7 +357,7 @@ export function getAllPotentialPlacements(
 
   // 2. Check each candidate
   for (const key of candidates) {
-    const [cx, cy] = key.split(',').map(Number)
+    const { x: cx, y: cy } = keyToCoord(key)
 
     // Check if ANY rotation works here
     for (const rotation of [0, 90, 180, 270] as Rotation[]) {
@@ -380,10 +377,7 @@ export function getAllPotentialPlacements(
     }
   }
 
-  return Array.from(valid).map(k => {
-    const [x, y] = k.split(',').map(Number)
-    return { x, y }
-  })
+  return Array.from(valid).map(keyToCoord)
 }
 
 // ─── River placement helpers ────────────────────────────────────────────────
@@ -651,8 +645,7 @@ export function findRiverOpenEnds(
 
   // Build a set of all occupied physical cells
   const occupied = new Set<string>()
-  for (const key of Object.keys(board.tiles)) {
-    const tile = board.tiles[key]
+  for (const [key, tile] of Object.entries(board.tiles)) {
     const def = tileMap[tile.definitionId]
     if (!def) continue
     occupied.add(key)
@@ -664,8 +657,7 @@ export function findRiverOpenEnds(
     }
   }
 
-  for (const key of Object.keys(board.tiles)) {
-    const tile = board.tiles[key]
+  for (const tile of Object.values(board.tiles)) {
     const def = tileMap[tile.definitionId]
     if (!def) continue
 
@@ -722,7 +714,7 @@ export function getAllPotentialRiverPlacements(
   }
 
   for (const key of openEnds) {
-    const [cx, cy] = key.split(',').map(Number)
+    const { x: cx, y: cy } = keyToCoord(key)
 
     for (const rotation of [0, 90, 180, 270] as Rotation[]) {
       const inst = { ...instance, rotation }
@@ -749,10 +741,7 @@ export function getAllPotentialRiverPlacements(
     }
   }
 
-  const result = Array.from(valid).map(k => {
-    const [x, y] = k.split(',').map(Number)
-    return { x, y }
-  })
+  const result = Array.from(valid).map(keyToCoord)
 
   if (isCompound) {
     console.log(`[RIVER_PLACEMENT] Final valid placements for ${instance.definitionId}:`, result)
