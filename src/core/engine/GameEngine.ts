@@ -106,6 +106,8 @@ export interface GameConfig {
   /** Structured per-expansion setup config (rules version + tile edition). */
   expansionSelections?: ExpansionSelection[]
   debugPrioritizeExpansions?: boolean
+  /** Map of player index (as string) → linked Supabase profile info. */
+  linkedProfiles?: Record<string, { profileId: string; displayName: string; avatarUrl?: string | null }>
 }
 
 export function initGame(config: GameConfig): GameState {

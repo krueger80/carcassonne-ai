@@ -1,7 +1,10 @@
-import { useState } from 'react'
+import { useState, useEffect, useRef } from 'react'
 import { useTranslation } from 'react-i18next'
 import type { Player } from '../../core/types/player.ts'
 import { useGameStore } from '../../store/gameStore.ts'
+import { useAuth } from '../auth/useAuth.ts'
+import { LoginModal } from '../auth/LoginModal.tsx'
+import { saveGameResult } from '../../services/gameResultsService.ts'
 
 interface EndGameModalProps {
   players: Player[]
@@ -37,14 +40,67 @@ const MEDAL: Record<number, string> = { 0: '🥇', 1: '🥈', 2: '🥉' }
 const COMMODITY_IMAGES = {
   CLOTH: '/images/TradersAndBuilders_Shared/Good_Cloth.png',
   WHEAT: '/images/TradersAndBuilders_Shared/Good_Grain.png',
-  WINE:  '/images/TradersAndBuilders_Shared/Good_Wine.png',
+  WINE: '/images/TradersAndBuilders_Shared/Good_Wine.png',
 }
 
 export function EndGameModal({ players, expansions = [] }: EndGameModalProps) {
   const { t } = useTranslation()
   const { resetGame } = useGameStore()
+  const { user, loading: authLoading } = useAuth()
+  const { linkedProfiles, gameState } = useGameStore()
   const hasTradersBuilders = expansions.includes('traders-builders')
   const [hidden, setHidden] = useState(false)
+  const [saveStatus, setSaveStatus] = useState<'idle' | 'saving' | 'saved' | 'error' | 'no-auth'>('idle')
+  const [saved, setSaved] = useState(false)
+  const [showLoginModal, setShowLoginModal] = useState(false)
+  const saveAttempted = useRef(false)
+
+  const performSave = async () => {
+    if (saved) return; // Prevent duplicate saves
+    if (!user || !gameState) {
+      if (!user) setSaveStatus('no-auth')
+      return
+    }
+
+    setSaveStatus('saving')
+    try {
+      const baseEdition = (gameState.expansionData?.baseEdition as string) ?? 'C3'
+      const success = await saveGameResult({
+        players: gameState.players,
+        expansions,
+        baseEdition,
+        linkedProfiles,
+      })
+      if (success) {
+        setSaved(true)
+        setSaveStatus('saved')
+      } else {
+        setSaveStatus('error')
+      }
+    } catch (err) {
+      console.error('Failed to save game result:', err)
+      setSaveStatus('error')
+    }
+  }
+
+  // Auto-save game results on mount if user is already there
+  useEffect(() => {
+    if (!saveAttempted.current) {
+      saveAttempted.current = true
+      if (user) {
+        performSave()
+      } else {
+        setSaveStatus('no-auth')
+      }
+    }
+  }, [])
+
+  // Also auto-save if user logs in while modal is open (or if auth finishes loading and user is found)
+  useEffect(() => {
+    if (!authLoading && user && (saveStatus === 'no-auth' || saveStatus === 'idle') && !saved) {
+      performSave()
+    }
+  }, [user, authLoading, saveStatus])
 
   if (hidden) {
     return (
@@ -113,15 +169,15 @@ export function EndGameModal({ players, expansions = [] }: EndGameModalProps) {
       <div
         onPointerDown={(e) => e.stopPropagation()}
         style={{
-        background: 'linear-gradient(160deg, #1e1e2e 0%, #252535 100%)',
-        border: '1px solid #444',
-        borderRadius: 20,
-        padding: '36px 40px',
-        width: '100%',
-        maxWidth: 680,
-        color: '#f0f0f0',
-        boxShadow: '0 24px 64px rgba(0,0,0,0.6)',
-      }}>
+          background: 'linear-gradient(160deg, #1e1e2e 0%, #252535 100%)',
+          border: '1px solid #444',
+          borderRadius: 20,
+          padding: '36px 40px',
+          width: '100%',
+          maxWidth: 680,
+          color: '#f0f0f0',
+          boxShadow: '0 24px 64px rgba(0,0,0,0.6)',
+        }}>
 
         {/* Header */}
         <div style={{ textAlign: 'center', marginBottom: 28 }}>
@@ -268,6 +324,30 @@ export function EndGameModal({ players, expansions = [] }: EndGameModalProps) {
           </div>
         )}
 
+        {/* Save status */}
+        <div style={{ textAlign: 'center', fontSize: 12, marginBottom: 8, color: '#888' }}>
+          {saveStatus === 'saving' || (authLoading && saveStatus === 'idle') ? (
+            '⏳ Saving results...'
+          ) : (
+            <>
+              {saveStatus === 'saved' && <span style={{ color: '#2ecc71' }}>✓ Results saved</span>}
+              {saveStatus === 'error' && <span style={{ color: '#e74c3c' }}>⚠ Failed to save results</span>}
+              {saveStatus === 'no-auth' && (
+                <span>
+                  <a
+                    href="#"
+                    onClick={(e) => { e.preventDefault(); setShowLoginModal(true) }}
+                    style={{ color: '#c8a46e', textDecoration: 'underline' }}
+                  >
+                    Sign in
+                  </a>
+                  {' '}to save results
+                </span>
+              )}
+            </>
+          )}
+        </div>
+
         {/* Play again / Show board */}
         <div style={{ display: 'flex', gap: 12, justifyContent: 'center' }}>
           <button
@@ -303,6 +383,8 @@ export function EndGameModal({ players, expansions = [] }: EndGameModalProps) {
             {t('endGame.playAgain')}
           </button>
         </div>
+
+        {showLoginModal && <LoginModal onClose={() => setShowLoginModal(false)} />}
       </div>
     </div>
   )

@@ -34,6 +34,7 @@ import {
   isMagicPortalTile,
 } from '../core/engine/GameEngine.ts'
 import type { GameConfig } from '../core/engine/GameEngine.ts'
+import type { LinkedProfileMap } from '../services/gameResultsService.ts'
 import { loadAllTiles, loadTileMap, invalidateCache, getFallbackTileMap } from '../services/tileRegistry.ts'
 import { nodeKey } from '../core/types/feature.ts'
 import { getFeature } from '../core/engine/FeatureDetector.ts'
@@ -47,6 +48,8 @@ export type InteractionState = 'IDLE' | 'TILE_PLACED_TENTATIVELY' | 'MEEPLE_SELE
 interface GameStore {
   // ── State ────────────────────────────────────────────────────────────────
   gameState: GameState | null
+  /** Linked Supabase profiles for players (player ID → profile info). Stored outside GameState to keep engine pure. */
+  linkedProfiles: LinkedProfileMap
 
   // Interaction state
   interactionState: InteractionState
@@ -119,6 +122,7 @@ export const useGameStore = create<GameStore>()(
     immer((set, get) => ({
       gameState: null,
       prevGameState: null,
+      linkedProfiles: {},
       interactionState: 'IDLE',
       validPlacements: [],
       tentativeTileCoord: null,
@@ -175,6 +179,18 @@ export const useGameStore = create<GameStore>()(
           store.placeableSegments = []
           store.tentativeDragonFacing = null
           store.dragonPlaceTargets = []
+
+          // Store linked profiles mapped to actual player IDs
+          if (config.linkedProfiles && store.gameState) {
+            const map: LinkedProfileMap = {}
+            for (const [idx, lp] of Object.entries(config.linkedProfiles)) {
+              const playerId = store.gameState.players[Number(idx)]?.id
+              if (playerId) map[playerId] = lp
+            }
+            store.linkedProfiles = map
+          } else {
+            store.linkedProfiles = {}
+          }
         })
       },
 
@@ -641,6 +657,7 @@ export const useGameStore = create<GameStore>()(
 
       resetGame: () => set((store) => {
         store.gameState = null
+        store.linkedProfiles = {}
         store.validPlacements = []
         store.placeableSegments = []
         store.tentativeTileCoord = null
