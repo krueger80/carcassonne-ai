@@ -735,7 +735,7 @@ export function GameBoard() {
       ref={containerRef}
       style={{
         width: '100vw',
-        height: '100vh',
+        height: '100dvh',
         overflow: 'hidden',
         background: '#1a2a1a',
         cursor: isPanning ? 'grabbing' : 'grab',

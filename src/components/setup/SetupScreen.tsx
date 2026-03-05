@@ -443,7 +443,7 @@ export function SetupScreen({ onCancel }: SetupScreenProps) {
     return (
       <div style={{
         display: 'flex', flexDirection: 'column', alignItems: 'center',
-        justifyContent: 'center', minHeight: '100vh', background: '#1a1a2e', color: '#f0f0f0',
+        justifyContent: 'center', minHeight: '100dvh', background: '#1a1a2e', color: '#f0f0f0',
         padding: 16, boxSizing: 'border-box'
       }}>
         {card}
@@ -476,7 +476,12 @@ export function SetupScreen({ onCancel }: SetupScreenProps) {
       display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 100,
       padding: 16, overflowY: 'auto', boxSizing: 'border-box'
     }}
-      onPointerDown={e => { if (e.target === e.currentTarget) onCancel() }}
+      onPointerDown={e => {
+        e.stopPropagation()
+        if (e.target === e.currentTarget) onCancel()
+      }}
+      onPointerMove={e => e.stopPropagation()}
+      onPointerUp={e => e.stopPropagation()}
     >
       <motion.div
         initial={{ scale: 0.92, opacity: 0 }}

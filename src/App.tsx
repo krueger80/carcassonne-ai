@@ -69,7 +69,7 @@ function GameScreen() {
   // Logic mostly moved to GameBoard and GameOverlay
 
   return (
-    <div style={{ width: '100vw', height: '100vh', overflow: 'hidden', position: 'relative' }}>
+    <div style={{ width: '100vw', height: '100dvh', overflow: 'hidden', position: 'relative' }}>
       <GameBoard />
       <AnimationLayer />
     </div>

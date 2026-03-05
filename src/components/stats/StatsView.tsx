@@ -52,7 +52,7 @@ export function StatsView() {
 
     return (
         <div style={{
-            minHeight: '100vh', background: '#1a1a2e', color: '#f0f0f0',
+            minHeight: '100dvh', background: '#1a1a2e', color: '#f0f0f0',
             display: 'flex', flexDirection: 'column', alignItems: 'center',
             padding: '40px 16px',
         }}>
