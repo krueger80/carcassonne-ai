@@ -661,8 +661,8 @@ export function GameOverlay() {
                     maxWidth: 320, // Limit width to 320 on larger screens
                     display: 'flex',
                     flexDirection: 'column',
-                    justifyContent: 'space-between',
-                    padding: '24px 16px', // Better padding for mobile
+                    justifyContent: 'flex-start',
+                    padding: '24px 12px', // Narrower padding to fix the gap on the left
                     boxSizing: 'border-box',
                     zIndex: 50,
                     pointerEvents: 'none',
@@ -884,7 +884,7 @@ export function GameOverlay() {
                 <div style={{
                     display: 'flex',
                     flexDirection: 'column',
-                    alignItems: 'center',
+                    alignItems: 'flex-start', // Use left alignment to narrow the gap
                     gap: showOpponents ? 8 : 0,
                     width: '100%',
                     pointerEvents: 'none',
@@ -905,7 +905,7 @@ export function GameOverlay() {
                                             ? { opacity: 1, scale: 1, x: 0, marginBottom: 0 }
                                             : showOpponents
                                                 ? { opacity: 0.7, scale: 0.95, x: 0, marginBottom: 0 }
-                                                : { opacity: 0.6, scale: 0.85, x: 0, marginBottom: -40 }
+                                                : { opacity: 0.6, scale: 0.85, x: 0, marginBottom: -40 } // Keep centering but left-aligned
                                     }
                                     transition={{ type: 'spring', stiffness: 300, damping: 25 }}
                                     style={{
