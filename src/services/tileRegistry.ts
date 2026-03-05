@@ -26,15 +26,29 @@ import { RIVER_C3_TILES } from '../core/data/riverTilesC3.ts'
 let cachedTiles: TileDefinition[] | null = null
 let cachedMap: Record<string, TileDefinition> | null = null
 
+// ─── Helpers ─────────────────────────────────────────────────────────────────
+
+export function populateSegmentMaps(tiles: TileDefinition[]): TileDefinition[] {
+  for (const tile of tiles) {
+    if (!tile.segmentMap) {
+      tile.segmentMap = {}
+      for (const segment of tile.segments) {
+        tile.segmentMap[segment.id] = segment
+      }
+    }
+  }
+  return tiles
+}
+
 // ─── All hardcoded fallback tiles ────────────────────────────────────────────
 
-const FALLBACK_TILES = () => [
+const FALLBACK_TILES = () => populateSegmentMaps([
   ...BASE1_TILES, ...BASE_TILES, ...BASE3_TILES,
   ...IC2_TILES, ...IC_TILES, ...IC_C31_TILES,
   ...TB1_TILES, ...TB_TILES, ...TB3_TILES, ...TB_C31_TILES,
   ...DF_TILES,
   ...RIVER_C3_TILES,
-]
+])
 
 // ─── Public API ──────────────────────────────────────────────────────────────
 
@@ -48,7 +62,7 @@ export async function loadAllTiles(): Promise<TileDefinition[]> {
     try {
         const dbTiles = await tileService.fetchAll()
         if (dbTiles.length > 0) {
-            cachedTiles = dbTiles
+            cachedTiles = populateSegmentMaps(dbTiles)
             cachedMap = null
             return cachedTiles
         }
@@ -95,7 +109,7 @@ export function getFallbackTiles(): TileDefinition[] {
 }
 
 export function getFallbackBaseTiles(): TileDefinition[] {
-    return BASE_TILES
+    return populateSegmentMaps([...BASE_TILES])
 }
 
 export function getFallbackTileMap(): Record<string, TileDefinition> {
