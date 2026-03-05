@@ -68,12 +68,19 @@ export function GameOverlay() {
     }, [gameState?.currentPlayerIndex, setSelectedMeepleType])
 
     // Scroll wheel rotates tile during PLACE_TILE
+    const lastRotationTime = useRef<number>(0)
+
     useEffect(() => {
         if (gameState?.turnPhase !== 'PLACE_TILE') return
         const handleWheel = (e: WheelEvent) => {
             if (e.ctrlKey || e.metaKey) return // Ignore zoom
             e.preventDefault()
-            rotateTentativeTile()
+
+            const now = Date.now()
+            if (now - lastRotationTime.current > 150) {
+                rotateTentativeTile()
+                lastRotationTime.current = now
+            }
         }
         window.addEventListener('wheel', handleWheel, { passive: false })
         return () => window.removeEventListener('wheel', handleWheel)
@@ -507,13 +514,17 @@ export function GameOverlay() {
                 display: 'flex',
                 alignItems: 'center',
                 gap: 0,
-                zIndex: 41,
-                pointerEvents: 'none',
+                zIndex: 60,
+                pointerEvents: 'auto',
                 background: 'rgba(0,0,0,0.65)',
                 border: '1px solid #444',
                 borderRadius: 24,
                 overflow: 'hidden',
-            }}>
+            }}
+                onPointerDown={(e) => e.stopPropagation()}
+                onPointerMove={(e) => e.stopPropagation()}
+                onPointerUp={(e) => e.stopPropagation()}
+            >
                 {/* Chromecast */}
                 {sdkReady && (
                     <div style={{
@@ -600,6 +611,8 @@ export function GameOverlay() {
                             fontSize: 13,
                         }}
                         onPointerDown={(e) => e.stopPropagation()}
+                        onPointerMove={(e) => e.stopPropagation()}
+                        onPointerUp={(e) => e.stopPropagation()}
                     >
                         <div style={{ fontWeight: 'bold', color: '#e8d8a0', fontSize: 15, marginBottom: 12, textAlign: 'center' }}>
                             🏆 {t('menu.scoreboard')}
@@ -669,7 +682,17 @@ export function GameOverlay() {
                 }}
             >
                 {/* ── Hamburger Menu (Top Left) ─────────────────────────────── */}
-                <div style={{ position: 'relative', pointerEvents: 'auto', alignSelf: 'flex-start', marginBottom: 20 }} onPointerDown={(e) => e.stopPropagation()}>
+                <div
+                    style={{
+                        position: 'relative',
+                        pointerEvents: 'auto',
+                        alignSelf: 'flex-start',
+                        marginBottom: 20
+                    }}
+                    onPointerDown={(e) => e.stopPropagation()}
+                    onPointerMove={(e) => e.stopPropagation()}
+                    onPointerUp={(e) => e.stopPropagation()}
+                >
                     <button
                         onClick={(e) => { e.stopPropagation(); setIsMenuOpen(!isMenuOpen) }}
                         style={{
@@ -915,6 +938,8 @@ export function GameOverlay() {
                                         cursor: isActive ? 'default' : 'pointer',
                                     }}
                                     onPointerDown={(e) => e.stopPropagation()}
+                                    onPointerMove={(e) => e.stopPropagation()}
+                                    onPointerUp={(e) => e.stopPropagation()}
                                     onClick={(e) => {
                                         if (isActive) return
                                         if ((e.target as HTMLElement).closest('button')) return
@@ -953,6 +978,8 @@ export function GameOverlay() {
                         whiteSpace: 'nowrap',
                     }}
                     onPointerDown={(e) => e.stopPropagation()}
+                    onPointerMove={(e) => e.stopPropagation()}
+                    onPointerUp={(e) => e.stopPropagation()}
                 >
                     {interactionState === 'TILE_PLACED_TENTATIVELY' && (
                         <>
