@@ -566,7 +566,7 @@ export const useGameStore = create<GameStore>()(
 
               if (segment?.meepleCentroid) {
                 useUIStore.getState().addFlyingElement({
-                  id: `meeple-${id}-${meeple.playerId}-${Math.random()}`,
+                  id: `meeple-${id}-${meeple.playerId}-${crypto.randomUUID()}`,
                   type: 'MEEPLE',
                   startBoardCoord: node.coordinate,
                   startBoardNode: segment.meepleCentroid,
@@ -583,7 +583,7 @@ export const useGameStore = create<GameStore>()(
             if (amount <= 0) continue
             const firstNode = feature.nodes[0]
             useUIStore.getState().addFlyingElement({
-              id: `points-${id}-${playerId}-${Math.random()}`,
+              id: `points-${id}-${playerId}-${crypto.randomUUID()}`,
               type: 'POINTS',
               startBoardCoord: firstNode.coordinate,
               targetPlayerId: playerId,
@@ -799,7 +799,7 @@ export const useGameStore = create<GameStore>()(
 
               if (segment?.meepleCentroid) {
                 useUIStore.getState().addFlyingElement({
-                  id: `dragon-eat-${meeple.playerId}-${Math.random()}`,
+                  id: `dragon-eat-${meeple.playerId}-${crypto.randomUUID()}`,
                   type: 'MEEPLE',
                   startBoardCoord: meeple.coordinate,
                   startBoardNode: segment.meepleCentroid,
