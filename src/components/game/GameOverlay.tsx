@@ -818,35 +818,6 @@ export function GameOverlay() {
                                     <span>🔧</span> {t('menu.debugConfigurator')}
                                 </button>
 
-                                <div style={{ borderTop: '1px solid #444', margin: '4px 0' }} />
-
-                                <button
-                                    onClick={(e) => {
-                                        e.stopPropagation()
-                                        window.open(
-                                            `${window.location.origin}${window.location.pathname}#cast`,
-                                            '_blank',
-                                        )
-                                        setIsMenuOpen(false)
-                                    }}
-                                    style={{
-                                        background: '#3a3a4a',
-                                        border: 'none',
-                                        borderRadius: 6,
-                                        color: 'white',
-                                        padding: '10px',
-                                        cursor: 'pointer',
-                                        textAlign: 'left',
-                                        transition: 'background 0.2s',
-                                        display: 'flex',
-                                        alignItems: 'center',
-                                        gap: 8,
-                                    }}
-                                    onMouseEnter={(e) => (e.currentTarget.style.background = '#4a4a5a')}
-                                    onMouseLeave={(e) => (e.currentTarget.style.background = '#3a3a4a')}
-                                >
-                                    <span>📺</span> {t('menu.castToTV')}
-                                </button>
 
                                 <button
                                     onClick={(e) => {
