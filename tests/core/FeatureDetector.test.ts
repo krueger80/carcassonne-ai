@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest'
-import { addTileToUnionFind, getAllFeatures, countSurroundingTiles } from '../../src/core/engine/FeatureDetector.ts'
+import { addTileToUnionFind, getAllFeatures, countSurroundingTiles, getNodeKey } from '../../src/core/engine/FeatureDetector.ts'
 import { emptyUnionFindState } from '../../src/core/types/feature.ts'
 import { emptyBoard } from '../../src/core/types/board.ts'
 import { getFallbackTileMap } from '../../src/services/tileRegistry.ts'
@@ -325,5 +325,25 @@ describe('countSurroundingTiles', () => {
     }
     const { board } = buildBoard(tiles)
     expect(countSurroundingTiles(board, { x: 0, y: 0 })).toBe(8)
+  })
+})
+
+// ─── getNodeKey ───────────────────────────────────────────────────────────────
+
+describe('getNodeKey', () => {
+  it('generates a correct node key for positive coordinates', () => {
+    expect(getNodeKey({ x: 1, y: 2 }, 'city0')).toBe('1,2:city0')
+  })
+
+  it('generates a correct node key for negative coordinates', () => {
+    expect(getNodeKey({ x: -3, y: -4 }, 'field1')).toBe('-3,-4:field1')
+  })
+
+  it('generates a correct node key for zero coordinates', () => {
+    expect(getNodeKey({ x: 0, y: 0 }, 'road0')).toBe('0,0:road0')
+  })
+
+  it('handles empty segment IDs', () => {
+    expect(getNodeKey({ x: 5, y: -2 }, '')).toBe('5,-2:')
   })
 })
