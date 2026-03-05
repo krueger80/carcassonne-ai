@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest'
-import { addTileToUnionFind, getAllFeatures, countSurroundingTiles } from '../../src/core/engine/FeatureDetector.ts'
+import { addTileToUnionFind, getAllFeatures, countSurroundingTiles, featureHasMeeples } from '../../src/core/engine/FeatureDetector.ts'
 import { emptyUnionFindState } from '../../src/core/types/feature.ts'
 import { emptyBoard } from '../../src/core/types/board.ts'
 import { getFallbackTileMap } from '../../src/services/tileRegistry.ts'
@@ -293,6 +293,60 @@ describe('Cloister detection', () => {
     expect(cloister).toBeDefined()
     expect(cloister!.tileCount).toBe(5)  // 1 (self) + 4 neighbors
     expect(cloister!.isComplete).toBe(false)  // needs 4 more (corners)
+  })
+})
+
+// ─── featureHasMeeples ────────────────────────────────────────────────────────
+
+describe('featureHasMeeples', () => {
+  it('returns true when a feature has a non-empty meeples array', () => {
+    const uf = emptyUnionFindState()
+    const nKey = '0,0:city1'
+    uf.parent[nKey] = nKey
+    uf.featureData[nKey] = {
+      id: nKey,
+      type: 'CITY',
+      nodes: [{ coordinate: { x: 0, y: 0 }, segmentId: 'city1' }],
+      meeples: [{
+        playerId: 'p1',
+        meepleType: 'NORMAL',
+        placedAt: { x: 0, y: 0 },
+        segmentId: 'city1'
+      }],
+      isComplete: false,
+      tileCount: 1,
+      pennantCount: 0,
+      openEdgeCount: 1,
+      touchingCityIds: [],
+      metadata: {}
+    }
+
+    expect(featureHasMeeples(uf, nKey)).toBe(true)
+  })
+
+  it('returns false when a feature has an empty meeples array', () => {
+    const uf = emptyUnionFindState()
+    const nKey = '0,0:road1'
+    uf.parent[nKey] = nKey
+    uf.featureData[nKey] = {
+      id: nKey,
+      type: 'ROAD',
+      nodes: [{ coordinate: { x: 0, y: 0 }, segmentId: 'road1' }],
+      meeples: [],
+      isComplete: false,
+      tileCount: 1,
+      pennantCount: 0,
+      openEdgeCount: 2,
+      touchingCityIds: [],
+      metadata: {}
+    }
+
+    expect(featureHasMeeples(uf, nKey)).toBe(false)
+  })
+
+  it('returns false when a feature does not exist for the given key', () => {
+    const uf = emptyUnionFindState()
+    expect(featureHasMeeples(uf, '0,0:nonexistent')).toBe(false)
   })
 })
 
