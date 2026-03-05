@@ -791,6 +791,12 @@ export const useGameStore = create<GameStore>()(
           if (stepResult) {
             const { state: nextStepState, eatenMeeples } = stepResult
 
+            // Build player color lookup to avoid repeated finds
+            const playerColors: Record<string, string> = {}
+            for (const p of nextStepState.players) {
+              playerColors[p.id] = p.color
+            }
+
             // Trigger animations for eaten meeples
             for (const meeple of eatenMeeples) {
               const tile = nextStepState.board.tiles[`${meeple.coordinate.x},${meeple.coordinate.y}`]
@@ -804,7 +810,7 @@ export const useGameStore = create<GameStore>()(
                   startBoardCoord: meeple.coordinate,
                   startBoardNode: segment.meepleCentroid,
                   targetPlayerId: meeple.playerId,
-                  color: nextStepState.players.find(p => p.id === meeple.playerId)?.color || '#fff',
+                  color: playerColors[meeple.playerId] || '#fff',
                   meepleType: meeple.meepleType as MeepleType
                 })
               }
