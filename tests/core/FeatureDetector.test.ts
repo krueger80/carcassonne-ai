@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest'
-import { addTileToUnionFind, getAllFeatures, countSurroundingTiles } from '../../src/core/engine/FeatureDetector.ts'
+import { addTileToUnionFind, getAllFeatures, countSurroundingTiles, updateFeatureMeeples } from '../../src/core/engine/FeatureDetector.ts'
 import { emptyUnionFindState } from '../../src/core/types/feature.ts'
 import { emptyBoard } from '../../src/core/types/board.ts'
 import { getFallbackTileMap } from '../../src/services/tileRegistry.ts'
@@ -297,6 +297,57 @@ describe('Cloister detection', () => {
 })
 
 // ─── countSurroundingTiles ────────────────────────────────────────────────────
+
+describe('updateFeatureMeeples', () => {
+  it('successfully updates meeples for an existing feature without mutating original state', () => {
+    const { uf } = buildBoard([placed('base2_E', 0, 0)])
+    const features = getAllFeatures(uf)
+    const city = features.find(f => f.type === 'CITY')!
+    expect(city.meeples).toEqual([])
+
+    const newMeeples = [{ type: 'NORMAL' as const, playerId: 'player1' }]
+    const newState = updateFeatureMeeples(uf, city.id, newMeeples)
+
+    // Original state should be unchanged
+    expect(uf.featureData[city.id].meeples).toEqual([])
+    // New state should have the updated meeples
+    expect(newState.featureData[city.id].meeples).toEqual(newMeeples)
+  })
+
+  it('successfully updates meeples using a non-root node key', () => {
+    const { uf } = buildBoard([
+      placed('base2_E', 0, 0, 0),
+      placed('base2_E', 0, -1, 180),
+    ])
+
+    // Find the merged city
+    const features = getAllFeatures(uf)
+    const city = features.find(f => f.type === 'CITY')!
+
+    // Find a node key that is part of the city but might not be the root
+    const anyCityNode = city.nodes[0]
+    const nodeKey = `${anyCityNode.coordinate.x},${anyCityNode.coordinate.y}:${anyCityNode.segmentId}`
+
+    const newMeeples = [{ type: 'LARGE' as const, playerId: 'player2' }]
+    const newState = updateFeatureMeeples(uf, nodeKey, newMeeples)
+
+    // The root feature should have the updated meeples
+    expect(newState.featureData[city.id].meeples).toEqual(newMeeples)
+  })
+
+  it('handles non-existent features gracefully', () => {
+    const { uf } = buildBoard([placed('base2_E', 0, 0)])
+
+    const fakeKey = '99,99:fakeSegment'
+    const newMeeples = [{ type: 'NORMAL' as const, playerId: 'player1' }]
+
+    const newState = updateFeatureMeeples(uf, fakeKey, newMeeples)
+
+    // Should not crash and state should be largely unchanged
+    expect(newState.featureData[fakeKey]).toBeUndefined()
+    expect(Object.keys(newState.featureData).length).toBe(Object.keys(uf.featureData).length)
+  })
+})
 
 describe('countSurroundingTiles', () => {
   it('isolated tile has 0 surrounding tiles', () => {
