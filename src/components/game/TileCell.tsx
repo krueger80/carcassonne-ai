@@ -134,7 +134,7 @@ export const TileCell = memo(({
       {/* Fairy Rendering - placed close to the meeple on the segment */}
       {fairySegmentId && (
         (() => {
-          const seg = def.segments.find(s => s.id === fairySegmentId);
+          const seg = def.segmentMap?.[fairySegmentId] || def.segments.find(s => s.id === fairySegmentId);
           if (!seg) return null;
           const { x, y } = rotateCentroid(seg.meepleCentroid, tile.rotation);
 

@@ -221,7 +221,8 @@ export function addTileToUnionFind(
       .filter(([a, b]) => a === seg.id || b === seg.id)
       .filter(([a, b]) => {
         const otherSegId = a === seg.id ? b : a
-        return def.segments.find(s => s.id === otherSegId)?.type === 'CITY'
+        const otherSeg = def.segmentMap?.[otherSegId] || def.segments.find(s => s.id === otherSegId)
+        return otherSeg?.type === 'CITY'
       })
       .map(([a, b]) => nodeKey(coord, a === seg.id ? b : a))
 
@@ -285,10 +286,10 @@ export function addTileToUnionFind(
       const neighborNodeKey = nodeKey(neighborCoord, neighborSegId)
 
       // Only union non-cloister segments
-      if (
-        def.segments.find(s => s.id === mySegId)?.type === 'CLOISTER' ||
-        neighborDef.segments.find(s => s.id === neighborSegId)?.type === 'CLOISTER'
-      ) continue
+      const mySeg = def.segmentMap?.[mySegId] || def.segments.find(s => s.id === mySegId)
+      const neighborSeg = neighborDef.segmentMap?.[neighborSegId] || neighborDef.segments.find(s => s.id === neighborSegId)
+
+      if (mySeg?.type === 'CLOISTER' || neighborSeg?.type === 'CLOISTER') continue
 
       if (myNodeKey in working.parent && neighborNodeKey in working.parent) {
         const newRoot = ufUnion(working, myNodeKey, neighborNodeKey)
