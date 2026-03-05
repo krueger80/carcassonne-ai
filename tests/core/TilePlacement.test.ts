@@ -4,6 +4,7 @@ import {
   isValidPlacement,
   getValidPositions,
   getValidRotations,
+  getAllPotentialPlacements,
   rotateDirection,
   unrotateDirection,
   rotateEdgePosition,
@@ -274,5 +275,85 @@ describe('getValidRotations', () => {
     // Both 0° and 180° have WEST=FIELD for tile U
     expect(rotations).toContain(0)
     expect(rotations).toContain(180)
+  })
+})
+
+// ─── getAllPotentialPlacements ────────────────────────────────────────────────
+
+describe('getAllPotentialPlacements', () => {
+  it('should return (0, 0) for an empty board', () => {
+    const board = emptyBoard()
+    const t = tile('base2_E', 0)
+    const placements = getAllPotentialPlacements(board, TILE_MAP, t)
+    expect(placements).toHaveLength(1)
+    expect(placements[0]).toEqual({ x: 0, y: 0 })
+  })
+
+  it('should return valid candidates around an existing tile', () => {
+    // Tile E at (0,0): NORTH=CITY, EAST=FIELD, SOUTH=FIELD, WEST=FIELD
+    const board = boardWith([placed('base2_E', 0, 0)])
+    const t = tile('base2_E', 0)
+    // For tile E, it can be placed around tile E
+    const placements = getAllPotentialPlacements(board, TILE_MAP, t)
+    expect(placements.length).toBeGreaterThan(0)
+    // Check that at least one of the valid placements is adjacent to (0,0)
+    for (const pos of placements) {
+      const isAdjacent =
+        (Math.abs(pos.x) === 1 && pos.y === 0) ||
+        (Math.abs(pos.y) === 1 && pos.x === 0)
+      expect(isAdjacent).toBe(true)
+    }
+  })
+
+  it('should return an empty array if the tile cannot be placed anywhere', () => {
+    // Fill the neighbors of (0,0) so nothing can be placed.
+    // Actually, Carcassonne doesn't usually get into "cannot be placed" easily,
+    // but if we place incompatible tiles everywhere:
+    // Let's create an invalid definition or block it completely.
+    // Tile C is all city.
+    const board = boardWith([
+      placed('base2_E', 0, 0), // city NORTH, field elsewhere
+      placed('base2_E', 0, 1), // SOUTH neighbor
+      placed('base2_E', 1, 0), // EAST neighbor
+      placed('base2_E', -1, 0) // WEST neighbor
+    ])
+    // The only empty spot adjacent to origin is (0, -1) which must connect to (0,0) NORTH=CITY.
+    // If we try to place tile A (all FIELD), it won't be able to connect to (0,0) NORTH=CITY
+    // at (0,-1) because tile A has no CITY. But it could connect to (0,1), (1,0), (-1,0) fields!
+    // So let's test a scenario where a tile simply doesn't fit on any candidate position.
+
+    // Create a very restrictive board: surrounded by CITY, trying to place ROAD.
+    const blockedBoard = boardWith([
+      placed('base2_C', 0, 0), // all CITY
+      placed('base2_C', 1, 0),
+      placed('base2_C', -1, 0),
+      placed('base2_C', 0, 1),
+      placed('base2_C', 0, -1),
+      placed('base2_C', 1, 1),
+      placed('base2_C', -1, 1),
+      placed('base2_C', 1, -1),
+      placed('base2_C', -1, -1),
+    ])
+    const roadTile = tile('base2_V', 0) // road tile with no city
+    const placements = getAllPotentialPlacements(blockedBoard, TILE_MAP, roadTile)
+    expect(placements).toHaveLength(0)
+  })
+
+  it('should only return coordinates where at least one rotation is valid', () => {
+    const board = boardWith([placed('base2_E', 0, 0)]) // NORTH=CITY, E=FIELD, S=FIELD, W=FIELD
+
+    // U is road NS: N=ROAD, E=FIELD, S=ROAD, W=FIELD
+    const tU = tile('base2_U', 0)
+
+    const placements = getAllPotentialPlacements(board, TILE_MAP, tU)
+    // It can be placed E, S, W of (0,0) because fields match fields.
+    // But it CANNOT be placed N of (0,0) because N of E is CITY, and U has no CITY.
+    expect(placements).not.toContainEqual({ x: 0, y: -1 }) // (0, -1) is North
+
+    // Check that it's placed somewhere valid
+    expect(placements.length).toBeGreaterThan(0)
+    for (const pos of placements) {
+      expect(pos).not.toEqual({ x: 0, y: -1 })
+    }
   })
 })
