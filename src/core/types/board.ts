@@ -10,7 +10,9 @@ export function coordKey(c: Coordinate): string {
 }
 
 export function keyToCoord(key: string): Coordinate {
-  const [x, y] = key.split(',').map(Number)
+  const commaIndex = key.indexOf(',')
+  const x = parseInt(key.slice(0, commaIndex), 10)
+  const y = parseInt(key.slice(commaIndex + 1), 10)
   return { x, y }
 }
 
