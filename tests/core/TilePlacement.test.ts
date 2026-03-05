@@ -4,6 +4,7 @@ import {
   isValidPlacement,
   getValidPositions,
   getValidRotations,
+  hasAnyValidPlacement,
   rotateDirection,
   unrotateDirection,
   rotateEdgePosition,
@@ -274,5 +275,59 @@ describe('getValidRotations', () => {
     // Both 0° and 180° have WEST=FIELD for tile U
     expect(rotations).toContain(0)
     expect(rotations).toContain(180)
+  })
+})
+
+// ─── hasAnyValidPlacement ─────────────────────────────────────────────────────
+
+describe('hasAnyValidPlacement', () => {
+  it('returns true on an empty board for any valid tile (since (0,0) is open)', () => {
+    const board = emptyBoard()
+    const t = tile('base2_E', 0)
+    expect(hasAnyValidPlacement(board, TILE_MAP, t)).toBe(true)
+  })
+
+  it('returns true when there is at least one valid spot (e.g. extending a field)', () => {
+    // Place tile E (CITY north, FIELD E/S/W) at (0,0)
+    const board = boardWith([placed('base2_E', 0, 0)])
+    // Tile A is all FIELD, should fit perfectly on the SOUTH, EAST, or WEST side
+    const t = tile('base2_A', 0)
+    expect(hasAnyValidPlacement(board, TILE_MAP, t)).toBe(true)
+  })
+
+  it('returns false when no placement is possible for the given tile', () => {
+    // Create a "hole" surrounded by incompatible edges.
+    // Let's create a plus-shape where the hole is at (0,0).
+    // We'll place tiles at (0,1), (1,0), (0,-1), (-1,0) such that they all present a ROAD edge into the hole.
+    // Tile U (straight road) has ROAD north/south, FIELD east/west.
+    // So if placed at (0,1) with rotation 0, it has ROAD south.
+    // If placed at (0,-1) with rotation 0, it has ROAD north.
+    // If placed at (1,0) with rotation 90, it has ROAD west.
+    // If placed at (-1,0) with rotation 90, it has ROAD east.
+    // All edges facing (0,0) will be ROAD.
+    const board = boardWith([
+      placed('base2_U', 0, 1, 0),    // SOUTH edge is ROAD
+      placed('base2_U', 1, 0, 90),   // WEST edge is ROAD
+      placed('base2_U', 0, -1, 0),   // NORTH edge is ROAD
+      placed('base2_U', -1, 0, 90),  // EAST edge is ROAD
+    ])
+
+    // Attempt to place a tile that has NO ROAD edges, e.g., tile C (all city)
+    const t = tile('base2_C', 0)
+    expect(hasAnyValidPlacement(board, TILE_MAP, t)).toBe(false)
+  })
+
+  it('returns true if the tile has a specific orientation that works', () => {
+    // Similar hole at (0,0) with ROAD on all 4 incoming edges
+    const board = boardWith([
+      placed('base2_U', 0, 1, 0),    // SOUTH edge is ROAD
+      placed('base2_U', 1, 0, 90),   // WEST edge is ROAD
+      placed('base2_U', 0, -1, 0),   // NORTH edge is ROAD
+      placed('base2_U', -1, 0, 90),  // EAST edge is ROAD
+    ])
+
+    // Attempt to place a tile that has ROAD on all 4 edges, e.g., base2_X (4-way crossroad)
+    const t = tile('base2_X', 0)
+    expect(hasAnyValidPlacement(board, TILE_MAP, t)).toBe(true)
   })
 })
