@@ -10,8 +10,11 @@ export function coordKey(c: Coordinate): string {
 }
 
 export function keyToCoord(key: string): Coordinate {
-  const [x, y] = key.split(',').map(Number)
-  return { x, y }
+  const comma = key.indexOf(',')
+  return {
+    x: parseInt(key.slice(0, comma), 10),
+    y: parseInt(key.slice(comma + 1), 10)
+  }
 }
 
 export interface MeeplePlacement {
