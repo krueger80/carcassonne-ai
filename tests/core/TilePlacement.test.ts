@@ -7,6 +7,7 @@ import {
   rotateDirection,
   unrotateDirection,
   rotateEdgePosition,
+  unrotateEdgePosition,
   getSegmentAtEdgePosition,
 } from '../../src/core/engine/TilePlacement.ts'
 import { emptyBoard } from '../../src/core/types/board.ts'
@@ -101,6 +102,33 @@ describe('unrotateDirection', () => {
 })
 
 // ─── Edge position rotation ───────────────────────────────────────────────────
+
+describe('unrotateEdgePosition', () => {
+  it('0°: NORTH_LEFT stays NORTH_LEFT', () => expect(unrotateEdgePosition('NORTH_LEFT', 0)).toBe('NORTH_LEFT'))
+  it('90°: EAST_LEFT → NORTH_LEFT', () => expect(unrotateEdgePosition('EAST_LEFT', 90)).toBe('NORTH_LEFT'))
+  it('90°: EAST_CENTER → NORTH_CENTER', () => expect(unrotateEdgePosition('EAST_CENTER', 90)).toBe('NORTH_CENTER'))
+  it('90°: EAST_RIGHT → NORTH_RIGHT', () => expect(unrotateEdgePosition('EAST_RIGHT', 90)).toBe('NORTH_RIGHT'))
+  it('180°: SOUTH_LEFT → NORTH_LEFT', () => expect(unrotateEdgePosition('SOUTH_LEFT', 180)).toBe('NORTH_LEFT'))
+  it('270°: WEST_LEFT → NORTH_LEFT', () => expect(unrotateEdgePosition('WEST_LEFT', 270)).toBe('NORTH_LEFT'))
+  it('90°: WEST_CENTER → SOUTH_CENTER', () => expect(unrotateEdgePosition('WEST_CENTER', 90)).toBe('SOUTH_CENTER'))
+
+  it('is inverse of rotateEdgePosition', () => {
+    const positions = [
+      'NORTH_LEFT', 'NORTH_CENTER', 'NORTH_RIGHT',
+      'EAST_LEFT', 'EAST_CENTER', 'EAST_RIGHT',
+      'SOUTH_LEFT', 'SOUTH_CENTER', 'SOUTH_RIGHT',
+      'WEST_LEFT', 'WEST_CENTER', 'WEST_RIGHT'
+    ] as const
+    const rotations = [0, 90, 180, 270] as const
+    for (const pos of positions) {
+      for (const rot of rotations) {
+        const rotated = rotateEdgePosition(pos, rot)
+        const unrotated = unrotateEdgePosition(rotated, rot)
+        expect(unrotated).toBe(pos)
+      }
+    }
+  })
+})
 
 describe('rotateEdgePosition', () => {
   it('0°: NORTH_LEFT stays NORTH_LEFT', () => expect(rotateEdgePosition('NORTH_LEFT', 0)).toBe('NORTH_LEFT'))
