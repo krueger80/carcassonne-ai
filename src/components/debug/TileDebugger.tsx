@@ -146,9 +146,6 @@ export function TileDebugger() {
     }
 
     const handleDeleteSegment = (segId: string) => {
-        // Removed confirm dialog as it might be blocked by browser policies
-        // if (!confirm(`Delete segment ${segId}?`)) return
-
         const newSegments = activeTile.segments.filter(s => s.id !== segId)
 
         // Clean up edge mappings
