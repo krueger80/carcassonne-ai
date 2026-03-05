@@ -90,6 +90,7 @@ interface BoardGridProps {
   currentPlayer: any
   undoTilePlacement: () => void
   segmentOwnerMap: Record<string, Record<string, string>>
+  playerColors: Record<string, string>
 }
 
 const BoardGrid = memo(({
@@ -107,6 +108,7 @@ const BoardGrid = memo(({
   cycleDragonFacing, placeDragonOnHoard, moveFairy,
   setHoveredCoord, selectedMeepleType, currentPlayer, undoTilePlacement,
   segmentOwnerMap,
+  playerColors,
 }: BoardGridProps) => {
   const { board } = gameState
   const lastKey = gameState.lastPlacedCoord
@@ -167,7 +169,7 @@ const BoardGrid = memo(({
                         meeples: {}
                       }}
                       size={CELL_SIZE}
-                      players={gameState.players}
+                      playerColors={playerColors}
                       placeableSegments={[]}
                       isTentative={true}
                     />
@@ -234,7 +236,7 @@ const BoardGrid = memo(({
                       definition={gameState.staticTileMap[placedTile.definitionId]}
                       tile={placedTile}
                       size={CELL_SIZE}
-                      players={gameState.players}
+                      playerColors={playerColors}
                       placeableSegments={segmentsHere}
                       onSegmentClick={(segId) => {
                         if (gameState.turnPhase === 'PLACE_MEEPLE') {
@@ -719,6 +721,16 @@ export function GameBoard() {
     return computeSegmentOwnerMap(gameState.featureUnionFind, gameState.players, territoryOverlay)
   }, [gameState?.featureUnionFind, gameState?.players, territoryOverlay])
 
+  const playerColors = useMemo(() => {
+    const map: Record<string, string> = {}
+    if (gameState?.players) {
+      for (const p of gameState.players) {
+        map[p.id] = p.color
+      }
+    }
+    return map
+  }, [gameState?.players])
+
   const boardWidth = (maxX - minX + 1) * CELL_SIZE
   const boardHeight = (maxY - minY + 1) * CELL_SIZE
 
@@ -800,6 +812,7 @@ export function GameBoard() {
           currentPlayer={currentPlayer}
           undoTilePlacement={handleUndoTilePlacement}
           segmentOwnerMap={segmentOwnerMap}
+          playerColors={playerColors}
         />
 
         {/* Global Dragon Piece (Animated) */}

@@ -24,7 +24,8 @@ interface TileCellProps {
   tile: PlacedTile
   definition: TileDefinition
   size: number
-  players: Player[]
+  /** Map of player ID to their hex color */
+  playerColors?: Record<string, string>
   /** Segment IDs clickable for meeple placement */
   placeableSegments?: string[]
   onSegmentClick?: (segmentId: string) => void
@@ -50,7 +51,7 @@ export const TileCell = memo(({
   tile,
   definition,
   size,
-  players,
+  playerColors = {},
   placeableSegments = [],
   onSegmentClick,
   isTentative = false,
@@ -71,10 +72,10 @@ export const TileCell = memo(({
 
   // 1. Existing meeples
   for (const [segId, meeple] of Object.entries(tile.meeples)) {
-    const player = players.find(p => p.id === meeple.playerId)
-    if (player) {
+    const color = playerColors[meeple.playerId]
+    if (color) {
       meepleColors[segId] = {
-        color: player.color,
+        color: color,
         isBig: meeple.meepleType === 'BIG',
         isBuilder: meeple.meepleType === 'BUILDER',
         isPig: meeple.meepleType === 'PIG',

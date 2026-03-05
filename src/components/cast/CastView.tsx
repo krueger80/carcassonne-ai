@@ -111,6 +111,16 @@ export function CastView() {
     fairySegmentMap[`${coordinate.x},${coordinate.y}`] = segmentId
   }
 
+  const playerColors = useMemo(() => {
+    const map: Record<string, string> = {}
+    if (players) {
+      for (const p of players) {
+        map[p.id] = p.color
+      }
+    }
+    return map
+  }, [players])
+
   return (
     <div
       ref={containerRef}
@@ -168,7 +178,7 @@ export function CastView() {
                       tile={placedTile}
                       definition={definition}
                       size={CELL_SIZE}
-                      players={players}
+                      playerColors={playerColors}
                       fairySegmentId={fairySegmentMap[key]}
                       segmentOwnerColors={segmentOwnerMap[key]}
                     />
