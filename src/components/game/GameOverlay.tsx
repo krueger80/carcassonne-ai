@@ -118,6 +118,14 @@ export function GameOverlay() {
         }
     }, [gameState?.turnPhase, drawTile])
 
+    const activeCats = useMemo(() => {
+        if (!gameState?.players) return []
+        const expansionList = (gameState.expansionData?.expansions as string[] | undefined) ?? []
+        const hasTradersBuilders = expansionList.includes('traders-builders')
+        const cats: Array<'ROAD' | 'CITY' | 'CLOISTER' | 'FIELD' | 'TRADER'> = ['ROAD', 'CITY', 'CLOISTER', 'FIELD', ...(hasTradersBuilders ? ['TRADER' as const] : [])]
+        return cats.filter(c => gameState.players.some(p => (p.scoreBreakdown?.[c] ?? 0) > 0))
+    }, [gameState?.players, gameState?.expansionData?.expansions])
+
     const orderedPlayers = useMemo(() => {
         if (!gameState) return []
         const { players, currentPlayerIndex } = gameState
@@ -620,8 +628,7 @@ export function GameOverlay() {
                         {(() => {
                             const sorted = [...players].sort((a, b) => b.score - a.score)
                             const MEDAL: Record<number, string> = { 0: '🥇', 1: '🥈', 2: '🥉' }
-                            const cats: Array<'ROAD' | 'CITY' | 'CLOISTER' | 'FIELD' | 'TRADER'> = ['ROAD', 'CITY', 'CLOISTER', 'FIELD', ...(hasTradersBuilders ? ['TRADER' as const] : [])]
-                            const activeCats = cats.filter(c => players.some(p => (p.scoreBreakdown?.[c] ?? 0) > 0))
+
                             const CAT_ICONS: Record<string, string> = { ROAD: '🛤️', CITY: '🏰', CLOISTER: '⛪', FIELD: '🌾', TRADER: '📦' }
                             return (
                                 <table style={{ width: '100%', borderCollapse: 'collapse' }}>
