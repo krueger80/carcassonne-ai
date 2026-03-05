@@ -694,6 +694,7 @@ export function GameOverlay() {
                     onPointerUp={(e) => e.stopPropagation()}
                 >
                     <button
+                        aria-label="Toggle menu"
                         onClick={(e) => { e.stopPropagation(); setIsMenuOpen(!isMenuOpen) }}
                         style={{
                             background: 'rgba(0,0,0,0.6)',
