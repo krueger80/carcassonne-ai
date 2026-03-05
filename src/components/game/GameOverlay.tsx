@@ -884,7 +884,7 @@ export function GameOverlay() {
                 <div style={{
                     display: 'flex',
                     flexDirection: 'column',
-                    alignItems: 'flex-start',
+                    alignItems: 'center',
                     gap: showOpponents ? 8 : 0,
                     width: '100%',
                     pointerEvents: 'none',
@@ -905,7 +905,7 @@ export function GameOverlay() {
                                             ? { opacity: 1, scale: 1, x: 0, marginBottom: 0 }
                                             : showOpponents
                                                 ? { opacity: 0.7, scale: 0.95, x: 0, marginBottom: 0 }
-                                                : { opacity: 0.6, scale: 0.85, x: 16, marginBottom: -32 }
+                                                : { opacity: 0.6, scale: 0.85, x: 0, marginBottom: -40 }
                                     }
                                     transition={{ type: 'spring', stiffness: 300, damping: 25 }}
                                     style={{
