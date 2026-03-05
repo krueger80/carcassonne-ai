@@ -154,6 +154,7 @@ const BoardGrid = memo(({
                     style={{ width: CELL_SIZE, height: CELL_SIZE, overflow: 'visible' }}
                     onClick={(e) => {
                       e.stopPropagation()
+                      setHoveredCoord(null) // Clear ghost on rotate
                       rotateTentativeTile()
                     }}
                   >
@@ -350,6 +351,7 @@ const BoardGrid = memo(({
                   onLeave={() => setHoveredCoord(null)}
                   onClick={(e) => {
                     e.stopPropagation()
+                    setHoveredCoord(null) // Clear ghost on place
                     if (!isValid) return
                     if (gameState.turnPhase === 'PLACE_MEEPLE') {
                       undoTilePlacement()
