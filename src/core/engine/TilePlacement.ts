@@ -248,31 +248,32 @@ export function getValidPositions(
   tileMap: Record<string, TileDefinition>,
   instance: TileInstance,
 ): Coordinate[] {
-  const candidates = new Set<string>()
+  const candidates = new Map<string, Coordinate>()
+  const tileEntries = Object.values(board.tiles)
 
-  for (const key of Object.keys(board.tiles)) {
-    const [x, y] = key.split(',').map(Number)
+  for (const tile of tileEntries) {
+    const { x, y } = tile.coordinate
     for (const dir of DIRECTIONS) {
       const { dx, dy } = DIRECTION_DELTA[dir]
-      const candidateKey = coordKey({ x: x + dx, y: y + dy })
+      const nx = x + dx
+      const ny = y + dy
+      const candidateKey = coordKey({ x: nx, y: ny })
       if (!board.tiles[candidateKey]) {
-        candidates.add(candidateKey)
+        candidates.set(candidateKey, { x: nx, y: ny })
       }
     }
   }
 
   // Special case: empty board — starting position is (0,0)
-  if (Object.keys(board.tiles).length === 0) {
-    candidates.add('0,0')
+  if (tileEntries.length === 0) {
+    candidates.set('0,0', { x: 0, y: 0 })
   }
 
-  const valid = new Set<string>()
+  const valid = new Map<string, Coordinate>()
   const def = tileMap[instance.definitionId]
   if (!def) return []
 
-  for (const key of candidates) {
-    const [cx, cy] = key.split(',').map(Number)
-
+  for (const { x: cx, y: cy } of candidates.values()) {
     // For the given instance rotation, what are the footprint offsets?
     const offsets = [{ dx: 0, dy: 0 }]
     if (def.linkedTiles) {
@@ -283,16 +284,14 @@ export function getValidPositions(
 
     for (const off of offsets) {
       const testCoord = { x: cx - off.dx, y: cy - off.dy }
-      if (isValidPlacement(board, tileMap, instance, testCoord)) {
-        valid.add(coordKey(testCoord))
+      const key = coordKey(testCoord)
+      if (!valid.has(key) && isValidPlacement(board, tileMap, instance, testCoord)) {
+        valid.set(key, testCoord)
       }
     }
   }
 
-  return Array.from(valid).map(k => {
-    const [x, y] = k.split(',').map(Number)
-    return { x, y }
-  })
+  return Array.from(valid.values())
 }
 
 /**
@@ -335,33 +334,34 @@ export function getAllPotentialPlacements(
   tileMap: Record<string, TileDefinition>,
   instance: TileInstance,
 ): Coordinate[] {
-  const candidates = new Set<string>()
+  const candidates = new Map<string, Coordinate>()
+  const tileEntries = Object.values(board.tiles)
 
   // 1. Identify all candidate cells (empty cells adjacent to existing tiles)
-  for (const key of Object.keys(board.tiles)) {
-    const [x, y] = key.split(',').map(Number)
+  for (const tile of tileEntries) {
+    const { x, y } = tile.coordinate
     for (const dir of DIRECTIONS) {
       const { dx, dy } = DIRECTION_DELTA[dir]
-      const candidateKey = coordKey({ x: x + dx, y: y + dy })
+      const nx = x + dx
+      const ny = y + dy
+      const candidateKey = coordKey({ x: nx, y: ny })
       if (!board.tiles[candidateKey]) {
-        candidates.add(candidateKey)
+        candidates.set(candidateKey, { x: nx, y: ny })
       }
     }
   }
 
   // Special case: empty board
-  if (Object.keys(board.tiles).length === 0) {
-    candidates.add('0,0')
+  if (tileEntries.length === 0) {
+    candidates.set('0,0', { x: 0, y: 0 })
   }
 
-  const valid = new Set<string>()
+  const valid = new Map<string, Coordinate>()
   const def = tileMap[instance.definitionId]
   if (!def) return []
 
   // 2. Check each candidate
-  for (const key of candidates) {
-    const [cx, cy] = key.split(',').map(Number)
-
+  for (const { x: cx, y: cy } of candidates.values()) {
     // Check if ANY rotation works here
     for (const rotation of [0, 90, 180, 270] as Rotation[]) {
       const offsets = [{ dx: 0, dy: 0 }]
@@ -373,17 +373,15 @@ export function getAllPotentialPlacements(
 
       for (const off of offsets) {
         const testCoord = { x: cx - off.dx, y: cy - off.dy }
-        if (isValidPlacement(board, tileMap, { ...instance, rotation }, testCoord)) {
-          valid.add(coordKey(testCoord))
+        const key = coordKey(testCoord)
+        if (!valid.has(key) && isValidPlacement(board, tileMap, { ...instance, rotation }, testCoord)) {
+          valid.set(key, testCoord)
         }
       }
     }
   }
 
-  return Array.from(valid).map(k => {
-    const [x, y] = k.split(',').map(Number)
-    return { x, y }
-  })
+  return Array.from(valid.values())
 }
 
 // ─── River placement helpers ────────────────────────────────────────────────
@@ -646,16 +644,16 @@ export function isRiverPlacementAllowed(
 export function findRiverOpenEnds(
   board: Board,
   tileMap: Record<string, TileDefinition>,
-): Set<string> {
-  const openEnds = new Set<string>()
+): Map<string, Coordinate> {
+  const openEnds = new Map<string, Coordinate>()
+  const tileEntries = Object.values(board.tiles)
 
   // Build a set of all occupied physical cells
   const occupied = new Set<string>()
-  for (const key of Object.keys(board.tiles)) {
-    const tile = board.tiles[key]
+  for (const tile of tileEntries) {
     const def = tileMap[tile.definitionId]
     if (!def) continue
-    occupied.add(key)
+    occupied.add(coordKey(tile.coordinate))
     if (def.linkedTiles) {
       for (const lt of def.linkedTiles) {
         const off = getRotatedOffset(lt.dx, lt.dy, tile.rotation)
@@ -664,8 +662,7 @@ export function findRiverOpenEnds(
     }
   }
 
-  for (const key of Object.keys(board.tiles)) {
-    const tile = board.tiles[key]
+  for (const tile of tileEntries) {
     const def = tileMap[tile.definitionId]
     if (!def) continue
 
@@ -689,7 +686,7 @@ export function findRiverOpenEnds(
         const ny = partY + DIRECTION_DELTA[dir].dy
         const neighborKey = coordKey({ x: nx, y: ny })
         if (!occupied.has(neighborKey)) {
-          openEnds.add(neighborKey)
+          openEnds.set(neighborKey, { x: nx, y: ny })
         }
       }
     }
@@ -712,18 +709,16 @@ export function getAllPotentialRiverPlacements(
   // Only consider cells at the open end of the river
   const openEnds = findRiverOpenEnds(board, tileMap)
 
-  const valid = new Set<string>()
+  const valid = new Map<string, Coordinate>()
   const def = tileMap[instance.definitionId]
   if (!def) return []
 
   const isCompound = !!(def.linkedTiles && def.linkedTiles.length > 0)
   if (isCompound) {
-    console.log(`[RIVER_PLACEMENT] Compound tile ${instance.definitionId}, openEnds:`, Array.from(openEnds))
+    console.log(`[RIVER_PLACEMENT] Compound tile ${instance.definitionId}, openEnds:`, Array.from(openEnds.keys()))
   }
 
-  for (const key of openEnds) {
-    const [cx, cy] = key.split(',').map(Number)
-
+  for (const { x: cx, y: cy } of openEnds.values()) {
     for (const rotation of [0, 90, 180, 270] as Rotation[]) {
       const inst = { ...instance, rotation }
       const offsets = [{ dx: 0, dy: 0 }]
@@ -735,24 +730,24 @@ export function getAllPotentialRiverPlacements(
 
       for (const off of offsets) {
         const testCoord = { x: cx - off.dx, y: cy - off.dy }
-        const validPlacement = isValidPlacement(board, tileMap, inst, testCoord)
-        const riverAllowed = isRiverPlacementAllowed(board, tileMap, inst, testCoord, lastTurnDirection)
+        const key = coordKey(testCoord)
+        if (!valid.has(key)) {
+          const validPlacement = isValidPlacement(board, tileMap, inst, testCoord)
+          const riverAllowed = isRiverPlacementAllowed(board, tileMap, inst, testCoord, lastTurnDirection)
 
-        if (isCompound) {
-          console.log(`[RIVER_PLACEMENT] openEnd=(${cx},${cy}) rot=${rotation} off=(${off.dx},${off.dy}) root@(${testCoord.x},${testCoord.y}): valid=${validPlacement} riverAllowed=${riverAllowed}`)
-        }
+          if (isCompound) {
+            console.log(`[RIVER_PLACEMENT] openEnd=(${cx},${cy}) rot=${rotation} off=(${off.dx},${off.dy}) root@(${testCoord.x},${testCoord.y}): valid=${validPlacement} riverAllowed=${riverAllowed}`)
+          }
 
-        if (validPlacement && riverAllowed) {
-          valid.add(coordKey(testCoord))
+          if (validPlacement && riverAllowed) {
+            valid.set(key, testCoord)
+          }
         }
       }
     }
   }
 
-  const result = Array.from(valid).map(k => {
-    const [x, y] = k.split(',').map(Number)
-    return { x, y }
-  })
+  const result = Array.from(valid.values())
 
   if (isCompound) {
     console.log(`[RIVER_PLACEMENT] Final valid placements for ${instance.definitionId}:`, result)

@@ -122,8 +122,7 @@ describe('Double Lake placement – realistic scenarios', () => {
         // If empty, show why each attempt fails
         if (placements.length === 0) {
             console.log('\n=== DETAILED FAILURE ANALYSIS ===')
-            for (const key of openEnds3) {
-                const [cx, cy] = key.split(',').map(Number)
+            for (const { x: cx, y: cy } of openEnds3.values()) {
                 for (const rot of [0, 90, 180, 270] as Rotation[]) {
                     const testInst = { ...inst, rotation: rot }
                     const offsets = [{ dx: 0, dy: 0 }]
