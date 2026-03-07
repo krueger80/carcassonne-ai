@@ -142,6 +142,9 @@ export function initGame(config: GameConfig): GameState {
     ? expansionSelections.some(s => s.id === 'river')
     : expansions.includes('river') ||
     expansions.includes('river-c3')
+  const hasAbbot = expansionSelections
+    ? expansionSelections.some(s => s.id === 'abbot')
+    : expansions.includes('abbot')
 
   const enableBigMeeple = hasIc
   const enableBuilderAndPig = hasTb
@@ -156,6 +159,7 @@ export function initGame(config: GameConfig): GameState {
     ...(hasTb ? ['traders-builders'] : []),
     ...(hasDf ? ['dragon-fairy'] : []),
     ...(hasRiver ? ['river'] : []),
+    ...(hasAbbot ? ['abbot'] : []),
   ]
 
   let allHardcodedExtraTiles: TileDefinition[] = []
@@ -266,7 +270,7 @@ export function initGame(config: GameConfig): GameState {
   else if (hasTb) scoringRulesKey = 'tb'
 
   const players: Player[] = playerNames.map((name, i) =>
-    createPlayer(`player_${i}`, name, PLAYER_COLORS[i], enableBigMeeple, enableBuilderAndPig)
+    createPlayer(`player_${i}`, name, PLAYER_COLORS[i], enableBigMeeple, enableBuilderAndPig, hasAbbot)
   )
 
   // ── Detect tiles that have river segments (from any expansion) ──
@@ -880,6 +884,97 @@ export function placeMeepleOnExistingTile(
 export function skipMeeple(state: GameState): GameState {
   if (state.turnPhase !== 'PLACE_MEEPLE') return state
   return { ...state, turnPhase: 'SCORE' }
+}
+
+/**
+ * Retrieve the player's Abbot from the board, scoring its feature immediately
+ * (incomplete scoring). This is an alternative to placing a meeple during the
+ * PLACE_MEEPLE phase.
+ */
+export function retrieveAbbot(
+  state: GameState,
+  coord: Coordinate,
+  segmentId: string,
+): GameState {
+  if (state.turnPhase !== 'PLACE_MEEPLE') return state
+
+  const player = state.players[state.currentPlayerIndex]
+  const nKey = nodeKey(coord, segmentId)
+
+  // Validate: there must be an ABBOT belonging to the current player at this location
+  const boardMeeple = state.boardMeeples[nKey]
+  if (!boardMeeple || boardMeeple.meepleType !== 'ABBOT' || boardMeeple.playerId !== player.id) {
+    return state
+  }
+
+  // Score the feature (incomplete scoring)
+  const rules = resolveScoringRules(state)
+  const feature = getFeature(state.featureUnionFind, nKey)
+  if (!feature) return state
+
+  const rule = rules.find(r => r.featureType === feature.type)
+  const points = rule ? rule.scoreIncomplete(feature, state.featureUnionFind) : 0
+
+  // Remove Abbot from feature meeples
+  const updatedFeatureMeeples = feature.meeples.filter(m =>
+    !(m.playerId === player.id && m.meepleType === 'ABBOT' && m.segmentId === segmentId &&
+      m.coordinate.x === coord.x && m.coordinate.y === coord.y)
+  )
+  let newUfState = updateFeatureMeeples(state.featureUnionFind, nKey, updatedFeatureMeeples)
+
+  // Remove from boardMeeples
+  const newBoardMeeples = { ...state.boardMeeples }
+  delete newBoardMeeples[nKey]
+
+  // Remove from tile meeples
+  const tileKey = coordKey(coord)
+  const existingTile = state.board.tiles[tileKey]
+  let newBoardTiles = state.board.tiles
+  if (existingTile) {
+    const { [segmentId]: _removed, ...remainingMeeples } = existingTile.meeples
+    newBoardTiles = {
+      ...newBoardTiles,
+      [tileKey]: { ...existingTile, meeples: remainingMeeples },
+    }
+  }
+
+  // Return Abbot to player and add score
+  const updatedPlayers = state.players.map(p =>
+    p.id === player.id
+      ? {
+        ...p,
+        score: p.score + points,
+        meeples: {
+          ...p.meeples,
+          available: { ...p.meeples.available, ABBOT: p.meeples.available.ABBOT + 1 },
+          onBoard: p.meeples.onBoard.filter(k => k !== nKey),
+        },
+        scoreBreakdown: {
+          ...p.scoreBreakdown,
+          [feature.type === 'GARDEN' ? 'GARDEN' : 'CLOISTER']:
+            ((p.scoreBreakdown[feature.type === 'GARDEN' ? 'GARDEN' : 'CLOISTER']) ?? 0) + points,
+        },
+      }
+      : p,
+  )
+
+  const scoreEvent: ScoreEvent = {
+    featureId: feature.id,
+    featureType: feature.type,
+    scores: { [player.id]: points },
+    tiles: feature.nodes.map(n => n.coordinate),
+    isEndGame: false,
+  }
+
+  return {
+    ...state,
+    board: { ...state.board, tiles: newBoardTiles },
+    boardMeeples: newBoardMeeples,
+    featureUnionFind: newUfState,
+    players: updatedPlayers,
+    lastScoreEvents: [scoreEvent],
+    turnPhase: 'SCORE',
+  }
 }
 
 
@@ -2551,6 +2646,16 @@ export function getValidMeepleTypes(state: GameState): MeepleType[] {
     })
 
     if (canPlaceStandalone || canPlaceSimultaneous) validTypes.push('PIG')
+  }
+
+  // Check ABBOT (can only be placed on CLOISTER or GARDEN segments)
+  if ((player.meeples.available.ABBOT ?? 0) > 0) {
+    const canPlace = segments.some(segId => {
+      const seg = def.segments.find(s => s.id === segId)
+      if (!seg || (seg.type !== 'CLOISTER' && seg.type !== 'GARDEN')) return false
+      return canPlaceMeeple(state.featureUnionFind, player, lastCoord, segId, 'ABBOT', dragonPos, state.staticTileMap, state.currentTile!.definitionId)
+    })
+    if (canPlace) validTypes.push('ABBOT')
   }
 
   return validTypes

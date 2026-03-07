@@ -12,7 +12,7 @@ export type RulesVersion = 'classic' | 'modern'
 export type TileEdition = 'C1' | 'C2' | 'C3' | 'C3.1'
 
 /** Canonical expansion identifiers (edition-agnostic). */
-export type ExpansionId = 'inns-cathedrals' | 'traders-builders' | 'dragon-fairy' | 'river'
+export type ExpansionId = 'inns-cathedrals' | 'traders-builders' | 'dragon-fairy' | 'river' | 'abbot'
 
 /**
  * Per-expansion configuration chosen during setup.
@@ -48,6 +48,9 @@ export function getVersionedExpansionId(sel: ExpansionSelection): string {
   }
   if (sel.id === 'river') {
     return 'river-c3'
+  }
+  if (sel.id === 'abbot') {
+    return 'abbot'
   }
   return 'dragon-fairy-c31'
 }

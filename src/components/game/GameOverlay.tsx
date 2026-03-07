@@ -52,6 +52,7 @@ export function GameOverlay() {
         playDoubleLake,
         flipTile,
         validPlacements,
+        retrieveAbbot: storeRetrieveAbbot,
     } = useGameStore()
 
     const { selectedMeepleType, setSelectedMeepleType, boardScale, boardOffset, isManualInteraction } = useUIStore()
@@ -149,6 +150,7 @@ export function GameOverlay() {
     const hasInnsCathedrals = expansionList.includes('inns-cathedrals')
     const hasTradersBuilders = expansionList.includes('traders-builders')
     const hasDragonFairy = expansionList.includes('dragon-fairy')
+    const hasAbbot = expansionList.includes('abbot')
     const tbData = gameState.expansionData?.['tradersBuilders'] as {
         isBuilderBonusTurn?: boolean;
         useModernTerminology?: boolean;
@@ -902,6 +904,7 @@ export function GameOverlay() {
                                         isBuilderBonusTurn={isActive && isBuilderBonusTurn}
                                         hasTradersBuilders={hasTradersBuilders}
                                         hasInnsCathedrals={hasInnsCathedrals}
+                                        hasAbbot={hasAbbot}
                                         hasDragonHeldBy={dfData?.dragonHeldBy ?? null}
                                         useModernTerminology={useModernTerminology}
                                         turnState={isActive ? currentPlayerTurnState : undefined}
@@ -957,6 +960,23 @@ export function GameOverlay() {
                             <button onClick={skipMeeple} style={floatingBtnStyle('#7f8c8d', '#606c6d')}>
                                 {t('game.skip')}
                             </button>
+                            {hasAbbot && currentPlayer && (currentPlayer.meeples.available.ABBOT ?? 0) === 0 && (() => {
+                                // Find the player's abbot on the board to enable retrieval
+                                const abbotOnBoard = currentPlayer.meeples.onBoard.find(nk => {
+                                    const bm = gameState?.boardMeeples[nk]
+                                    return bm && bm.meepleType === 'ABBOT' && bm.playerId === currentPlayer.id
+                                })
+                                if (!abbotOnBoard) return null
+                                const bm = gameState!.boardMeeples[abbotOnBoard]
+                                return (
+                                    <button
+                                        onClick={() => storeRetrieveAbbot(bm.coordinate, bm.segmentId)}
+                                        style={floatingBtnStyle('#8e44ad', '#6c3483')}
+                                    >
+                                        {t('game.retrieveAbbot', 'Retrieve Abbot')}
+                                    </button>
+                                )
+                            })()}
                         </>
                     )}
                 </div>

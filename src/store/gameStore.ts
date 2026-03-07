@@ -13,6 +13,7 @@ import {
   placeMeepleOnExistingTile,
   resolveFarmerReturn as engineResolveFarmerReturn,
   skipMeeple,
+  retrieveAbbot,
   endTurn,
   scoreFeatureCompletion,
   getPotentialPlacementsForState,
@@ -90,6 +91,7 @@ interface GameStore {
   confirmMeeplePlacement: () => void
   cancelMeeplePlacement: () => void
   skipMeeple: () => void
+  retrieveAbbot: (coord: Coordinate, segmentId: string) => void
   resolveFarmerReturn: (returnFarmer: boolean) => void
   setTentativeMeepleType: (type: MeepleType) => void
   processScoringSequence: () => Promise<void>
@@ -616,6 +618,26 @@ export const useGameStore = create<GameStore>()(
         set((store) => {
           if (!store.gameState) return
           store.gameState = skipMeeple(store.gameState)
+        })
+
+        const { gameState } = get()
+        if (!gameState) return
+
+        if (gameState.turnPhase === 'SCORE') {
+          get().processScoringSequence()
+          return
+        }
+
+        get().endTurn()
+      },
+
+      retrieveAbbot: (coord: Coordinate, segmentId: string) => {
+        set((store) => {
+          if (!store.gameState) return
+          store.gameState = retrieveAbbot(store.gameState, coord, segmentId)
+          store.interactionState = 'IDLE'
+          store.tentativeMeepleSegment = null
+          store.tentativeMeepleType = null
         })
 
         const { gameState } = get()

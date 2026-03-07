@@ -52,6 +52,7 @@ interface PlayerCardProps {
     isBuilderBonusTurn?: boolean;
     hasTradersBuilders: boolean;
     hasInnsCathedrals: boolean;
+    hasAbbot?: boolean;
     hasDragonHeldBy?: string | null;
     useModernTerminology?: boolean;
     turnState?: TurnState;
@@ -106,6 +107,7 @@ const MeepleIcon = ({ type, count, tooltip, color, onClick, isSelected, disabled
                         isBig={type === 'BIG'}
                         isBuilder={type === 'BUILDER'}
                         isPig={type === 'PIG'}
+                        isAbbot={type === 'ABBOT'}
                     />
                 </svg>
                 <div style={{
@@ -158,7 +160,7 @@ const GoodIcon = ({ type, count, useModernTerminology, isCompact }: GoodIconProp
     )
 }
 
-export function PlayerCard({ player, isCurrentTurn, isBuilderBonusTurn = false, hasTradersBuilders, hasInnsCathedrals, hasDragonHeldBy, useModernTerminology = false, turnState, style }: PlayerCardProps) {
+export function PlayerCard({ player, isCurrentTurn, isBuilderBonusTurn = false, hasTradersBuilders, hasInnsCathedrals, hasAbbot = false, hasDragonHeldBy, useModernTerminology = false, turnState, style }: PlayerCardProps) {
     const { t } = useTranslation();
     const { color, name, score, meeples, traderTokens } = player;
 
@@ -272,6 +274,18 @@ export function PlayerCard({ player, isCurrentTurn, isBuilderBonusTurn = false, 
                                                     onClick={isCurrentTurn && isMeeplePhase && turnState?.actions.selectMeeple ? () => turnState.actions.selectMeeple?.('BIG') : undefined}
                                                     isSelected={isMeeplePhase && turnState?.selectedMeepleType === 'BIG'}
                                                     disabled={!isCurrentTurn || !isMeeplePhase || (meeples.available.BIG ?? 0) <= 0 || (turnState?.validMeepleTypes && !turnState.validMeepleTypes.includes('BIG'))}
+                                                    isCompact={!isCurrentTurn}
+                                                />
+                                            )}
+                                            {hasAbbot && (
+                                                <MeepleIcon
+                                                    type="ABBOT"
+                                                    count={getAdjustedCount('ABBOT')}
+                                                    tooltip={t('meeple.abbot', 'Abbot')}
+                                                    color={color}
+                                                    onClick={isCurrentTurn && isMeeplePhase && turnState?.actions.selectMeeple ? () => turnState.actions.selectMeeple?.('ABBOT') : undefined}
+                                                    isSelected={isMeeplePhase && turnState?.selectedMeepleType === 'ABBOT'}
+                                                    disabled={!isCurrentTurn || !isMeeplePhase || (meeples.available.ABBOT ?? 0) <= 0 || (turnState?.validMeepleTypes && !turnState.validMeepleTypes.includes('ABBOT'))}
                                                     isCompact={!isCurrentTurn}
                                                 />
                                             )}

@@ -248,6 +248,15 @@ export const BASE3_TILES: TileDefinition[] = [
           "x": 50,
           "y": 71
         }
+      },
+      {
+        "id": "garden0",
+        "type": "GARDEN",
+        "svgPath": "M30,60 L70,60 L70,90 L30,90 Z",
+        "meepleCentroid": {
+          "x": 50,
+          "y": 75
+        }
       }
     ],
     "edgePositionToSegment": {
@@ -267,6 +276,10 @@ export const BASE3_TILES: TileDefinition[] = [
     "adjacencies": [
       [
         "city0",
+        "field0"
+      ],
+      [
+        "garden0",
         "field0"
       ]
     ]
@@ -1045,6 +1058,15 @@ export const BASE3_TILES: TileDefinition[] = [
           "x": 50,
           "y": 80
         }
+      },
+      {
+        "id": "garden0",
+        "type": "GARDEN",
+        "svgPath": "M35,78 L65,78 L65,95 L35,95 Z",
+        "meepleCentroid": {
+          "x": 50,
+          "y": 87
+        }
       }
     ],
     "edgePositionToSegment": {
@@ -1064,6 +1086,10 @@ export const BASE3_TILES: TileDefinition[] = [
     "adjacencies": [
       [
         "city0",
+        "field0"
+      ],
+      [
+        "garden0",
         "field0"
       ]
     ]
@@ -1371,6 +1397,15 @@ export const BASE3_TILES: TileDefinition[] = [
           "x": 23,
           "y": 74
         }
+      },
+      {
+        "id": "garden0",
+        "type": "GARDEN",
+        "svgPath": "M55,15 L85,15 L85,45 L55,45 Z",
+        "meepleCentroid": {
+          "x": 70,
+          "y": 30
+        }
       }
     ],
     "edgePositionToSegment": {
@@ -1395,6 +1430,10 @@ export const BASE3_TILES: TileDefinition[] = [
       [
         "field0",
         "road0"
+      ],
+      [
+        "garden0",
+        "field0"
       ]
     ]
   },

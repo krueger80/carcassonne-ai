@@ -6,6 +6,7 @@ export const TERRAIN_COLORS: Record<string, string> = {
   ROAD: '#e8d8a0',
   FIELD: '#5a9e4b',
   CLOISTER: '#e8c8a0',
+  GARDEN: '#7ec87e',
   RIVER: '#00BFFF',
 }
 
@@ -14,6 +15,7 @@ const TERRAIN_STROKE: Record<string, string> = {
   ROAD: '#b0a060',
   FIELD: '#3a7e2b',
   CLOISTER: '#c0906a',
+  GARDEN: '#4a8e4a',
   RIVER: '#0099CC',
 }
 
@@ -42,6 +44,21 @@ export const SegmentPath = memo(({ segment, highlighted = false, dimmed = false,
         <rect x="32" y="48" width="36" height="4" fill={TERRAIN_STROKE['CLOISTER']} opacity={0.5} />
         {ownerColor && (
           <rect x="28" y="28" width="44" height="44" fill={ownerColor} opacity={0.3} rx="3" />
+        )}
+      </g>
+    )
+  }
+
+  if (segment.type === 'GARDEN') {
+    return (
+      <g opacity={opacity}>
+        <path d={segment.svgPath} fill={fill} stroke={stroke} strokeWidth="1" />
+        {/* Flower decoration */}
+        <circle cx={segment.meepleCentroid.x} cy={segment.meepleCentroid.y} r="4" fill="#e55" opacity={0.6} />
+        <circle cx={segment.meepleCentroid.x - 5} cy={segment.meepleCentroid.y + 3} r="3" fill="#e8e855" opacity={0.5} />
+        <circle cx={segment.meepleCentroid.x + 5} cy={segment.meepleCentroid.y + 3} r="3" fill="#e8e855" opacity={0.5} />
+        {ownerColor && (
+          <path d={segment.svgPath} fill={ownerColor} opacity={0.3} />
         )}
       </g>
     )

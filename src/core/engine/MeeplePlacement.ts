@@ -22,12 +22,23 @@ export function canPlaceMeeple(
   segmentId: string,
   meepleType: MeepleType = 'NORMAL',
   dragonPosition?: Coordinate | null,
+  tileMap?: Record<string, import('../types/tile.ts').TileDefinition>,
+  definitionId?: string,
 ): boolean {
   if (availableMeepleCount(player, meepleType) <= 0) return false
 
   // Cannot place on a tile occupied by the dragon
   if (dragonPosition && coord.x === dragonPosition.x && coord.y === dragonPosition.y) {
     return false
+  }
+
+  // ABBOT can only be placed on CLOISTER or GARDEN segments
+  if (meepleType === 'ABBOT') {
+    if (tileMap && definitionId) {
+      const def = tileMap[definitionId]
+      const seg = def?.segments.find(s => s.id === segmentId)
+      if (!seg || (seg.type !== 'CLOISTER' && seg.type !== 'GARDEN')) return false
+    }
   }
 
   const nKey = nodeKey(coord, segmentId)
@@ -61,12 +72,18 @@ export function getPlaceableSegments(
 
   const hasNormal = availableMeepleCount(player, 'NORMAL') > 0
   const hasBig = availableMeepleCount(player, 'BIG') > 0
-  if (!hasNormal && !hasBig) return []
+  const hasAbbot = availableMeepleCount(player, 'ABBOT') > 0
+  if (!hasNormal && !hasBig && !hasAbbot) return []
 
   return def.segments
     .filter(seg => {
       // Cannot place meeples on river segments
       if (seg.type === 'RIVER') return false
+      // ABBOT-only segments (GARDEN) — only show if player has an abbot
+      // CLOISTER segments are placeable by normal/big meeples AND abbot
+      if (seg.type === 'GARDEN' && !hasAbbot) return false
+      // Non-cloister/garden segments need normal or big meeple
+      if (seg.type !== 'CLOISTER' && seg.type !== 'GARDEN' && !hasNormal && !hasBig) return false
       const nKey = nodeKey(coord, seg.id)
       return !featureHasMeeples(state, nKey)
     })

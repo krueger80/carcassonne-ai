@@ -32,6 +32,11 @@ export const IC_C31_SCORING_RULES: ScoringRule[] = [
         scoreIncomplete: (f) => f.tileCount,
     },
     {
+        featureType: 'GARDEN',
+        scoreComplete: () => 9,
+        scoreIncomplete: (f) => f.tileCount,
+    },
+    {
         featureType: 'FIELD',
         scoreComplete: (f, state) => countAdjacentCompletedCities(f, state) * 3,
         scoreIncomplete: (f, state) => countAdjacentCompletedCities(f, state) * 3,

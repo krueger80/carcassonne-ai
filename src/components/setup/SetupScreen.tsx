@@ -53,6 +53,16 @@ const EXPANSION_META = {
     tileOptions: [] as TileEdition[], // only C3 exists for now
     tileCount: { C1: '', C2: '', C3: '+12 tiles', 'C3.1': '' },
   },
+  'abbot': {
+    label: 'The Abbot',
+    color: '#8e44ad',
+    border: '#6c3483',
+    bg: 'rgba(142,68,173,0.2)',
+    hasRules: false,
+    rulesLabel: { classic: '', modern: '' },
+    tileOptions: [] as TileEdition[],
+    tileCount: { C1: '', C2: '', C3: '', 'C3.1': '' },
+  },
 } as const
 
 type ExpId = keyof typeof EXPANSION_META
@@ -68,6 +78,7 @@ const DEFAULT_EXP_STATE: Record<ExpId, ExpansionState> = {
   'traders-builders': { enabled: false, rulesVersion: 'modern', tileEdition: 'C3.1' },
   'dragon-fairy': { enabled: false, rulesVersion: 'modern', tileEdition: 'C3.1' },
   'river': { enabled: false, rulesVersion: 'classic', tileEdition: 'C3' },
+  'abbot': { enabled: false, rulesVersion: 'classic', tileEdition: 'C3' },
 }
 
 // ─── Sub-components ──────────────────────────────────────────────────────────

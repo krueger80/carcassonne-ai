@@ -8,6 +8,7 @@ interface MeepleSVGProps {
   isBig?: boolean
   isBuilder?: boolean
   isPig?: boolean
+  isAbbot?: boolean
 }
 
 /**
@@ -21,7 +22,8 @@ export function MeepleSVG({
   size = 15,
   isBig = false,
   isBuilder = false,
-  isPig = false
+  isPig = false,
+  isAbbot = false,
 }: MeepleSVGProps) {
   const scale = isBig ? 1.4 : 1
   const s = size * scale
@@ -82,6 +84,32 @@ export function MeepleSVG({
           <ellipse cx={pigW * 1.1} cy={-pigH * 0.2} rx={pigW * 0.3} ry={pigH * 0.3} fill={color} stroke="rgba(0,0,0,0.5)" strokeWidth="1" />
           {/* Highlight */}
           <circle cx={-pigW * 0.2} cy={-pigH * 0.4} r={pigW * 0.2} fill="rgba(255,255,255,0.3)" />
+        </motion.g>
+      </g>
+    )
+  }
+
+  // Abbot (dome/round shape — distinct from standard meeple)
+  if (isAbbot) {
+    const bodyH = s * 0.7
+    const baseOffset = s * 0.5 + bodyH
+    return (
+      <g transform={`translate(${x}, ${y - baseOffset})`}>
+        <motion.g
+          animate={{ rotate: [0, -2, 2, 0] }}
+          transition={{ duration: 3, repeat: Infinity, ease: "easeInOut" }}
+          style={{ transformOrigin: `0px ${baseOffset}px` }}
+        >
+          {/* Drop shadow */}
+          <ellipse cx="0" cy={baseOffset} rx={s * 0.5} ry={s * 0.18} fill="rgba(0,0,0,0.25)" />
+          {/* Body (triangular robe) */}
+          <path
+            d={`M${-s * 0.45},${baseOffset} L0,${s * 0.35} L${s * 0.45},${baseOffset} Z`}
+            fill={color} stroke="rgba(0,0,0,0.5)" strokeWidth="1" />
+          {/* Head (dome shape) */}
+          <circle cx="0" cy={s * 0.15} r={s * 0.4} fill={color} stroke="rgba(0,0,0,0.5)" strokeWidth="1" />
+          {/* Highlight */}
+          <circle cx={-s * 0.12} cy={-s * 0.05} r={s * 0.15} fill="rgba(255,255,255,0.3)" />
         </motion.g>
       </g>
     )
