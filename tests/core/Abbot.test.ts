@@ -1,16 +1,10 @@
 import { describe, it, expect } from 'vitest'
 import {
   initGame,
-  placeTile,
-  placeMeeple,
-  skipMeeple,
   retrieveAbbot,
-  endTurn,
-  drawTile,
-  getValidMeepleTypes,
 } from '../../src/core/engine/GameEngine.ts'
 import { canPlaceMeeple } from '../../src/core/engine/MeeplePlacement.ts'
-import { addTileToUnionFind, countSurroundingTiles } from '../../src/core/engine/FeatureDetector.ts'
+import { addTileToUnionFind } from '../../src/core/engine/FeatureDetector.ts'
 import { emptyUnionFindState, nodeKey } from '../../src/core/types/feature.ts'
 import { emptyBoard, coordKey } from '../../src/core/types/board.ts'
 import { createPlayer } from '../../src/core/types/player.ts'
@@ -340,6 +334,7 @@ describe('Abbot Extension', () => {
       }
 
       const state: GameState = {
+        phase: 'PLAYING',
         board,
         players: [playerWithAbbot, player2],
         currentPlayerIndex: 0,
