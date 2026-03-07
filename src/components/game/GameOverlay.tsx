@@ -69,12 +69,19 @@ export function GameOverlay() {
     }, [gameState?.currentPlayerIndex, setSelectedMeepleType])
 
     // Scroll wheel rotates tile during PLACE_TILE
+    const lastRotationTime = useRef<number>(0)
+
     useEffect(() => {
         if (gameState?.turnPhase !== 'PLACE_TILE') return
         const handleWheel = (e: WheelEvent) => {
             if (e.ctrlKey || e.metaKey) return // Ignore zoom
             e.preventDefault()
-            rotateTentativeTile()
+
+            const now = Date.now()
+            if (now - lastRotationTime.current > 150) {
+                rotateTentativeTile()
+                lastRotationTime.current = now
+            }
         }
         window.addEventListener('wheel', handleWheel, { passive: false })
         return () => window.removeEventListener('wheel', handleWheel)
@@ -509,13 +516,17 @@ export function GameOverlay() {
                 display: 'flex',
                 alignItems: 'center',
                 gap: 0,
-                zIndex: 41,
-                pointerEvents: 'none',
+                zIndex: 60,
+                pointerEvents: 'auto',
                 background: 'rgba(0,0,0,0.65)',
                 border: '1px solid #444',
                 borderRadius: 24,
                 overflow: 'hidden',
-            }}>
+            }}
+                onPointerDown={(e) => e.stopPropagation()}
+                onPointerMove={(e) => e.stopPropagation()}
+                onPointerUp={(e) => e.stopPropagation()}
+            >
                 {/* Chromecast */}
                 {sdkReady && (
                     <div style={{
@@ -602,6 +613,8 @@ export function GameOverlay() {
                             fontSize: 13,
                         }}
                         onPointerDown={(e) => e.stopPropagation()}
+                        onPointerMove={(e) => e.stopPropagation()}
+                        onPointerUp={(e) => e.stopPropagation()}
                     >
                         <div style={{ fontWeight: 'bold', color: '#e8d8a0', fontSize: 15, marginBottom: 12, textAlign: 'center' }}>
                             🏆 {t('menu.scoreboard')}
@@ -663,15 +676,25 @@ export function GameOverlay() {
                     maxWidth: 320, // Limit width to 320 on larger screens
                     display: 'flex',
                     flexDirection: 'column',
-                    justifyContent: 'space-between',
-                    padding: '24px 16px', // Better padding for mobile
+                    justifyContent: 'flex-start',
+                    padding: '24px 12px', // Narrower padding to fix the gap on the left
                     boxSizing: 'border-box',
                     zIndex: 50,
                     pointerEvents: 'none',
                 }}
             >
                 {/* ── Hamburger Menu (Top Left) ─────────────────────────────── */}
-                <div style={{ position: 'relative', pointerEvents: 'auto', alignSelf: 'flex-start', marginBottom: 20 }} onPointerDown={(e) => e.stopPropagation()}>
+                <div
+                    style={{
+                        position: 'relative',
+                        pointerEvents: 'auto',
+                        alignSelf: 'flex-start',
+                        marginBottom: 20
+                    }}
+                    onPointerDown={(e) => e.stopPropagation()}
+                    onPointerMove={(e) => e.stopPropagation()}
+                    onPointerUp={(e) => e.stopPropagation()}
+                >
                     <button
                         onClick={(e) => { e.stopPropagation(); setIsMenuOpen(!isMenuOpen) }}
                         style={{
@@ -797,15 +820,11 @@ export function GameOverlay() {
                                     <span>🔧</span> {t('menu.debugConfigurator')}
                                 </button>
 
-                                <div style={{ borderTop: '1px solid #444', margin: '4px 0' }} />
 
                                 <button
                                     onClick={(e) => {
                                         e.stopPropagation()
-                                        window.open(
-                                            `${window.location.origin}${window.location.pathname}#cast`,
-                                            '_blank',
-                                        )
+                                        window.location.hash = '#stats'
                                         setIsMenuOpen(false)
                                     }}
                                     style={{
@@ -824,7 +843,7 @@ export function GameOverlay() {
                                     onMouseEnter={(e) => (e.currentTarget.style.background = '#4a4a5a')}
                                     onMouseLeave={(e) => (e.currentTarget.style.background = '#3a3a4a')}
                                 >
-                                    <span>📺</span> {t('menu.castToTV')}
+                                    <span>📊</span> {t('menu.statsAndLeaderboard')}
                                 </button>
 
                                 <div style={{ borderTop: '1px solid #444', margin: '4px 0' }} />
@@ -861,7 +880,7 @@ export function GameOverlay() {
                 <div style={{
                     display: 'flex',
                     flexDirection: 'column',
-                    alignItems: 'flex-start',
+                    alignItems: 'flex-start', // Use left alignment to narrow the gap
                     gap: showOpponents ? 8 : 0,
                     width: '100%',
                     pointerEvents: 'none',
@@ -882,7 +901,7 @@ export function GameOverlay() {
                                             ? { opacity: 1, scale: 1, x: 0, marginBottom: 0 }
                                             : showOpponents
                                                 ? { opacity: 0.7, scale: 0.95, x: 0, marginBottom: 0 }
-                                                : { opacity: 0.6, scale: 0.85, x: 16, marginBottom: -32 }
+                                                : { opacity: 0.6, scale: 0.85, x: 0, marginBottom: -40 } // Keep centering but left-aligned
                                     }
                                     transition={{ type: 'spring', stiffness: 300, damping: 25 }}
                                     style={{
@@ -892,6 +911,8 @@ export function GameOverlay() {
                                         cursor: isActive ? 'default' : 'pointer',
                                     }}
                                     onPointerDown={(e) => e.stopPropagation()}
+                                    onPointerMove={(e) => e.stopPropagation()}
+                                    onPointerUp={(e) => e.stopPropagation()}
                                     onClick={(e) => {
                                         if (isActive) return
                                         if ((e.target as HTMLElement).closest('button')) return
@@ -931,6 +952,8 @@ export function GameOverlay() {
                         whiteSpace: 'nowrap',
                     }}
                     onPointerDown={(e) => e.stopPropagation()}
+                    onPointerMove={(e) => e.stopPropagation()}
+                    onPointerUp={(e) => e.stopPropagation()}
                 >
                     {interactionState === 'TILE_PLACED_TENTATIVELY' && (
                         <>

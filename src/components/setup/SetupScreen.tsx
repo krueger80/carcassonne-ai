@@ -7,6 +7,11 @@ import { loadAllTiles } from '../../services/tileRegistry.ts'
 import type { TileDefinition } from '../../core/types/tile.ts'
 import type { ExpansionSelection, TileEdition, RulesVersion } from '../../core/types/setup.ts'
 import { getVersionedExpansionId } from '../../core/types/setup.ts'
+import { UserBadge } from '../auth/UserBadge.tsx'
+import { LoginModal } from '../auth/LoginModal.tsx'
+import { useAuth } from '../auth/useAuth.ts'
+import type { Profile } from '../auth/AuthProvider.tsx'
+import type { LinkedProfile } from '../../services/gameResultsService.ts'
 
 const DEFAULT_NAMES = ['Alice', 'Bob', 'Carol', 'Dave', 'Eve', 'Frank']
 
@@ -125,13 +130,40 @@ interface SetupScreenProps {
 
 export function SetupScreen({ onCancel }: SetupScreenProps) {
   const { t, i18n } = useTranslation()
+  const { user, profile } = useAuth()
   const [playerCount, setPlayerCount] = useState(2)
   const [names, setNames] = useState<string[]>(DEFAULT_NAMES.slice(0, 6))
   const [baseEdition, setBaseEdition] = useState<TileEdition>('C3')
   const [expansions, setExpansions] = useState<Record<ExpId, ExpansionState>>(DEFAULT_EXP_STATE)
   const [isStarting, setIsStarting] = useState(false)
+  const [linkedProfiles, setLinkedProfiles] = useState<Record<number, LinkedProfile>>({})
+  const [linkingSlot, setLinkingSlot] = useState<number | null>(null)
   const { newGame } = useGameStore()
   const toggleLang = () => i18n.changeLanguage(i18n.language === 'fr' ? 'en' : 'fr')
+
+  // Auto-link first player to primary session
+  const handleAutoLink = () => {
+    if (user && profile && !linkedProfiles[0]) {
+      setLinkedProfiles(prev => ({
+        ...prev,
+        [0]: { profileId: profile.id, displayName: profile.display_name, avatarUrl: profile.avatar_url },
+      }))
+      setNames(prev => { const n = [...prev]; n[0] = profile.display_name || n[0]; return n })
+    }
+  }
+
+  const handlePlayerLinked = (slot: number, p: Profile) => {
+    setLinkedProfiles(prev => ({
+      ...prev,
+      [slot]: { profileId: p.id, displayName: p.display_name, avatarUrl: p.avatar_url },
+    }))
+    setNames(prev => { const n = [...prev]; n[slot] = p.display_name || n[slot]; return n })
+    setLinkingSlot(null)
+  }
+
+  const unlinkSlot = (slot: number) => {
+    setLinkedProfiles(prev => { const next = { ...prev }; delete next[slot]; return next })
+  }
 
   const setExp = (id: ExpId, patch: Partial<ExpansionState>) =>
     setExpansions(prev => ({ ...prev, [id]: { ...prev[id], ...patch } }))
@@ -159,11 +191,20 @@ export function SetupScreen({ onCancel }: SetupScreenProps) {
         (t: TileDefinition) => t.expansionId && (versionedIds as string[]).includes(t.expansionId)
       )
 
+      // Build linked profiles map keyed by player index → will be mapped to player IDs in the store
+      const linkedMap: Record<string, LinkedProfile> = {}
+      for (let i = 0; i < playerCount; i++) {
+        if (linkedProfiles[i]) {
+          linkedMap[String(i)] = linkedProfiles[i]
+        }
+      }
+
       await newGame({
         playerNames: names.slice(0, playerCount),
         baseDefinitions: baseDefs,
         expansionSelections: enabledSelections,
         extraTileDefinitions: extraTileDefs,
+        linkedProfiles: linkedMap,
       })
       onCancel?.() // close modal after start (no-op in full-page mode)
     } catch (e: any) {
@@ -187,10 +228,6 @@ export function SetupScreen({ onCancel }: SetupScreenProps) {
       gap: 16,
     }}>
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-        <div />
-        <h2 style={{ margin: 0, color: '#e8d8a0', fontFamily: 'serif', fontSize: onCancel ? 22 : 28, textAlign: 'center', flex: 1 }}>
-          {onCancel ? t('setup.newGame') : t('setup.title')}
-        </h2>
         <button
           onClick={toggleLang}
           style={{
@@ -207,6 +244,10 @@ export function SetupScreen({ onCancel }: SetupScreenProps) {
         >
           {i18n.language === 'fr' ? 'EN' : 'FR'}
         </button>
+        <h2 style={{ margin: 0, color: '#e8d8a0', fontFamily: 'serif', fontSize: onCancel ? 22 : 28, textAlign: 'center', flex: 1 }}>
+          {onCancel ? t('setup.newGame') : t('setup.title')}
+        </h2>
+        <UserBadge />
       </div>
       {!onCancel && (
         <p style={{ margin: 0, color: '#888', textAlign: 'center', fontSize: 13 }}>
@@ -231,21 +272,63 @@ export function SetupScreen({ onCancel }: SetupScreenProps) {
           ))}
         </div>
         <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
-          {Array.from({ length: playerCount }, (_, i) => (
-            <div key={i} style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
-              <div style={{ width: 12, height: 12, borderRadius: '50%', background: PLAYER_COLORS[i], flexShrink: 0 }} />
-              <input
-                value={names[i]}
-                onChange={e => setNames(prev => { const n = [...prev]; n[i] = e.target.value; return n })}
-                style={{
-                  flex: 1, background: '#1a1a2e', border: '1px solid #444',
-                  color: '#f0f0f0', padding: '5px 8px', borderRadius: 4, fontSize: 13,
-                }}
-                placeholder={t('setup.playerPlaceholder', { n: i + 1 })}
-              />
-            </div>
-          ))}
+          {Array.from({ length: playerCount }, (_, i) => {
+            const linked = linkedProfiles[i]
+            return (
+              <div key={i} style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
+                <div style={{ width: 12, height: 12, borderRadius: '50%', background: PLAYER_COLORS[i], flexShrink: 0 }} />
+                <input
+                  value={names[i]}
+                  onChange={e => setNames(prev => { const n = [...prev]; n[i] = e.target.value; return n })}
+                  style={{
+                    flex: 1, background: '#1a1a2e', border: '1px solid #444',
+                    color: '#f0f0f0', padding: '5px 8px', borderRadius: 4, fontSize: 13,
+                  }}
+                  placeholder={t('setup.playerPlaceholder', { n: i + 1 })}
+                />
+                {linked ? (
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
+                    <span style={{ fontSize: 11, color: '#2ecc71' }} title={`Linked: ${linked.displayName}`}>✓</span>
+                    <button
+                      onClick={() => unlinkSlot(i)}
+                      style={{
+                        background: 'transparent', border: 'none', color: '#888',
+                        fontSize: 11, cursor: 'pointer', padding: '2px 4px',
+                      }}
+                      title="Unlink account"
+                    >
+                      ✕
+                    </button>
+                  </div>
+                ) : (
+                  <button
+                    onClick={() => {
+                      if (i === 0 && user && profile) {
+                        handleAutoLink()
+                      } else {
+                        setLinkingSlot(i)
+                      }
+                    }}
+                    style={{
+                      background: 'rgba(200,164,110,0.1)', border: '1px solid rgba(200,164,110,0.25)',
+                      color: '#c8a46e', borderRadius: 12, padding: '2px 8px',
+                      fontSize: 11, cursor: 'pointer', whiteSpace: 'nowrap',
+                    }}
+                  >
+                    🔗 Link
+                  </button>
+                )}
+              </div>
+            )
+          })}
         </div>
+        {linkingSlot !== null && (
+          <LoginModal
+            linkMode
+            onClose={() => setLinkingSlot(null)}
+            onLinked={(p) => handlePlayerLinked(linkingSlot, p)}
+          />
+        )}
       </div>
 
       {/* ── Base tiles ── */}
@@ -371,11 +454,16 @@ export function SetupScreen({ onCancel }: SetupScreenProps) {
     return (
       <div style={{
         display: 'flex', flexDirection: 'column', alignItems: 'center',
-        justifyContent: 'center', minHeight: '100vh', background: '#1a1a2e', color: '#f0f0f0',
+        justifyContent: 'center', minHeight: '100dvh', background: '#1a1a2e', color: '#f0f0f0',
         padding: 16, boxSizing: 'border-box'
       }}>
         {card}
         <div style={{ marginTop: 32, display: 'flex', gap: 24, fontSize: 13, opacity: 0.6 }}>
+          <a href="#stats" style={{ color: '#aaa', textDecoration: 'none' }}
+            onMouseEnter={e => (e.currentTarget.style.color = '#fff')}
+            onMouseLeave={e => (e.currentTarget.style.color = '#aaa')}>
+            📊 Stats & Leaderboard
+          </a>
           <a href="#catalog" style={{ color: '#aaa', textDecoration: 'none' }}
             onMouseEnter={e => (e.currentTarget.style.color = '#fff')}
             onMouseLeave={e => (e.currentTarget.style.color = '#aaa')}>
@@ -399,7 +487,12 @@ export function SetupScreen({ onCancel }: SetupScreenProps) {
       display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 100,
       padding: 16, overflowY: 'auto', boxSizing: 'border-box'
     }}
-      onPointerDown={e => { if (e.target === e.currentTarget) onCancel() }}
+      onPointerDown={e => {
+        e.stopPropagation()
+        if (e.target === e.currentTarget) onCancel()
+      }}
+      onPointerMove={e => e.stopPropagation()}
+      onPointerUp={e => e.stopPropagation()}
     >
       <motion.div
         initial={{ scale: 0.92, opacity: 0 }}

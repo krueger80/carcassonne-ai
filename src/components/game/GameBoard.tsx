@@ -154,6 +154,7 @@ const BoardGrid = memo(({
                     style={{ width: CELL_SIZE, height: CELL_SIZE, overflow: 'visible' }}
                     onClick={(e) => {
                       e.stopPropagation()
+                      setHoveredCoord(null) // Clear ghost on rotate
                       rotateTentativeTile()
                     }}
                   >
@@ -350,6 +351,7 @@ const BoardGrid = memo(({
                   onLeave={() => setHoveredCoord(null)}
                   onClick={(e) => {
                     e.stopPropagation()
+                    setHoveredCoord(null) // Clear ghost on place
                     if (!isValid) return
                     if (gameState.turnPhase === 'PLACE_MEEPLE') {
                       undoTilePlacement()
@@ -394,7 +396,18 @@ export function GameBoard() {
   const containerRef = useRef<HTMLDivElement>(null)
   const [isPanning, setIsPanning] = useState(false)
   const isPointerDown = useRef(false)
-  const panStart = useRef({ x: 0, y: 0, offsetX: 0, offsetY: 0 })
+
+  // ── Multi-touch Zoom State ────────────────────────────────────────────────
+  const activePointers = useRef(new Map<number, { x: number; y: number }>())
+
+  // To achieve native-feeling zoom/pan, we use a "reference state" model.
+  // Whenever the number of fingers changes (touch or release), we establish a new baseline.
+  const pinchRef = useRef<{
+    initialScale: number,
+    initialOffset: { x: number; y: number },
+    initialDist: number | null,
+    initialCentroid: { x: number; y: number }
+  } | null>(null)
 
   // ── Keyboard shortcuts ──────────────────────────────────────────────────────
   const { rotateTile } = useGameStore()
@@ -450,47 +463,137 @@ export function GameBoard() {
   }, [boardScale, boardOffset])
 
   const onPointerDown = useCallback((e: React.PointerEvent) => {
-    if (e.button !== 0 && e.button !== 1) return // Left or Middle
+    // Only handle primary button for mouse, or any touch
+    if (e.pointerType === 'mouse' && e.button !== 0 && e.button !== 1) return
 
     setIsManualInteraction(true)
+    activePointers.current.set(e.pointerId, { x: e.clientX, y: e.clientY })
     isPointerDown.current = true
-    panStart.current = { x: e.clientX, y: e.clientY, offsetX: boardOffset.x, offsetY: boardOffset.y }
-  }, [boardOffset])
 
-  const onPointerMove = useCallback((e: React.PointerEvent) => {
-    if (!isPointerDown.current) return
+    // Re-establish baseline whenever a finger is added
+    calibratePinchReference()
+  }, [boardOffset, boardScale])
 
-    const dx = e.clientX - panStart.current.x
-    const dy = e.clientY - panStart.current.y
-
-    if (!isPanning) {
-      const dist = Math.sqrt(dx * dx + dy * dy)
-      if (dist > 5) {
-        setIsPanning(true)
-          ; (e.currentTarget as HTMLElement).setPointerCapture(e.pointerId)
-      }
+  const calibratePinchReference = useCallback(() => {
+    const pts = Array.from(activePointers.current.values())
+    if (pts.length === 0) {
+      pinchRef.current = null
       return
     }
 
-    useUIStore.setState({
-      boardOffset: { x: panStart.current.offsetX + dx, y: panStart.current.offsetY + dy }
-    })
-  }, [isPanning])
+    let cx = 0, cy = 0
+    for (const p of pts) {
+      cx += p.x; cy += p.y
+    }
+    cx /= pts.length
+    cy /= pts.length
 
-  const onPointerUp = useCallback((e: React.PointerEvent) => {
-    isPointerDown.current = false
-    setIsPanning(false)
-    setIsManualInteraction(false)
-    if ((e.currentTarget as HTMLElement).hasPointerCapture(e.pointerId)) {
-      (e.currentTarget as HTMLElement).releasePointerCapture(e.pointerId)
+    let dist = null
+    if (pts.length === 2) {
+      dist = Math.hypot(pts[0].x - pts[1].x, pts[0].y - pts[1].y)
+    }
+
+    // Capture the absolute current visual state as the foundation for the current gesture phase
+    pinchRef.current = {
+      initialScale: useUIStore.getState().boardScale,
+      initialOffset: { ...useUIStore.getState().boardOffset },
+      initialCentroid: { x: cx, y: cy },
+      initialDist: dist
     }
   }, [])
 
-  const onPointerCancel = useCallback(() => {
-    isPointerDown.current = false
-    setIsPanning(false)
-    setIsManualInteraction(false)
-  }, [])
+  const onPointerMove = useCallback((e: React.PointerEvent) => {
+    if (!activePointers.current.has(e.pointerId)) return
+    activePointers.current.set(e.pointerId, { x: e.clientX, y: e.clientY })
+
+    const pts = Array.from(activePointers.current.values())
+    if (pts.length === 0 || !pinchRef.current) return
+
+    let cx = 0, cy = 0
+    for (const p of pts) {
+      cx += p.x; cy += p.y
+    }
+    cx /= pts.length
+    cy /= pts.length
+
+    const ref = pinchRef.current
+
+    // Set panning bounds and visual state
+    if (!isPanning) {
+      const d = Math.hypot(cx - ref.initialCentroid.x, cy - ref.initialCentroid.y)
+      if (d > 5 || pts.length >= 2) {
+        setIsPanning(true)
+          ; (e.currentTarget as HTMLElement).setPointerCapture(e.pointerId)
+      }
+      if (pts.length < 2) return // Wait for panning threshold
+    }
+
+    let newScale = ref.initialScale
+    if (pts.length === 2 && ref.initialDist && ref.initialDist > 0) {
+      const dist = Math.hypot(pts[0].x - pts[1].x, pts[0].y - pts[1].y)
+      const ratio = dist / ref.initialDist
+      newScale = Math.max(0.3, Math.min(3, ref.initialScale * ratio))
+    }
+
+    // Google Maps magic math:
+    // 1. Shift the offset by the raw pixel movement of the centroid from its origin.
+    //    (This handles "sticky" panning flawlessly, even during zooming)
+    const panDx = cx - ref.initialCentroid.x
+    const panDy = cy - ref.initialCentroid.y
+
+    // 2. Adjust offset for zooming relative to the initial physical screen point where the pinch started.
+    const container = containerRef.current
+    if (container) {
+      const rect = container.getBoundingClientRect()
+      // The fixed point is the initial centroid on screen
+      const fixedX = ref.initialCentroid.x - rect.left - rect.width / 2
+      const fixedY = ref.initialCentroid.y - rect.top - rect.height / 2
+
+      const sRatio = newScale / ref.initialScale
+
+      // Compute final offset: Start at baseline + pan + zoom shift relative to fixed point
+      const zoomShiftX = (fixedX - ref.initialOffset.x) * (sRatio - 1)
+      const zoomShiftY = (fixedY - ref.initialOffset.y) * (sRatio - 1)
+
+      useUIStore.setState({
+        boardScale: newScale,
+        boardOffset: {
+          x: ref.initialOffset.x + panDx - zoomShiftX,
+          y: ref.initialOffset.y + panDy - zoomShiftY
+        }
+      })
+    }
+  }, [isPanning])
+
+  const onPointerUp = useCallback((e: React.PointerEvent) => {
+    activePointers.current.delete(e.pointerId)
+
+    if (activePointers.current.size === 0) {
+      isPointerDown.current = false
+      setIsPanning(false)
+      setIsManualInteraction(false)
+      pinchRef.current = null
+    } else {
+      // Fingers changed, recalculate baseline so zooming doesn't jump
+      calibratePinchReference()
+    }
+
+    if ((e.currentTarget as HTMLElement).hasPointerCapture(e.pointerId)) {
+      (e.currentTarget as HTMLElement).releasePointerCapture(e.pointerId)
+    }
+  }, [calibratePinchReference])
+
+  const onPointerCancel = useCallback((e: React.PointerEvent) => {
+    activePointers.current.delete(e.pointerId)
+    if (activePointers.current.size === 0) {
+      isPointerDown.current = false
+      setIsPanning(false)
+      setIsManualInteraction(false)
+      pinchRef.current = null
+    } else {
+      calibratePinchReference()
+    }
+  }, [calibratePinchReference])
 
   // ── Builder/Pig segment map ────────────────
 
@@ -540,8 +643,25 @@ export function GameBoard() {
       map[k].push(segmentId)
     }
     return map
+    return map
   }, [gameState, currentPlayer])
 
+  // ── iOS Safari touch-action failsafe ─────────────────────────────────────────
+  // Even with CSS touch-action: none, Safari may try to intercept gestures.
+  // Explicitly preventing default on native touchmove enforces full React pointer control.
+  useEffect(() => {
+    const el = containerRef.current
+    if (!el) return
+    const preventDefault = (e: TouchEvent) => {
+      // Only prevent default if we have 2 touches (pinching) to let normal scroll pass if we wanted it
+      // But actually, we want to control everything inside the game board, so always prevent.
+      if (e.touches.length > 1) {
+        e.preventDefault()
+      }
+    }
+    el.addEventListener('touchmove', preventDefault, { passive: false })
+    return () => el.removeEventListener('touchmove', preventDefault)
+  }, [])
 
   // ── Board bounds ────────────────────────────────────────────────────────────
 
@@ -617,14 +737,16 @@ export function GameBoard() {
       ref={containerRef}
       style={{
         width: '100vw',
-        height: '100vh',
+        height: '100dvh',
         overflow: 'hidden',
         background: '#1a2a1a',
         cursor: isPanning ? 'grabbing' : 'grab',
         position: 'relative',
-        touchAction: 'none',
+        touchAction: 'none', // Prevents browser from handling pinch-zoom natively
         userSelect: 'none',
         WebkitUserSelect: 'none',
+        padding: 0,
+        margin: 0,
       }}
       onPointerDown={onPointerDown}
       onPointerMove={onPointerMove}

@@ -57,7 +57,8 @@
     "extensionCatalog": "Catalogue d'extensions",
     "debugConfigurator": "Configurateur de debug",
     "castToTV": "Diffuser sur TV",
-    "scoreboard": "Tableau des scores"
+    "scoreboard": "Tableau des scores",
+    "statsAndLeaderboard": "Stats & Classement"
   },
   "endGame": {
     "title": "Fin de Partie",

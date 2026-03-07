@@ -8,6 +8,7 @@ import { TileDebugger } from './components/debug/TileDebugger.tsx'
 
 import { CarcassonneGallery } from './components/CarcassonneGallery.tsx'
 import { CastView } from './components/cast/CastView.tsx'
+import { StatsView } from './components/stats/StatsView.tsx'
 
 function App() {
   const { gameState, refreshDefinitions } = useGameStore()
@@ -22,6 +23,7 @@ function App() {
   const showDebug = currentHash === '#debug' || currentHash === '#config'
   const showGallery = currentHash === '#gallery' || currentHash === '#catalog'
   const showCast = currentHash === '#cast' || currentHash === '#tv'
+  const showStats = currentHash === '#stats'
 
   useEffect(() => {
     // Refresh definitions from DB on mount so that persisted games get logic updates
@@ -30,6 +32,10 @@ function App() {
 
   if (showCast) {
     return <CastView />
+  }
+
+  if (showStats) {
+    return <StatsView />
   }
 
   if (showGallery) {
@@ -63,7 +69,7 @@ function GameScreen() {
   // Logic mostly moved to GameBoard and GameOverlay
 
   return (
-    <div style={{ width: '100vw', height: '100vh', overflow: 'hidden', position: 'relative' }}>
+    <div style={{ width: '100vw', height: '100dvh', overflow: 'hidden', position: 'relative' }}>
       <GameBoard />
       <AnimationLayer />
     </div>

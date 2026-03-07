@@ -57,7 +57,8 @@
     "extensionCatalog": "Extension Catalog",
     "debugConfigurator": "Debug Configurator",
     "castToTV": "Cast to TV",
-    "scoreboard": "Scoreboard"
+    "scoreboard": "Scoreboard",
+    "statsAndLeaderboard": "Stats & Leaderboard"
   },
   "endGame": {
     "title": "Game Over",
