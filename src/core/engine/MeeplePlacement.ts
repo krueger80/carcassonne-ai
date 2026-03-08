@@ -22,8 +22,6 @@ export function canPlaceMeeple(
   segmentId: string,
   meepleType: MeepleType = 'NORMAL',
   dragonPosition?: Coordinate | null,
-  tileMap?: Record<string, import('../types/tile.ts').TileDefinition>,
-  definitionId?: string,
 ): boolean {
   if (availableMeepleCount(player, meepleType) <= 0) return false
 
@@ -32,16 +30,17 @@ export function canPlaceMeeple(
     return false
   }
 
+  const nKey = nodeKey(coord, segmentId)
+  const feature = getFeature(state, nKey)
+
+  // GARDEN segments can only have ABBOT meeples placed on them
+  if (feature?.type === 'GARDEN' && meepleType !== 'ABBOT') return false
+
   // ABBOT can only be placed on CLOISTER or GARDEN segments
   if (meepleType === 'ABBOT') {
-    if (tileMap && definitionId) {
-      const def = tileMap[definitionId]
-      const seg = def?.segments.find(s => s.id === segmentId)
-      if (!seg || (seg.type !== 'CLOISTER' && seg.type !== 'GARDEN')) return false
-    }
+    if (feature && feature.type !== 'CLOISTER' && feature.type !== 'GARDEN') return false
   }
 
-  const nKey = nodeKey(coord, segmentId)
   // Check if the feature (root of this node) already has meeples
   return !featureHasMeeples(state, nKey)
 }

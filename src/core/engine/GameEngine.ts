@@ -2653,9 +2653,7 @@ export function getValidMeepleTypes(state: GameState): MeepleType[] {
   // Check ABBOT (can only be placed on CLOISTER or GARDEN segments)
   if ((player.meeples.available.ABBOT ?? 0) > 0) {
     const canPlace = segments.some(segId => {
-      const seg = def.segments.find(s => s.id === segId)
-      if (!seg || (seg.type !== 'CLOISTER' && seg.type !== 'GARDEN')) return false
-      return canPlaceMeeple(state.featureUnionFind, player, lastCoord, segId, 'ABBOT', dragonPos, state.staticTileMap, state.currentTile!.definitionId)
+      return canPlaceMeeple(state.featureUnionFind, player, lastCoord, segId, 'ABBOT', dragonPos)
     })
     if (canPlace) validTypes.push('ABBOT')
   }

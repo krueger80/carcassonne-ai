@@ -104,7 +104,7 @@ describe('Abbot Extension', () => {
       const result = addTileToUnionFind(uf, board, tileMap, placedTile)
       uf = result.state
 
-      const can = canPlaceMeeple(uf, player, coord, 'cloister0', 'ABBOT', null, tileMap, 'test_cloister')
+      const can = canPlaceMeeple(uf, player, coord, 'cloister0', 'ABBOT', null)
       expect(can).toBe(true)
     })
 
@@ -121,7 +121,7 @@ describe('Abbot Extension', () => {
       const result = addTileToUnionFind(uf, board, tileMap, placedTile)
       uf = result.state
 
-      const can = canPlaceMeeple(uf, player, coord, 'garden0', 'ABBOT', null, tileMap, 'test_garden')
+      const can = canPlaceMeeple(uf, player, coord, 'garden0', 'ABBOT', null)
       expect(can).toBe(true)
     })
 
@@ -138,7 +138,7 @@ describe('Abbot Extension', () => {
       const result = addTileToUnionFind(uf, board, tileMap, placedTile)
       uf = result.state
 
-      const can = canPlaceMeeple(uf, player, coord, 'road0', 'ABBOT', null, tileMap, 'test_road')
+      const can = canPlaceMeeple(uf, player, coord, 'road0', 'ABBOT', null)
       expect(can).toBe(false)
     })
 
@@ -155,7 +155,7 @@ describe('Abbot Extension', () => {
       const result = addTileToUnionFind(uf, board, tileMap, placedTile)
       uf = result.state
 
-      const can = canPlaceMeeple(uf, player, coord, 'field0', 'ABBOT', null, tileMap, 'test_road')
+      const can = canPlaceMeeple(uf, player, coord, 'field0', 'ABBOT', null)
       expect(can).toBe(false)
     })
   })
