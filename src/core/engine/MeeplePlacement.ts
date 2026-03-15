@@ -31,6 +31,16 @@ export function canPlaceMeeple(
   }
 
   const nKey = nodeKey(coord, segmentId)
+  const feature = getFeature(state, nKey)
+
+  // GARDEN segments can only have ABBOT meeples placed on them
+  if (feature?.type === 'GARDEN' && meepleType !== 'ABBOT') return false
+
+  // ABBOT can only be placed on CLOISTER or GARDEN segments
+  if (meepleType === 'ABBOT') {
+    if (feature && feature.type !== 'CLOISTER' && feature.type !== 'GARDEN') return false
+  }
+
   // Check if the feature (root of this node) already has meeples
   return !featureHasMeeples(state, nKey)
 }
@@ -61,12 +71,18 @@ export function getPlaceableSegments(
 
   const hasNormal = availableMeepleCount(player, 'NORMAL') > 0
   const hasBig = availableMeepleCount(player, 'BIG') > 0
-  if (!hasNormal && !hasBig) return []
+  const hasAbbot = availableMeepleCount(player, 'ABBOT') > 0
+  if (!hasNormal && !hasBig && !hasAbbot) return []
 
   return def.segments
     .filter(seg => {
       // Cannot place meeples on river segments
       if (seg.type === 'RIVER') return false
+      // ABBOT-only segments (GARDEN) — only show if player has an abbot
+      // CLOISTER segments are placeable by normal/big meeples AND abbot
+      if (seg.type === 'GARDEN' && !hasAbbot) return false
+      // Non-cloister/garden segments need normal or big meeple
+      if (seg.type !== 'CLOISTER' && seg.type !== 'GARDEN' && !hasNormal && !hasBig) return false
       const nKey = nodeKey(coord, seg.id)
       return !featureHasMeeples(state, nKey)
     })

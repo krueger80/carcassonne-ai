@@ -50,6 +50,11 @@ export const BASE_SCORING_RULES: ScoringRule[] = [
     scoreIncomplete: (f) => f.tileCount,  // 1 (self) + surrounding tiles
   },
   {
+    featureType: 'GARDEN',
+    scoreComplete: (_f) => 9,
+    scoreIncomplete: (f) => f.tileCount,
+  },
+  {
     featureType: 'FIELD',
     scoreComplete: (f, state) => countAdjacentCompletedCities(f, state) * 3,
     scoreIncomplete: (f, state) => countAdjacentCompletedCities(f, state) * 3,
@@ -213,7 +218,7 @@ export function applyScoreEvents(
       const player = updated.find(p => p.id === playerId)
       if (player) {
         player.score += points
-        if (category === 'ROAD' || category === 'CITY' || category === 'CLOISTER' || category === 'FIELD' || category === 'TRADER') {
+        if (category === 'ROAD' || category === 'CITY' || category === 'CLOISTER' || category === 'GARDEN' || category === 'FIELD' || category === 'TRADER') {
           player.scoreBreakdown[category] = (player.scoreBreakdown[category] ?? 0) + points
         }
       }

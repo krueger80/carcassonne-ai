@@ -52,8 +52,9 @@ interface PlayerCardProps {
     isBuilderBonusTurn?: boolean;
     hasTradersBuilders: boolean;
     hasInnsCathedrals: boolean;
+    hasAbbot?: boolean;
     hasDragonHeldBy?: string | null;
-    useModernTerminology?: boolean;
+    usesC31Tiles?: boolean;
     turnState?: TurnState;
     style?: React.CSSProperties;
 }
@@ -62,6 +63,12 @@ const COMMODITY_IMAGES = {
     CLOTH: '/images/TradersAndBuilders_Shared/Good_Cloth.png',
     WHEAT: '/images/TradersAndBuilders_Shared/Good_Grain.png',
     WINE: '/images/TradersAndBuilders_Shared/Good_Wine.png',
+}
+
+const COMMODITY_IMAGES_C31 = {
+    CLOTH: '/images/TradersAndBuilders_C31/Traders_And_Builders_C31_Piece_Goods_Token_Cloth.png',
+    WHEAT: '/images/TradersAndBuilders_C31/Traders_And_Builders_C31_Piece_Goods_Token_Grain.png',
+    WINE: '/images/TradersAndBuilders_C31/Traders_And_Builders_C31_Piece_Goods_Token_Chicken.png',
 }
 
 interface MeepleIconProps {
@@ -106,6 +113,7 @@ const MeepleIcon = ({ type, count, tooltip, color, onClick, isSelected, disabled
                         isBig={type === 'BIG'}
                         isBuilder={type === 'BUILDER'}
                         isPig={type === 'PIG'}
+                        isAbbot={type === 'ABBOT'}
                     />
                 </svg>
                 <div style={{
@@ -126,20 +134,20 @@ const MeepleIcon = ({ type, count, tooltip, color, onClick, isSelected, disabled
 interface GoodIconProps {
     type: 'WINE' | 'WHEAT' | 'CLOTH';
     count: number;
-    useModernTerminology: boolean;
+    usesC31Tiles: boolean;
     isCompact?: boolean;
 }
 
-const GoodIcon = ({ type, count, useModernTerminology, isCompact }: GoodIconProps) => {
+const GoodIcon = ({ type, count, usesC31Tiles, isCompact }: GoodIconProps) => {
     const { t } = useTranslation();
     const size = isCompact ? 20 : 24;
-    const label = type === 'WINE' ? (useModernTerminology ? t('goods.chicken') : t('goods.wine')) :
-        type === 'WHEAT' ? (useModernTerminology ? t('goods.grain') : t('goods.wheat')) : t('goods.cloth');
+    const label = type === 'WINE' ? (usesC31Tiles ? t('goods.chicken') : t('goods.wine')) :
+        type === 'WHEAT' ? (usesC31Tiles ? t('goods.grain') : t('goods.wheat')) : t('goods.cloth');
 
     return (
         <div style={{ position: 'relative', width: size, height: size, opacity: count > 0 ? 1 : 0.3 }} title={label}>
             <img
-                src={COMMODITY_IMAGES[type]}
+                src={(usesC31Tiles ? COMMODITY_IMAGES_C31 : COMMODITY_IMAGES)[type]}
                 width={size} height={size}
                 alt={type}
                 style={{ filter: 'drop-shadow(0 1px 2px rgba(0,0,0,0.5))' }}
@@ -158,7 +166,7 @@ const GoodIcon = ({ type, count, useModernTerminology, isCompact }: GoodIconProp
     )
 }
 
-export function PlayerCard({ player, isCurrentTurn, isBuilderBonusTurn = false, hasTradersBuilders, hasInnsCathedrals, hasDragonHeldBy, useModernTerminology = false, turnState, style }: PlayerCardProps) {
+export function PlayerCard({ player, isCurrentTurn, isBuilderBonusTurn = false, hasTradersBuilders, hasInnsCathedrals, hasAbbot = false, hasDragonHeldBy, usesC31Tiles = false, turnState, style }: PlayerCardProps) {
     const { t } = useTranslation();
     const { color, name, score, meeples, traderTokens } = player;
 
@@ -275,6 +283,18 @@ export function PlayerCard({ player, isCurrentTurn, isBuilderBonusTurn = false, 
                                                     isCompact={!isCurrentTurn}
                                                 />
                                             )}
+                                            {hasAbbot && (
+                                                <MeepleIcon
+                                                    type="ABBOT"
+                                                    count={getAdjustedCount('ABBOT')}
+                                                    tooltip={t('meeple.abbot', 'Abbot')}
+                                                    color={color}
+                                                    onClick={isCurrentTurn && isMeeplePhase && turnState?.actions.selectMeeple ? () => turnState.actions.selectMeeple?.('ABBOT') : undefined}
+                                                    isSelected={isMeeplePhase && turnState?.selectedMeepleType === 'ABBOT'}
+                                                    disabled={!isCurrentTurn || !isMeeplePhase || (meeples.available.ABBOT ?? 0) <= 0 || (turnState?.validMeepleTypes && !turnState.validMeepleTypes.includes('ABBOT'))}
+                                                    isCompact={!isCurrentTurn}
+                                                />
+                                            )}
                                             {hasTradersBuilders && (
                                                 <>
                                                     <MeepleIcon
@@ -337,9 +357,9 @@ export function PlayerCard({ player, isCurrentTurn, isBuilderBonusTurn = false, 
                                     paddingLeft: !isCurrentTurn ? 4 : 0,
                                     borderLeft: !isCurrentTurn ? '1px solid rgba(255,255,255,0.1)' : 'none',
                                 }}>
-                                    <GoodIcon type="WINE" count={traderTokens?.WINE ?? 0} useModernTerminology={useModernTerminology} isCompact={!isCurrentTurn} />
-                                    <GoodIcon type="WHEAT" count={traderTokens?.WHEAT ?? 0} useModernTerminology={useModernTerminology} isCompact={!isCurrentTurn} />
-                                    <GoodIcon type="CLOTH" count={traderTokens?.CLOTH ?? 0} useModernTerminology={useModernTerminology} isCompact={!isCurrentTurn} />
+                                    <GoodIcon type="WINE" count={traderTokens?.WINE ?? 0} usesC31Tiles={usesC31Tiles} isCompact={!isCurrentTurn} />
+                                    <GoodIcon type="WHEAT" count={traderTokens?.WHEAT ?? 0} usesC31Tiles={usesC31Tiles} isCompact={!isCurrentTurn} />
+                                    <GoodIcon type="CLOTH" count={traderTokens?.CLOTH ?? 0} usesC31Tiles={usesC31Tiles} isCompact={!isCurrentTurn} />
                                 </div>
                             )}
                         </div>

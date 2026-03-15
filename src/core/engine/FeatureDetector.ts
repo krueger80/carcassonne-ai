@@ -161,7 +161,7 @@ function createEmptyFeature(id: string, type: Feature['type']): Feature {
 
 function isFeatureComplete(feature: Feature): boolean {
   if (feature.type === 'FIELD') return false   // fields never complete mid-game
-  if (feature.type === 'CLOISTER') return false  // cloisters tracked separately
+  if (feature.type === 'CLOISTER' || feature.type === 'GARDEN') return false  // cloisters/gardens tracked separately
   return feature.openEdgeCount === 0
 }
 
@@ -203,7 +203,7 @@ export function addTileToUnionFind(
   // ── Step 1: Register new nodes for each segment ───────────────────────────
 
   for (const seg of def.segments) {
-    if (seg.type === 'CLOISTER') continue  // cloisters tracked separately
+    if (seg.type === 'CLOISTER' || seg.type === 'GARDEN') continue  // cloisters/gardens tracked separately
 
     const key = nodeKey(coord, seg.id)
 
@@ -284,10 +284,12 @@ export function addTileToUnionFind(
       const myNodeKey = nodeKey(coord, mySegId)
       const neighborNodeKey = nodeKey(neighborCoord, neighborSegId)
 
-      // Only union non-cloister segments
+      // Only union non-cloister/garden segments
+      const mySegType = def.segments.find(s => s.id === mySegId)?.type
+      const neighborSegType = neighborDef.segments.find(s => s.id === neighborSegId)?.type
       if (
-        def.segments.find(s => s.id === mySegId)?.type === 'CLOISTER' ||
-        neighborDef.segments.find(s => s.id === neighborSegId)?.type === 'CLOISTER'
+        mySegType === 'CLOISTER' || mySegType === 'GARDEN' ||
+        neighborSegType === 'CLOISTER' || neighborSegType === 'GARDEN'
       ) continue
 
       if (myNodeKey in working.parent && neighborNodeKey in working.parent) {
@@ -336,19 +338,19 @@ export function addTileToUnionFind(
     const checkDef = tileMap[checkTile.definitionId]
     if (!checkDef) continue
 
-    const cloisterSegments = checkDef.segments.filter(s => s.type === 'CLOISTER')
-    for (const cloisterSeg of cloisterSegments) {
+    const cloisterOrGardenSegments = checkDef.segments.filter(s => s.type === 'CLOISTER' || s.type === 'GARDEN')
+    for (const cloisterSeg of cloisterOrGardenSegments) {
       const cloisterNodeKey = nodeKey(checkCoord, cloisterSeg.id)
       if (!(cloisterNodeKey in working.parent)) {
-        // Create the cloister node if it doesn't exist
+        // Create the cloister/garden node if it doesn't exist
         const surroundCount = countSurroundingTiles(board, checkCoord)
         const feature: Feature = {
           id: cloisterNodeKey,
-          type: 'CLOISTER',
+          type: cloisterSeg.type as 'CLOISTER' | 'GARDEN',
           nodes: [{ coordinate: checkCoord, segmentId: cloisterSeg.id }],
           meeples: [],
           isComplete: surroundCount === 8,
-          tileCount: surroundCount + 1,  // including the cloister tile itself
+          tileCount: surroundCount + 1,  // including the cloister/garden tile itself
           pennantCount: 0,
           openEdgeCount: 8 - surroundCount,
           touchingCityIds: [],
@@ -356,7 +358,7 @@ export function addTileToUnionFind(
         }
         ufMakeSet(working, cloisterNodeKey, feature)
       } else {
-        // Update existing cloister
+        // Update existing cloister/garden
         const root = ufFind(working, cloisterNodeKey)
         const existing = working.featureData[root]
         if (existing) {

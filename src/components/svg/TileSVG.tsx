@@ -11,7 +11,7 @@ interface TileSVGProps {
   /** Segment IDs that should be shown as highlighted (meeple placement hints) */
   highlightedSegments?: string[]
   /** Meeples currently on this tile: segmentId → { color } */
-  meeples?: Record<string, { color: string; isBig?: boolean; isBuilder?: boolean; isPig?: boolean }>
+  meeples?: Record<string, { color: string; isBig?: boolean; isBuilder?: boolean; isPig?: boolean; isAbbot?: boolean }>
   /** Show a subtle hover glow */
   hovered?: boolean
   /** Show a valid-placement indicator */
@@ -187,7 +187,7 @@ export const TileSVG = memo(({
             const color = segmentOwnerColors[seg.id]
             if (!color) return null
             if (seg.type === 'CLOISTER') {
-              return <rect key={`own-${seg.id}`} x="28" y="28" width="44" height="44" fill={color} opacity={0.3} rx="3" />
+              return <path key={`own-${seg.id}`} d={seg.svgPath} fill={color} opacity={0.3} />
             }
             if (seg.type === 'ROAD') {
               return <path key={`own-${seg.id}`} d={seg.svgPath} fill="none" stroke={color} strokeWidth="8" strokeLinecap="round" strokeLinejoin="round" opacity={0.35} />
@@ -240,6 +240,7 @@ export const TileSVG = memo(({
               isBig={meeple.isBig}
               isBuilder={meeple.isBuilder}
               isPig={meeple.isPig}
+              isAbbot={meeple.isAbbot}
             />
           </g>
         )

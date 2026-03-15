@@ -52,6 +52,7 @@ export function GameOverlay() {
         playDoubleLake,
         flipTile,
         validPlacements,
+        retrieveAbbot: storeRetrieveAbbot,
     } = useGameStore()
 
     const { selectedMeepleType, setSelectedMeepleType, boardScale, boardOffset, isManualInteraction } = useUIStore()
@@ -156,13 +157,15 @@ export function GameOverlay() {
     const hasInnsCathedrals = expansionList.includes('inns-cathedrals')
     const hasTradersBuilders = expansionList.includes('traders-builders')
     const hasDragonFairy = expansionList.includes('dragon-fairy')
+    const hasAbbot = expansionList.includes('abbot')
     const tbData = gameState.expansionData?.['tradersBuilders'] as {
         isBuilderBonusTurn?: boolean;
-        useModernTerminology?: boolean;
+        useModernRules?: boolean;
+        usesC31Tiles?: boolean;
         pendingFarmerReturns?: { playerId: string; pigNodeKey: string; fieldFeatureId: string; points: number }[];
     } | undefined
     const isBuilderBonusTurn = tbData?.isBuilderBonusTurn ?? false
-    const useModernTerminology = tbData?.useModernTerminology ?? false
+    const useModernRules = tbData?.useModernRules ?? false
     const dfData = gameState.expansionData?.['dragonFairy'] as {
         dragonPosition?: { x: number; y: number } | null;
         dragonInPlay?: boolean;
@@ -234,11 +237,27 @@ export function GameOverlay() {
             undo: undoTilePlacement,
             discardTile: drawTile,
             selectMeeple: (type: any) => {
-                if (useModernTerminology && (type === 'BUILDER' || type === 'PIG')) {
+                if (useModernRules && (type === 'BUILDER' || type === 'PIG')) {
                     const currentSecondary = useGameStore.getState().tentativeSecondaryMeepleType
                     if (currentSecondary === type) {
                         useGameStore.setState({ tentativeSecondaryMeepleType: null })
                     } else {
+                        // Validate segment compatibility when a segment is already selected
+                        if (interactionState === 'MEEPLE_SELECTED_TENTATIVELY') {
+                            const { tentativeMeepleSegment, tentativeTileCoord, gameState: gs } = useGameStore.getState()
+                            if (gs && tentativeMeepleSegment) {
+                                const coord = tentativeTileCoord ?? gs.lastPlacedCoord
+                                const tileKey = coord ? `${coord.x},${coord.y}` : ''
+                                const tileDef = gs.staticTileMap[gs.board.tiles[tileKey]?.definitionId ?? '']
+                                const segType = tileDef?.segments.find((s: any) => s.id === tentativeMeepleSegment)?.type
+                                const compatible = (type === 'BUILDER' && (segType === 'CITY' || segType === 'ROAD'))
+                                    || (type === 'PIG' && segType === 'FIELD')
+                                if (!compatible) {
+                                    useUIStore.getState().showToast(t(type === 'BUILDER' ? 'meeple.builderNeedsRoadOrCity' : 'meeple.pigNeedsField'))
+                                    return
+                                }
+                            }
+                        }
                         useGameStore.setState({ tentativeSecondaryMeepleType: type })
                         const currentPrimary = useUIStore.getState().selectedMeepleType
                         if (currentPrimary !== 'NORMAL' && currentPrimary !== 'BIG') {
@@ -250,7 +269,10 @@ export function GameOverlay() {
                     }
                 } else {
                     setSelectedMeepleType(type)
-                    if (interactionState === 'MEEPLE_SELECTED_TENTATIVELY') {
+                    if (interactionState === 'MEEPLE_SELECTED_TENTATIVELY' && (type === 'BUILDER' || type === 'PIG')) {
+                        // C2: clear tentative placement so user must click a valid builder/pig segment
+                        cancelMeeplePlacement()
+                    } else if (interactionState === 'MEEPLE_SELECTED_TENTATIVELY') {
                         setTentativeMeepleType(type)
                     }
                 }
@@ -923,8 +945,9 @@ export function GameOverlay() {
                                         isBuilderBonusTurn={isActive && isBuilderBonusTurn}
                                         hasTradersBuilders={hasTradersBuilders}
                                         hasInnsCathedrals={hasInnsCathedrals}
+                                        hasAbbot={hasAbbot}
                                         hasDragonHeldBy={dfData?.dragonHeldBy ?? null}
-                                        useModernTerminology={useModernTerminology}
+                                        usesC31Tiles={tbData?.usesC31Tiles ?? false}
                                         turnState={isActive ? currentPlayerTurnState : undefined}
                                     />
                                 </motion.div>
@@ -980,6 +1003,23 @@ export function GameOverlay() {
                             <button onClick={skipMeeple} style={floatingBtnStyle('#7f8c8d', '#606c6d')}>
                                 {t('game.skip')}
                             </button>
+                            {hasAbbot && currentPlayer && (currentPlayer.meeples.available.ABBOT ?? 0) === 0 && (() => {
+                                // Find the player's abbot on the board to enable retrieval
+                                const abbotOnBoard = currentPlayer.meeples.onBoard.find(nk => {
+                                    const bm = gameState?.boardMeeples[nk]
+                                    return bm && bm.meepleType === 'ABBOT' && bm.playerId === currentPlayer.id
+                                })
+                                if (!abbotOnBoard) return null
+                                const bm = gameState!.boardMeeples[abbotOnBoard]
+                                return (
+                                    <button
+                                        onClick={() => storeRetrieveAbbot(bm.coordinate, bm.segmentId)}
+                                        style={floatingBtnStyle('#8e44ad', '#6c3483')}
+                                    >
+                                        {t('game.retrieveAbbot', 'Retrieve Abbot')}
+                                    </button>
+                                )
+                            })()}
                         </>
                     )}
                 </div>

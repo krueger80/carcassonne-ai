@@ -43,6 +43,12 @@ const COMMODITY_IMAGES = {
   WINE: '/images/TradersAndBuilders_Shared/Good_Wine.png',
 }
 
+const COMMODITY_IMAGES_C31 = {
+  CLOTH: '/images/TradersAndBuilders_C31/Traders_And_Builders_C31_Piece_Goods_Token_Cloth.png',
+  WHEAT: '/images/TradersAndBuilders_C31/Traders_And_Builders_C31_Piece_Goods_Token_Grain.png',
+  WINE: '/images/TradersAndBuilders_C31/Traders_And_Builders_C31_Piece_Goods_Token_Chicken.png',
+}
+
 export function EndGameModal({ players, expansions = [] }: EndGameModalProps) {
   const { t } = useTranslation()
   const { resetGame } = useGameStore()
@@ -304,14 +310,19 @@ export function EndGameModal({ players, expansions = [] }: EndGameModalProps) {
               {t('endGame.traderBonus')}
             </div>
             <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8 }}>
-              {traderBonuses.map(b => b && (
-                <div key={b.commodity} style={{
-                  display: 'flex', alignItems: 'center', gap: 6,
-                  background: 'rgba(0,0,0,0.2)', borderRadius: 6, padding: '4px 10px',
-                  fontSize: 12, color: '#ccc',
-                }}>
-                  <img src={COMMODITY_IMAGES[b.commodity]} alt={b.commodity}
-                    style={{ width: 16, height: 16, objectFit: 'contain' }} />
+              {traderBonuses.map((b) => {
+                if (!b) return null;
+                const tbData = gameState?.expansionData?.['tradersBuilders'] as any;
+                const usesC31Tiles = tbData?.usesC31Tiles ?? false;
+                const imgSrc = (usesC31Tiles ? COMMODITY_IMAGES_C31 : COMMODITY_IMAGES)[b.commodity];
+                return (
+                  <div key={b.commodity} style={{
+                    display: 'flex', alignItems: 'center', gap: 6,
+                    background: 'rgba(0,0,0,0.2)', borderRadius: 6, padding: '4px 10px',
+                    fontSize: 12, color: '#ccc',
+                  }}>
+                    <img src={imgSrc} alt={b.commodity}
+                      style={{ width: 16, height: 16, objectFit: 'contain' }} />
                   <span style={{ color: '#e8d8a0', fontWeight: 'bold' }}>{b.max}</span>
                   <span>→</span>
                   {b.winners.map(w => (
@@ -319,7 +330,8 @@ export function EndGameModal({ players, expansions = [] }: EndGameModalProps) {
                   ))}
                   <span style={{ color: '#888' }}>+10 pts</span>
                 </div>
-              ))}
+                );
+              })}
             </div>
           </div>
         )}

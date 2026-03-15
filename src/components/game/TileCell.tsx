@@ -33,9 +33,9 @@ interface TileCellProps {
   /** ID of segment where meeple is tentatively placed */
   tentativeMeepleSegment?: string
   /** Type of the tentative meeple (for rendering correct shape) */
-  tentativeMeepleType?: 'NORMAL' | 'BIG' | 'FARMER' | 'BUILDER' | 'PIG' | null
+  tentativeMeepleType?: 'NORMAL' | 'BIG' | 'FARMER' | 'BUILDER' | 'PIG' | 'ABBOT' | null
   /** Type of a simultaneous secondary placement (for rendering builders or pigs) */
-  tentativeSecondaryMeepleType?: 'NORMAL' | 'BIG' | 'FARMER' | 'BUILDER' | 'PIG' | null
+  tentativeSecondaryMeepleType?: 'NORMAL' | 'BIG' | 'FARMER' | 'BUILDER' | 'PIG' | 'ABBOT' | null
   /** Color of the current player (for tentative meeple rendering) */
   currentPlayerColor?: string
   /** ID of the segment where the fairy is currently located */
@@ -67,7 +67,7 @@ export const TileCell = memo(({
   if (!def) return null
 
   // Build meeple color map for this tile
-  const meepleColors: Record<string, { color: string; isBig?: boolean; isTentative?: boolean; isBuilder?: boolean; isPig?: boolean }> = {}
+  const meepleColors: Record<string, { color: string; isBig?: boolean; isTentative?: boolean; isBuilder?: boolean; isPig?: boolean; isAbbot?: boolean }> = {}
 
   // 1. Existing meeples
   for (const [segId, meeple] of Object.entries(tile.meeples)) {
@@ -78,6 +78,7 @@ export const TileCell = memo(({
         isBig: meeple.meepleType === 'BIG',
         isBuilder: meeple.meepleType === 'BUILDER',
         isPig: meeple.meepleType === 'PIG',
+        isAbbot: meeple.meepleType === 'ABBOT',
       }
     }
   }
@@ -91,6 +92,7 @@ export const TileCell = memo(({
         isBig: tentativeMeepleType === 'BIG',
         isBuilder: tentativeMeepleType === 'BUILDER',
         isPig: tentativeMeepleType === 'PIG',
+        isAbbot: tentativeMeepleType === 'ABBOT',
       }
     }
 
@@ -103,6 +105,7 @@ export const TileCell = memo(({
           isBig: tentativeSecondaryMeepleType === 'BIG',
           isBuilder: tentativeSecondaryMeepleType === 'BUILDER',
           isPig: tentativeSecondaryMeepleType === 'PIG',
+          isAbbot: tentativeSecondaryMeepleType === 'ABBOT',
         }
       }
     }

@@ -1,6 +1,6 @@
-export type MeepleType = 'NORMAL' | 'BIG' | 'FARMER' | 'BUILDER' | 'PIG'
+export type MeepleType = 'NORMAL' | 'BIG' | 'FARMER' | 'BUILDER' | 'PIG' | 'ABBOT'
 
-export type ScoreCategory = 'ROAD' | 'CITY' | 'CLOISTER' | 'FIELD' | 'TRADER'
+export type ScoreCategory = 'ROAD' | 'CITY' | 'CLOISTER' | 'GARDEN' | 'FIELD' | 'TRADER'
 
 export interface Meeple {
   id: string
@@ -40,6 +40,7 @@ export function createPlayer(
   color: string,
   bigMeeple = false,
   builderAndPig = false,
+  abbot = false,
 ): Player {
   return {
     id,
@@ -53,6 +54,7 @@ export function createPlayer(
         FARMER: 0,
         BUILDER: builderAndPig ? 1 : 0,
         PIG: builderAndPig ? 1 : 0,
+        ABBOT: abbot ? 1 : 0,
       },
       onBoard: [],
     },

@@ -13,6 +13,7 @@ import {
   placeMeepleOnExistingTile,
   resolveFarmerReturn as engineResolveFarmerReturn,
   skipMeeple,
+  retrieveAbbot,
   endTurn,
   scoreFeatureCompletion,
   getPotentialPlacementsForState,
@@ -93,6 +94,7 @@ interface GameStore {
   confirmMeeplePlacement: () => void
   cancelMeeplePlacement: () => void
   skipMeeple: () => void
+  retrieveAbbot: (coord: Coordinate, segmentId: string) => void
   resolveFarmerReturn: (returnFarmer: boolean) => void
   setTentativeMeepleType: (type: MeepleType) => void
   processScoringSequence: () => Promise<void>
@@ -301,7 +303,9 @@ export const useGameStore = create<GameStore>()(
           store.tentativeTileCoord = null
           store.tentativeMeepleSegment = null
           store.tentativeMeepleType = null
-          store.tentativeSecondaryMeepleType = null
+          // NOTE: intentionally NOT resetting tentativeSecondaryMeepleType here.
+          // If the user pre-selected a Builder/Pig before placing the tile (C3.1),
+          // we want it to carry over into the meeple placement phase.
           // Keep validPlacements so the user can see where they could have placed it and click to undo.
         })
 
@@ -392,8 +396,6 @@ export const useGameStore = create<GameStore>()(
             const isPortalTarget = store.tentativeTileCoord && store.magicPortalTargets.length > 0 &&
               (store.tentativeTileCoord.x !== store.gameState.lastPlacedCoord?.x || store.tentativeTileCoord.y !== store.gameState.lastPlacedCoord?.y)
 
-            const isCurrentTile = !store.tentativeTileCoord || (store.gameState.lastPlacedCoord?.x === store.tentativeTileCoord.x && store.gameState.lastPlacedCoord?.y === store.tentativeTileCoord.y)
-
             if (isPortalTarget) {
               store.gameState = placeMeepleViaPortal(
                 store.gameState,
@@ -401,19 +403,18 @@ export const useGameStore = create<GameStore>()(
                 store.tentativeMeepleSegment,
                 meepleType,
               )
-            } else if ((meepleType === 'BUILDER' || meepleType === 'PIG') && store.tentativeTileCoord && !isCurrentTile) {
-              // Placed on an existing tile (pre-C3.1 rule fallback)
+            } else if ((meepleType === 'BUILDER' || meepleType === 'PIG') && !store.tentativeSecondaryMeepleType) {
+              // Standalone builder/pig (C2 classic rules) — uses canPlaceBuilderOrPig
+              // validation (feature must already have player's meeple), works on any tile
+              const coord = store.tentativeTileCoord ?? store.gameState.lastPlacedCoord!
               store.gameState = placeMeepleOnExistingTile(
                 store.gameState,
-                store.tentativeTileCoord,
+                coord,
                 store.tentativeMeepleSegment,
                 meepleType,
               )
             } else {
-              // Standard placement on current tile (handles normal, big, farmer, AND standalone builders/pigs perfectly)
-              console.log('--- confirmMeeplePlacement ---')
-              console.log('meepleType:', meepleType)
-              console.log('tentativeSecondaryMeepleType:', store.tentativeSecondaryMeepleType)
+              // Standard placement on current tile (normal, big, farmer, or simultaneous builder/pig in modern rules)
               store.gameState = placeMeeple(store.gameState, store.tentativeMeepleSegment, meepleType, store.tentativeSecondaryMeepleType || undefined)
             }
           } else {
@@ -451,7 +452,7 @@ export const useGameStore = create<GameStore>()(
           const dfData = (gameState.expansionData['dragonFairy'] as any)
           const dragonPos = dfData?.dragonPosition
           const tbData = (gameState.expansionData['tradersBuilders'] as any)
-          const useModernTerminology = tbData?.useModernTerminology ?? false
+          const useModernRules = tbData?.useModernRules ?? false
 
           let isValid = false
           if (type === 'BUILDER' || type === 'PIG') {
@@ -464,7 +465,7 @@ export const useGameStore = create<GameStore>()(
               dragonPos
             )
 
-            if (useModernTerminology && !isValid) {
+            if (useModernRules && !isValid) {
               const nKey = nodeKey(coord, tentativeMeepleSegment)
               const featureFromUf = getFeature(gameState.featureUnionFind, nKey)
               const featureDef = Object.values(gameState.staticTileMap[gameState.board.tiles[`${coord.x},${coord.y}`]?.definitionId ?? '']?.segments ?? []).find(s => s.id === tentativeMeepleSegment)
@@ -632,6 +633,26 @@ export const useGameStore = create<GameStore>()(
         set((store) => {
           if (!store.gameState) return
           store.gameState = skipMeeple(store.gameState)
+        })
+
+        const { gameState } = get()
+        if (!gameState) return
+
+        if (gameState.turnPhase === 'SCORE') {
+          get().processScoringSequence()
+          return
+        }
+
+        get().endTurn()
+      },
+
+      retrieveAbbot: (coord: Coordinate, segmentId: string) => {
+        set((store) => {
+          if (!store.gameState) return
+          store.gameState = retrieveAbbot(store.gameState, coord, segmentId)
+          store.interactionState = 'IDLE'
+          store.tentativeMeepleSegment = null
+          store.tentativeMeepleType = null
         })
 
         const { gameState } = get()

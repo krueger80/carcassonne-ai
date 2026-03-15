@@ -1,4 +1,5 @@
 import { useGameStore } from './store/gameStore.ts'
+import { useUIStore } from './store/uiStore.ts'
 import { useState, useEffect } from 'react'
 import { SetupScreen } from './components/setup/SetupScreen.tsx'
 import { GameBoard } from './components/game/GameBoard.tsx'
@@ -65,6 +66,25 @@ function App() {
   return <GameScreen />
 }
 
+function Toast() {
+  const toastMessage = useUIStore(s => s.toastMessage)
+  const dismissToast = useUIStore(s => s.dismissToast)
+  if (!toastMessage) return null
+  return (
+    <div
+      onClick={dismissToast}
+      style={{
+        position: 'fixed', bottom: 80, left: '50%', transform: 'translateX(-50%)',
+        background: 'rgba(30,30,30,0.92)', color: '#fff', padding: '10px 20px',
+        borderRadius: 8, fontSize: 14, zIndex: 9999, cursor: 'pointer',
+        boxShadow: '0 4px 16px rgba(0,0,0,0.4)', maxWidth: '80vw', textAlign: 'center',
+      }}
+    >
+      {toastMessage}
+    </div>
+  )
+}
+
 function GameScreen() {
   // Logic mostly moved to GameBoard and GameOverlay
 
@@ -72,6 +92,7 @@ function GameScreen() {
     <div style={{ width: '100vw', height: '100dvh', overflow: 'hidden', position: 'relative' }}>
       <GameBoard />
       <AnimationLayer />
+      <Toast />
     </div>
   )
 }

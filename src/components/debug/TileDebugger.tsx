@@ -126,8 +126,8 @@ export function TileDebugger() {
         const newId = `${prefix}${i}`
 
         let initialPath = 'M0,0 L100,0 L100,100 L0,100 Z' // Default Field (4 corners)
-        if (type === 'CLOISTER') {
-            initialPath = 'M40,40 L60,40 L60,60 L40,60 Z' // Fixed small box for Abbey
+        if (type === 'CLOISTER' || type === 'GARDEN') {
+            initialPath = 'M40,40 L60,40 L60,60 L40,60 Z' // Fixed small box for Abbey/Garden
         } else if (type === 'ROAD') {
             initialPath = 'M0,50 L33,50 L67,50 L100,50' // 4-point horizontal road line
         } else if (type !== 'FIELD') {
@@ -618,6 +618,7 @@ function PropertiesPanel({
                     <button onClick={() => onAddSegment('ROAD')} style={{ fontSize: 10, padding: 4, background: '#888', color: 'black', border: 'none', borderRadius: 4, cursor: 'pointer' }}>+Road</button>
                     <button onClick={() => onAddSegment('CITY')} style={{ fontSize: 10, padding: 4, background: '#8B4513', color: 'white', border: 'none', borderRadius: 4, cursor: 'pointer' }}>+City</button>
                     <button onClick={() => onAddSegment('CLOISTER')} style={{ fontSize: 10, padding: 4, background: '#DAA520', color: 'black', border: 'none', borderRadius: 4, cursor: 'pointer' }}>+Abbey</button>
+                    <button onClick={() => onAddSegment('GARDEN')} style={{ fontSize: 10, padding: 4, background: '#7ec87e', color: 'black', border: 'none', borderRadius: 4, cursor: 'pointer' }}>+Garden</button>
                     <button onClick={() => onAddSegment('RIVER')} style={{ fontSize: 10, padding: 4, background: '#00BFFF', color: 'white', border: 'none', borderRadius: 4, cursor: 'pointer' }}>+River</button>
                 </div>
             </div>
@@ -700,6 +701,7 @@ function PropertiesPanel({
                                     <option value="ROAD">ROAD</option>
                                     <option value="FIELD">FIELD</option>
                                     <option value="CLOISTER">CLOISTER</option>
+                                    <option value="GARDEN">GARDEN</option>
                                     <option value="RIVER">RIVER</option>
                                 </select>
                                 <button
@@ -796,6 +798,7 @@ function getColorForType(type: string) {
         case 'ROAD': return '#FFF'
         case 'FIELD': return '#32CD32' // LimeGreen
         case 'CLOISTER': return '#FFD700' // Gold
+        case 'GARDEN': return '#7ec87e' // Green
         case 'RIVER': return '#00BFFF' // DeepSkyBlue
         default: return '#888'
     }
@@ -874,8 +877,8 @@ function validateTile(tile: TileDefinition): string[] {
             if (leftType !== 'FIELD' || rightType !== 'FIELD') {
                 errors.push(`${dir} edge error: Center is RIVER, so sides must be FIELD (not ${leftType}/${rightType})`)
             }
-        } else if (centerType === 'CLOISTER') {
-            errors.push(`${dir} edge error: CLOISTER cannot be an edge segment`)
+        } else if (centerType === 'CLOISTER' || centerType === 'GARDEN') {
+            errors.push(`${dir} edge error: ${centerType} cannot be an edge segment`)
         }
     })
 
@@ -1141,8 +1144,8 @@ function EditorCanvas({
                         )
                     })}
 
-                    {/* 3. Shape Editor Handles (Active Segment Only) - Skip for Cloisters */}
-                    {activeSegment && activeSegment.type !== 'CLOISTER' && commands.map((cmd, i) => {
+                    {/* 3. Shape Editor Handles (Active Segment Only) */}
+                    {activeSegment && commands.map((cmd, i) => {
                         if (cmd.type === 'Z') return null
                         const isActive = i === selectedNodeIdx
                         const nodeColor = cmd.type === 'M' ? '#00ff00' : '#5599ff'
@@ -1197,7 +1200,7 @@ function EditorCanvas({
             </div>
 
             {/* Node toolbar — only show when a segment is active */}
-            {activeSegment && activeSegment.type !== 'CLOISTER' && (
+            {activeSegment && (
                 <div style={{ display: 'flex', gap: 8, alignItems: 'center', fontSize: 12 }}>
                     <button
                         onClick={handleAddNode}

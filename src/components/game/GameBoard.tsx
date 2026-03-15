@@ -1,4 +1,5 @@
 import { useRef, useState, useCallback, useEffect, useMemo, memo } from 'react'
+import { useTranslation } from 'react-i18next'
 import { motion, AnimatePresence } from 'framer-motion'
 import { TileCell } from './TileCell.tsx'
 import { PlaceholderCell } from './PlaceholderCell.tsx'
@@ -81,7 +82,7 @@ interface BoardGridProps {
   hasPortalTargets: boolean
   rotateTentativeTile: () => void
   selectTilePlacement: (coord: any) => void
-  selectMeeplePlacement: (segmentId: string, type: any, coord?: any, secondaryMeepleType?: string | null) => void
+  selectMeeplePlacement: (segmentId: string, type: any, coord?: any, secondaryMeepleType?: 'BUILDER' | 'PIG' | null) => void
   cycleDragonFacing: () => void
   placeDragonOnHoard: (coord: any) => void
   moveFairy: (coord: any, segId: string) => void
@@ -108,6 +109,7 @@ const BoardGrid = memo(({
   setHoveredCoord, selectedMeepleType, currentPlayer, undoTilePlacement,
   segmentOwnerMap,
 }: BoardGridProps) => {
+  const { t } = useTranslation()
   const { board } = gameState
   const lastKey = gameState.lastPlacedCoord
     ? `${gameState.lastPlacedCoord.x},${gameState.lastPlacedCoord.y}`
@@ -180,10 +182,14 @@ const BoardGrid = memo(({
                   if (isFairyPhase) return fairyTargetMap[key] ?? []
                   if (!inMeeplePhaseBrowsing) return []
                   const fromLast = key === lastKey ? placeableSegments : []
-                  // Only show builder/pig circles when that meeple type is actually selected,
-                  // otherwise occupied features confusingly show as placeable for normal meeples.
-                  const builderOpts = selectedMeepleType === 'BUILDER' ? (builderSegmentsMap[key] ?? []) : []
-                  const pigOpts = selectedMeepleType === 'PIG' ? (pigSegmentsMap[key] ?? []) : []
+                  // C2 (classic): always show builder/pig circles (auto-switch on click)
+                  // C3.1 (modern): only show when that meeple type is selected
+                  const tbData = gameState.expansionData?.['tradersBuilders'] as any
+                  const isModernRules = tbData?.useModernRules ?? false
+                  const builderOpts = (!isModernRules || selectedMeepleType === 'BUILDER')
+                    ? (builderSegmentsMap[key] ?? []) : []
+                  const pigOpts = (!isModernRules || selectedMeepleType === 'PIG')
+                    ? (pigSegmentsMap[key] ?? []) : []
                   const portalOpts = portalTargetsMap[key] ?? []
                   return [...new Set([...fromLast, ...builderOpts, ...pigOpts, ...portalOpts])]
                 })()
@@ -248,14 +254,27 @@ const BoardGrid = memo(({
 
                           let typeToPlace = selectedMeepleType
                           let simultaneousSecondary: 'BUILDER' | 'PIG' | null = null
-                          const tbData = gameState.expansionData?.['tradersBuilders'] as any
-                          const isModernTerminology = tbData?.useModernTerminology ?? false
+                          const tbDataClick = gameState.expansionData?.['tradersBuilders'] as any
+                          const isModernRules = tbDataClick?.useModernRules ?? false
+                          const clickedSegmentType = gameState.staticTileMap[placedTile.definitionId]?.segments.find((s: any) => s.id === segId)?.type
 
                           // Use the exact current state from the store to avoid stale closures
                           const currentTentativeSecondary = useGameStore.getState().tentativeSecondaryMeepleType
 
+                          // Validate & resolve the secondary meeple type against the segment (modern rules only)
+                          const resolveSecondary = (secondary: 'BUILDER' | 'PIG' | null): 'BUILDER' | 'PIG' | null => {
+                            if (!secondary || !isModernRules) return null
+                            const ok = (secondary === 'BUILDER' && (clickedSegmentType === 'CITY' || clickedSegmentType === 'ROAD'))
+                              || (secondary === 'PIG' && clickedSegmentType === 'FIELD')
+                            if (ok) return secondary
+                            // Incompatible — drop secondary and notify
+                            useGameStore.setState({ tentativeSecondaryMeepleType: null })
+                            useUIStore.getState().showToast(t(secondary === 'BUILDER' ? 'meeple.builderNeedsRoadOrCity' : 'meeple.pigNeedsField'))
+                            return null
+                          }
+
                           if (canBuild) {
-                            if (isModernTerminology && (selectedMeepleType === 'NORMAL' || selectedMeepleType === 'BIG' || currentTentativeSecondary === 'BUILDER')) {
+                            if (isModernRules && (selectedMeepleType === 'NORMAL' || selectedMeepleType === 'BIG' || currentTentativeSecondary === 'BUILDER')) {
                               const isBig = selectedMeepleType === 'BIG' || tentativeMeepleType === 'BIG'
                               typeToPlace = isBig ? 'BIG' : 'NORMAL'
                               simultaneousSecondary = 'BUILDER'
@@ -267,7 +286,7 @@ const BoardGrid = memo(({
                               if (selectedMeepleType !== 'BUILDER') useUIStore.setState({ selectedMeepleType: 'BUILDER' })
                             }
                           } else if (canPig) {
-                            if (isModernTerminology && (selectedMeepleType === 'NORMAL' || selectedMeepleType === 'BIG' || currentTentativeSecondary === 'PIG')) {
+                            if (isModernRules && (selectedMeepleType === 'NORMAL' || selectedMeepleType === 'BIG' || currentTentativeSecondary === 'PIG')) {
                               const isBig = selectedMeepleType === 'BIG' || tentativeMeepleType === 'BIG'
                               typeToPlace = isBig ? 'BIG' : 'NORMAL'
                               simultaneousSecondary = 'PIG'
@@ -279,19 +298,34 @@ const BoardGrid = memo(({
                               if (selectedMeepleType !== 'PIG') useUIStore.setState({ selectedMeepleType: 'PIG' })
                             }
                           } else if (canNormal) {
-                            if (isModernTerminology && (selectedMeepleType === 'BUILDER' || selectedMeepleType === 'PIG' || currentTentativeSecondary === 'BUILDER' || currentTentativeSecondary === 'PIG')) {
+                            if (isModernRules && (selectedMeepleType === 'BUILDER' || selectedMeepleType === 'PIG' || currentTentativeSecondary === 'BUILDER' || currentTentativeSecondary === 'PIG')) {
                               // user wants to place builder/pig alongside a normal/big meeple (simultaneously)
+                              const wantedSecondary = (currentTentativeSecondary || selectedMeepleType) as 'BUILDER' | 'PIG'
                               const isBig = selectedMeepleType === 'BIG' || tentativeMeepleType === 'BIG'
                               typeToPlace = isBig ? 'BIG' : 'NORMAL'
-                              simultaneousSecondary = (currentTentativeSecondary || selectedMeepleType) as 'BUILDER' | 'PIG'
+                              // resolveSecondary validates compatibility & shows toast if incompatible
+                              const validated = resolveSecondary(wantedSecondary)
+                              if (validated) simultaneousSecondary = validated
                               if (selectedMeepleType === 'BUILDER' || selectedMeepleType === 'PIG') {
                                 useUIStore.setState({ selectedMeepleType: typeToPlace })
                               }
                             } else {
-                              const isBig = selectedMeepleType === 'BIG'
-                              typeToPlace = isBig ? 'BIG' : 'NORMAL'
-                              if (selectedMeepleType === 'BUILDER' || selectedMeepleType === 'PIG') {
-                                useUIStore.setState({ selectedMeepleType: typeToPlace })
+                              if (clickedSegmentType === 'GARDEN') {
+                                // Gardens MUST use the Abbot
+                                typeToPlace = 'ABBOT'
+                                if (selectedMeepleType !== 'ABBOT') useUIStore.setState({ selectedMeepleType: 'ABBOT' })
+                              } else if (selectedMeepleType === 'ABBOT' && clickedSegmentType !== 'CLOISTER') {
+                                // Abbot can only be placed on Cloisters or Gardens. Fallback to a valid meeple.
+                                const fallbackType = (currentPlayer?.meeples.available['NORMAL'] ?? 0) > 0 ? 'NORMAL' : 'BIG'
+                                typeToPlace = fallbackType
+                                useUIStore.setState({ selectedMeepleType: fallbackType })
+                              } else if (selectedMeepleType === 'BUILDER' || selectedMeepleType === 'PIG') {
+                                // Override BUILDER/PIG to NORMAL since they can't be placed as standalone on normal segments
+                                const fallbackType = (currentPlayer?.meeples.available['NORMAL'] ?? 0) > 0 ? 'NORMAL' : 'BIG'
+                                typeToPlace = fallbackType
+                                useUIStore.setState({ selectedMeepleType: fallbackType })
+                              } else {
+                                typeToPlace = selectedMeepleType
                               }
                             }
                           } else if (canPortal) {
@@ -299,13 +333,12 @@ const BoardGrid = memo(({
                             typeToPlace = isBig ? 'BIG' : 'NORMAL'
                           }
 
-                          if (simultaneousSecondary) {
-                            selectMeeplePlacement(segId, typeToPlace, { x, y }, simultaneousSecondary)
-                          } else if (typeToPlace === 'BUILDER' || typeToPlace === 'PIG' || canPortal || selectedMeepleType === 'BIG' || tentativeMeepleType === 'BIG') {
-                            selectMeeplePlacement(segId, typeToPlace, { x, y })
-                          } else {
-                            selectMeeplePlacement(segId, typeToPlace)
-                          }
+                          const secondary = simultaneousSecondary
+                            ? resolveSecondary(simultaneousSecondary)
+                            : (isModernRules && currentTentativeSecondary && (typeToPlace === 'NORMAL' || typeToPlace === 'BIG'))
+                              ? resolveSecondary(currentTentativeSecondary)
+                              : null
+                          selectMeeplePlacement(segId, typeToPlace, { x, y }, secondary)
                         } else if (gameState.turnPhase === 'FAIRY_MOVE') {
                           moveFairy({ x, y }, segId)
                         }
@@ -601,10 +634,6 @@ export function GameBoard() {
   const tbData = gameState?.expansionData?.['tradersBuilders'] as { isBuilderBonusTurn?: boolean } | undefined
   const isBuilderBonusTurn = tbData?.isBuilderBonusTurn ?? false
 
-  useEffect(() => {
-    console.log("[GameBoard] Render isBuilderBonusTurn:", isBuilderBonusTurn, "Player:", currentPlayer?.color, "Phase:", gameState?.turnPhase);
-  }, [isBuilderBonusTurn, currentPlayer?.color, gameState?.turnPhase])
-
   const builderSegmentsMap = useMemo<Record<string, string[]>>(() => {
     if (!gameState || !currentPlayer || !gameState.lastPlacedCoord) return {}
     if ((currentPlayer.meeples.available['BUILDER'] ?? 0) <= 0) return {}
@@ -642,7 +671,6 @@ export function GameBoard() {
       if (!map[k]) map[k] = []
       map[k].push(segmentId)
     }
-    return map
     return map
   }, [gameState, currentPlayer])
 
@@ -725,7 +753,7 @@ export function GameBoard() {
   // Stable callback wrappers
   const handleRotateTentativeTile = useCallback(() => rotateTentativeTile(), [rotateTentativeTile])
   const handleSelectTilePlacement = useCallback((coord: any) => selectTilePlacement(coord), [selectTilePlacement])
-  const handleSelectMeeplePlacement = useCallback((segId: string, type: any, coord?: any) => selectMeeplePlacement(segId, type, coord), [selectMeeplePlacement])
+  const handleSelectMeeplePlacement = useCallback((segId: string, type: any, coord?: any, secondaryMeepleType?: 'BUILDER' | 'PIG' | null) => selectMeeplePlacement(segId, type, coord, secondaryMeepleType), [selectMeeplePlacement])
   const handleCycleDragonFacing = useCallback(() => cycleDragonFacing(), [cycleDragonFacing])
   const handlePlaceDragonOnHoard = useCallback((coord: any) => placeDragonOnHoard(coord), [placeDragonOnHoard])
   const handleMoveFairy = useCallback((coord: any, segId: string) => moveFairy(coord, segId), [moveFairy])
@@ -882,7 +910,7 @@ export function GameBoard() {
             key="bonus-glow"
             initial={{ opacity: 0 }}
             animate={{ opacity: [0.4, 1, 0.4] }}
-            exit={{ opacity: 0 }}
+            exit={{ opacity: 0, transition: { repeat: 0, duration: 0.5 } }}
             transition={{ duration: 2, repeat: Infinity, ease: 'easeInOut' }}
             style={{
               position: 'absolute',

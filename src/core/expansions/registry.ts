@@ -95,6 +95,12 @@ export function buildExpansionConfig(selection: ExpansionSelection): ExpansionCo
     }
   }
 
+  if (selection.id === 'abbot') {
+    // Abbot expansion adds no extra tiles — garden tiles are part of the base game.
+    // It only unlocks the Abbot meeple type (handled via `hasAbbot` in initGame).
+    return { id: selection.id, tiles: [], scoringRules: [], enableBigMeeple: false }
+  }
+
   // dragon-fairy — only one edition
   return {
     ...DRAGON_FAIRY_C31_EXPANSION,

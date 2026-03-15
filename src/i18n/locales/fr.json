@@ -101,7 +101,9 @@
     "bigMeeple": "Grand Meeple",
     "builder": "B\u00e2tisseur",
     "pig": "Cochon",
-    "dragon": "Dragon"
+    "dragon": "Dragon",
+    "builderNeedsRoadOrCity": "Le b\u00e2tisseur ne peut \u00eatre plac\u00e9 que sur une route ou une ville",
+    "pigNeedsField": "Le cochon ne peut \u00eatre plac\u00e9 que sur un pr\u00e9"
   },
   "goods": {
     "wine": "Vin",
