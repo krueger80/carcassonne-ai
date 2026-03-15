@@ -32,6 +32,7 @@ interface UIStore {
   selectedMeepleType: MeepleType
   territoryOverlay: TerritoryOverlayMode
   isManualInteraction: boolean
+  toastMessage: string | null
   cycleTerritoryOverlay: () => void
   setIsManualInteraction: (isManual: boolean) => void
 
@@ -45,7 +46,11 @@ interface UIStore {
   toggleDevGallery: () => void
   resetView: () => void
   setSelectedMeepleType: (type: MeepleType) => void
+  showToast: (message: string, durationMs?: number) => void
+  dismissToast: () => void
 }
+
+let toastTimerHandle: ReturnType<typeof setTimeout> | null = null
 
 export const useUIStore = create<UIStore>((set) => ({
   boardScale: 1,
@@ -57,6 +62,7 @@ export const useUIStore = create<UIStore>((set) => ({
   selectedMeepleType: 'NORMAL' as MeepleType,
   territoryOverlay: 'off' as TerritoryOverlayMode,
   isManualInteraction: false,
+  toastMessage: null,
   cycleTerritoryOverlay: () => set((s) => {
     const next: TerritoryOverlayMode =
       s.territoryOverlay === 'off' ? 'incomplete'
@@ -96,4 +102,15 @@ export const useUIStore = create<UIStore>((set) => ({
   setSelectedMeepleType: (type) => set({ selectedMeepleType: type }),
 
   setIsManualInteraction: (isManual) => set({ isManualInteraction: isManual }),
+
+  showToast: (message, durationMs = 3000) => {
+    if (toastTimerHandle) clearTimeout(toastTimerHandle)
+    toastTimerHandle = setTimeout(() => { toastTimerHandle = null; set({ toastMessage: null }) }, durationMs)
+    set({ toastMessage: message })
+  },
+
+  dismissToast: () => {
+    if (toastTimerHandle) { clearTimeout(toastTimerHandle); toastTimerHandle = null }
+    set({ toastMessage: null })
+  },
 }))

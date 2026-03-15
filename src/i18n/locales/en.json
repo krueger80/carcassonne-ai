@@ -101,7 +101,9 @@
     "bigMeeple": "Big Meeple",
     "builder": "Builder",
     "pig": "Pig",
-    "dragon": "Dragon"
+    "dragon": "Dragon",
+    "builderNeedsRoadOrCity": "Builder can only be placed on a Road or City",
+    "pigNeedsField": "Pig can only be placed on a Field"
   },
   "goods": {
     "wine": "Wine",

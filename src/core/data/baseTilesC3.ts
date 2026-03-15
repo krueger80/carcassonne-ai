@@ -1,4 +1,5 @@
 import type { TileDefinition } from '../types/tile.ts'
+import { ABBOT_C3_GARDEN_TILES } from './abbotGardenTilesC3.ts'
 
 /** 
  * AUTO-GENERATED FILE. DO NOT EDIT MANUALLY.
@@ -227,7 +228,7 @@ export const BASE3_TILES: TileDefinition[] = [
   {
     "id": "base3_E",
     "imageUrl": "/images/BaseGame_C3/Base_Game_C3_Tile_E.png",
-    "count": 5,
+    "count": 4,
     "expansionId": "base-c3",
     "version": "C3",
     "segments": [
@@ -248,15 +249,6 @@ export const BASE3_TILES: TileDefinition[] = [
           "x": 50,
           "y": 71
         }
-      },
-      {
-        "id": "garden0",
-        "type": "GARDEN",
-        "svgPath": "M30,60 L70,60 L70,90 L30,90 Z",
-        "meepleCentroid": {
-          "x": 50,
-          "y": 75
-        }
       }
     ],
     "edgePositionToSegment": {
@@ -276,10 +268,6 @@ export const BASE3_TILES: TileDefinition[] = [
     "adjacencies": [
       [
         "city0",
-        "field0"
-      ],
-      [
-        "garden0",
         "field0"
       ]
     ]
@@ -412,7 +400,7 @@ export const BASE3_TILES: TileDefinition[] = [
   {
     "id": "base3_H",
     "imageUrl": "/images/BaseGame_C3/Base_Game_C3_Tile_H.png",
-    "count": 3,
+    "count": 2,
     "expansionId": "base-c3",
     "version": "C3",
     "segments": [
@@ -472,7 +460,7 @@ export const BASE3_TILES: TileDefinition[] = [
   {
     "id": "base3_I",
     "imageUrl": "/images/BaseGame_C3/Base_Game_C3_Tile_I.png",
-    "count": 2,
+    "count": 1,
     "expansionId": "base-c3",
     "version": "C3",
     "segments": [
@@ -794,7 +782,7 @@ export const BASE3_TILES: TileDefinition[] = [
   {
     "id": "base3_M",
     "imageUrl": "/images/BaseGame_C3/Base_Game_C3_Tile_M.png",
-    "count": 2,
+    "count": 1,
     "expansionId": "base-c3",
     "version": "C3",
     "segments": [
@@ -842,7 +830,7 @@ export const BASE3_TILES: TileDefinition[] = [
   {
     "id": "base3_N",
     "imageUrl": "/images/BaseGame_C3/Base_Game_C3_Tile_N.png",
-    "count": 3,
+    "count": 2,
     "expansionId": "base-c3",
     "version": "C3",
     "segments": [
@@ -1097,7 +1085,7 @@ export const BASE3_TILES: TileDefinition[] = [
   {
     "id": "base3_R",
     "imageUrl": "/images/BaseGame_C3/Base_Game_C3_Tile_R.png",
-    "count": 3,
+    "count": 2,
     "expansionId": "base-c3",
     "version": "C3",
     "segments": [
@@ -1307,7 +1295,7 @@ export const BASE3_TILES: TileDefinition[] = [
   {
     "id": "base3_U",
     "imageUrl": "/images/BaseGame_C3/Base_Game_C3_Tile_U.png",
-    "count": 8,
+    "count": 7,
     "expansionId": "base-c3",
     "version": "C3",
     "segments": [
@@ -1367,7 +1355,7 @@ export const BASE3_TILES: TileDefinition[] = [
   {
     "id": "base3_V",
     "imageUrl": "/images/BaseGame_C3/Base_Game_C3_Tile_V.png",
-    "count": 9,
+    "count": 8,
     "expansionId": "base-c3",
     "version": "C3",
     "segments": [
@@ -1397,15 +1385,6 @@ export const BASE3_TILES: TileDefinition[] = [
           "x": 23,
           "y": 74
         }
-      },
-      {
-        "id": "garden0",
-        "type": "GARDEN",
-        "svgPath": "M55,15 L85,15 L85,45 L55,45 Z",
-        "meepleCentroid": {
-          "x": 70,
-          "y": 30
-        }
       }
     ],
     "edgePositionToSegment": {
@@ -1430,10 +1409,6 @@ export const BASE3_TILES: TileDefinition[] = [
       [
         "field0",
         "road0"
-      ],
-      [
-        "garden0",
-        "field0"
       ]
     ]
   },
@@ -1668,5 +1643,6 @@ export const BASE3_TILES: TileDefinition[] = [
         "road_n"
       ]
     ]
-  }
+  },
+  ...ABBOT_C3_GARDEN_TILES,
 ]

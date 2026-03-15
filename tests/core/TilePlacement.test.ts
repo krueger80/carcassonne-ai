@@ -38,8 +38,8 @@ function placed(defId: string, x: number, y: number, rotation: Rotation = 0): Pl
 // ─── Tile count ───────────────────────────────────────────────────────────────
 
 describe('Base tile definitions', () => {
-  it('should have 24 distinct tile types', () => {
-    expect(BASE_TILES.length).toBe(24)
+  it('should have 32 distinct tile types (24 base + 8 garden variants)', () => {
+    expect(BASE_TILES.length).toBe(32)
   })
 
   it('should have 72 total tiles (71 in bag + 1 starting tile)', () => {

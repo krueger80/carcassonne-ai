@@ -85,8 +85,8 @@ export function resolveScoringRules(state: GameState): ScoringRule[] {
   const expansions = (state.expansionData.expansions as string[]) ?? []
   const hasIc = expansions.includes('inns-cathedrals')
   const hasTb = expansions.includes('traders-builders')
-  const tbData = state.expansionData['tradersBuilders'] as { useModernTerminology?: boolean } | undefined
-  const isModern = tbData?.useModernTerminology ?? false
+  const tbData = state.expansionData['tradersBuilders'] as { useModernRules?: boolean } | undefined
+  const isModern = tbData?.useModernRules ?? false
 
   if (hasIc && hasTb) return isModern ? RULES_REGISTRY['ic-c31-tb'] : RULES_REGISTRY['ic-tb']
   if (hasIc) return isModern ? IC_C31_SCORING_RULES : IC_SCORING_RULES
@@ -150,6 +150,10 @@ export function initGame(config: GameConfig): GameState {
 
   const enableBigMeeple = hasIc
   const enableBuilderAndPig = hasTb
+
+  const usesModernTbRules = expansionSelections
+    ? expansionSelections.some(s => s.id === 'traders-builders' && s.rulesVersion === 'modern')
+    : expansions.includes('traders-builders-c31')
 
   const usesC31TbTiles = expansionSelections
     ? expansionSelections.some(s => s.id === 'traders-builders' && s.tileEdition === 'C3.1')
@@ -251,9 +255,20 @@ export function initGame(config: GameConfig): GameState {
     return hcTile
   })
 
-  // Include DB tiles that are completely new (no hardcoded base)
+  // Include DB tiles that are completely new (no hardcoded base), but ONLY
+  // if their expansion is actually active in this game. Build a set of active
+  // expansion IDs from the selected expansions' hardcoded tiles + base editions.
+  const activeExpansionIds = new Set<string>()
+  // Base game editions are always active
+  activeExpansionIds.add('base-c2')
+  activeExpansionIds.add('base-c3')
+  activeExpansionIds.add('base-c31')
+  // Add expansion IDs from the hardcoded tiles the engine resolved
+  for (const t of allHardcodedExtraTiles) {
+    if (t.expansionId) activeExpansionIds.add(t.expansionId)
+  }
   const additionalDbTiles = extraTileDefinitions.filter(t =>
-    t.expansionId && t.expansionId !== 'base-c2' && t.expansionId !== 'base-c31' && !allHardcodedExtraTiles.some(hc => hc.id === t.id)
+    t.expansionId && activeExpansionIds.has(t.expansionId) && !allHardcodedExtraTiles.some(hc => hc.id === t.id)
   )
 
   const allExtraTiles: TileDefinition[] = [
@@ -437,7 +452,7 @@ export function initGame(config: GameConfig): GameState {
       scoringRulesKey,
       expansions: canonicalExpansions,
       ...(hasRiver && riverBag.length > 0 ? { river: { bag: riverBag } } : {}),
-      ...(hasTb ? { tradersBuilders: { isBuilderBonusTurn: false, pendingBuilderBonus: false, useModernTerminology: usesC31TbTiles } } : {}),
+      ...(hasTb ? { tradersBuilders: { isBuilderBonusTurn: false, pendingBuilderBonus: false, useModernRules: usesModernTbRules, usesC31Tiles: usesC31TbTiles } } : {}),
       ...(hasDf ? { dragonFairy: { ...createInitialDragonFairyState(), doubleLakeAvailable } } : {}),
     },
     staticTileMap: tileMap,
@@ -740,7 +755,6 @@ export function placeMeeple(
     ...existingTile,
     meeples: updatedTileMeeples,
   }
-
   // Update the union-find feature's meeples list
   const feature = getFeature(state.featureUnionFind, nKey)
   const updatedMeeples = [...(feature?.meeples ?? []), meepleData]
@@ -823,8 +837,8 @@ export function placeMeepleOnExistingTile(
 ): GameState {
   if (state.turnPhase !== 'PLACE_MEEPLE') return state
 
-  const tbData = state.expansionData['tradersBuilders'] as { useModernTerminology?: boolean } | undefined
-  if (tbData?.useModernTerminology) {
+  const tbData = state.expansionData['tradersBuilders'] as { useModernRules?: boolean } | undefined
+  if (tbData?.useModernRules) {
     // In C3.1 (Modern Terminology), Builders and Pigs CANNOT be placed on existing tiles independently.
     // They must be placed simultaneously with a normal meeple on the newly placed tile.
     return state
@@ -1112,9 +1126,9 @@ export function endTurn(state: GameState, preScoredFeatureIds?: string[]): GameS
 
   // ── Pig Sequence (C3.1) ───────────────────────────────────────
   const tbData = currentState.expansionData['tradersBuilders'] as
-    { isBuilderBonusTurn: boolean; pendingBuilderBonus: boolean; useModernTerminology?: boolean } | undefined
+    { isBuilderBonusTurn: boolean; pendingBuilderBonus: boolean; useModernRules?: boolean; usesC31Tiles?: boolean } | undefined
 
-  if (tbData?.useModernTerminology) {
+  if (tbData?.useModernRules) {
     // 1. Find all newly completed cities with at least 1 pennant (even unoccupied ones)
     const pennantedCityFeatureIds = featureIds
       .filter(id => {
@@ -1267,7 +1281,7 @@ export function endTurn(state: GameState, preScoredFeatureIds?: string[]): GameS
 export function completeTurnTransition(currentState: GameState, allEvents: ScoreEvent[]): GameState {
   // ── Builder bonus turn logic (T&B) ───────────────────────────────────────
   const tbData = currentState.expansionData['tradersBuilders'] as
-    { isBuilderBonusTurn: boolean; pendingBuilderBonus: boolean; useModernTerminology?: boolean } | undefined
+    { isBuilderBonusTurn: boolean; pendingBuilderBonus: boolean; useModernRules?: boolean; usesC31Tiles?: boolean } | undefined
   const pendingBonus = tbData?.pendingBuilderBonus ?? false
   const isAlreadyBonusTurn = tbData?.isBuilderBonusTurn ?? false
 
@@ -1278,9 +1292,9 @@ export function completeTurnTransition(currentState: GameState, allEvents: Score
   if (pendingBonus && !isAlreadyBonusTurn) {
     console.log('[GameEngine] completeTurnTransition: STARTING double turn for player', currentState.currentPlayerIndex);
     nextPlayerIndex = currentState.currentPlayerIndex
-    nextTbData = { isBuilderBonusTurn: true, pendingBuilderBonus: false, useModernTerminology: tbData?.useModernTerminology }
+    nextTbData = { isBuilderBonusTurn: true, pendingBuilderBonus: false, useModernRules: tbData?.useModernRules, usesC31Tiles: (tbData as any)?.usesC31Tiles }
 
-    if (tbData?.useModernTerminology) {
+    if (tbData?.useModernRules) {
       // Find and instantly return the Builder belonging to the current player
       const currentPlayerId = currentState.players[nextPlayerIndex].id
 
@@ -2616,11 +2630,14 @@ export function getValidMeepleTypes(state: GameState): MeepleType[] {
   }
 
   // Check BUILDER
+  const tbData = state.expansionData['tradersBuilders'] as { useModernRules?: boolean } | undefined
+  const isModernRules = tbData?.useModernRules ?? false
+
   if ((player.meeples.available.BUILDER ?? 0) > 0) {
     const canPlaceStandalone = segments.some(segId => canPlaceBuilderOrPig(state.featureUnionFind, player, lastCoord, segId, 'BUILDER', dragonPos))
 
-    // Also valid if a NORMAL or BIG meeple can be placed on a ROAD or CITY segment (simultaneous placement)
-    const canPlaceSimultaneous = segments.some(segId => {
+    // Simultaneous placement only in modern (C3.1) rules
+    const canPlaceSimultaneous = isModernRules && segments.some(segId => {
       const feature = getFeature(state.featureUnionFind, nodeKey(lastCoord, segId))
       const isRoadOrCity = feature && (feature.type === 'CITY' || feature.type === 'ROAD')
       if (isRoadOrCity) {
@@ -2637,8 +2654,8 @@ export function getValidMeepleTypes(state: GameState): MeepleType[] {
   if ((player.meeples.available.PIG ?? 0) > 0) {
     const canPlaceStandalone = segments.some(segId => canPlaceBuilderOrPig(state.featureUnionFind, player, lastCoord, segId, 'PIG', dragonPos))
 
-    // Also valid if a NORMAL or BIG meeple can be placed on a FIELD segment (simultaneous placement)
-    const canPlaceSimultaneous = segments.some(segId => {
+    // Simultaneous placement only in modern (C3.1) rules
+    const canPlaceSimultaneous = isModernRules && segments.some(segId => {
       const feature = getFeature(state.featureUnionFind, nodeKey(lastCoord, segId))
       if (feature && feature.type === 'FIELD') {
         return (player.meeples.available.NORMAL > 0 || (player.meeples.available.BIG ?? 0) > 0) &&

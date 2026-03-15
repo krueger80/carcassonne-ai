@@ -35,15 +35,17 @@ export const SegmentPath = memo(({ segment, highlighted = false, dimmed = false,
   const opacity = dimmed ? 0.5 : 1
 
   if (segment.type === 'CLOISTER') {
+    const cx = segment.meepleCentroid.x
+    const cy = segment.meepleCentroid.y
     return (
       <g opacity={opacity}>
-        {/* Cloister: draw field background (no path needed — field covers it) */}
-        <rect x="28" y="28" width="44" height="44" fill={fill} stroke={stroke} strokeWidth="1.5" rx="3" />
+        {/* Cloister: use actual svgPath */}
+        <path d={segment.svgPath} fill={fill} stroke={stroke} strokeWidth="1.5" />
         {/* Cross decoration on cloister */}
-        <rect x="48" y="32" width="4" height="36" fill={TERRAIN_STROKE['CLOISTER']} opacity={0.5} />
-        <rect x="32" y="48" width="36" height="4" fill={TERRAIN_STROKE['CLOISTER']} opacity={0.5} />
+        <rect x={cx - 2} y={cy - 18} width="4" height="36" fill={TERRAIN_STROKE['CLOISTER']} opacity={0.5} />
+        <rect x={cx - 18} y={cy - 2} width="36" height="4" fill={TERRAIN_STROKE['CLOISTER']} opacity={0.5} />
         {ownerColor && (
-          <rect x="28" y="28" width="44" height="44" fill={ownerColor} opacity={0.3} rx="3" />
+          <path d={segment.svgPath} fill={ownerColor} opacity={0.3} />
         )}
       </g>
     )

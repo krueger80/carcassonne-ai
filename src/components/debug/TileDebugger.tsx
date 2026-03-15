@@ -1144,8 +1144,8 @@ function EditorCanvas({
                         )
                     })}
 
-                    {/* 3. Shape Editor Handles (Active Segment Only) - Skip for Cloisters/Gardens */}
-                    {activeSegment && activeSegment.type !== 'CLOISTER' && activeSegment.type !== 'GARDEN' && commands.map((cmd, i) => {
+                    {/* 3. Shape Editor Handles (Active Segment Only) */}
+                    {activeSegment && commands.map((cmd, i) => {
                         if (cmd.type === 'Z') return null
                         const isActive = i === selectedNodeIdx
                         const nodeColor = cmd.type === 'M' ? '#00ff00' : '#5599ff'
@@ -1200,7 +1200,7 @@ function EditorCanvas({
             </div>
 
             {/* Node toolbar — only show when a segment is active */}
-            {activeSegment && activeSegment.type !== 'CLOISTER' && activeSegment.type !== 'GARDEN' && (
+            {activeSegment && (
                 <div style={{ display: 'flex', gap: 8, alignItems: 'center', fontSize: 12 }}>
                     <button
                         onClick={handleAddNode}

@@ -19,8 +19,9 @@ export function CastScoreboard({
 }: CastScoreboardProps) {
   const { t } = useTranslation()
   const hasTradersBuilders = (expansionData?.expansions as string[] | undefined)?.includes('traders-builders')
-  const tbData = expansionData?.['tradersBuilders'] as { isBuilderBonusTurn?: boolean } | undefined
+  const tbData = expansionData?.['tradersBuilders'] as { isBuilderBonusTurn?: boolean, usesC31Tiles?: boolean } | undefined
   const isBuilderBonusTurn = tbData?.isBuilderBonusTurn ?? false
+  const usesC31Tiles = tbData?.usesC31Tiles ?? false
 
   return (
     <div style={{
@@ -109,7 +110,7 @@ export function CastScoreboard({
                 {(['WINE', 'WHEAT', 'CLOTH'] as const).map(commodity => {
                   const count = player.traderTokens?.[commodity] ?? 0
                   if (count === 0) return null
-                  const label = commodity === 'WINE' ? '\uD83C\uDF77' : commodity === 'WHEAT' ? '\uD83C\uDF3E' : '\uD83E\uDDF5'
+                  const label = commodity === 'WINE' ? (usesC31Tiles ? '\uD83D\uDC14' : '\uD83C\uDF77') : commodity === 'WHEAT' ? '\uD83C\uDF3E' : '\uD83E\uDDF5'
                   return (
                     <span key={commodity} style={{ fontSize: 12, color: '#aaa' }}>
                       {label}{count}

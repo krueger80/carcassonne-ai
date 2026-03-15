@@ -1,4 +1,5 @@
 import type { TileDefinition } from '../types/tile.ts'
+import { ABBOT_C2_GARDEN_TILES } from './abbotGardenTilesC2.ts'
 
 /** 
  * AUTO-GENERATED FILE. DO NOT EDIT MANUALLY.
@@ -227,7 +228,7 @@ export const BASE_TILES: TileDefinition[] = [
   {
     "id": "base2_E",
     "imageUrl": "/images/BaseGame_C2/Base_Game_C2_Tile_E.jpg",
-    "count": 5,
+    "count": 4,
     "expansionId": "base-c2",
     "version": "C2",
     "segments": [
@@ -395,7 +396,7 @@ export const BASE_TILES: TileDefinition[] = [
   {
     "id": "base2_H",
     "imageUrl": "/images/BaseGame_C2/Base_Game_C2_Tile_H.jpg",
-    "count": 3,
+    "count": 2,
     "expansionId": "base-c2",
     "version": "C2",
     "segments": [
@@ -455,7 +456,7 @@ export const BASE_TILES: TileDefinition[] = [
   {
     "id": "base2_I",
     "imageUrl": "/images/BaseGame_C2/Base_Game_C2_Tile_I.jpg",
-    "count": 2,
+    "count": 1,
     "expansionId": "base-c2",
     "version": "C2",
     "segments": [
@@ -777,7 +778,7 @@ export const BASE_TILES: TileDefinition[] = [
   {
     "id": "base2_M",
     "imageUrl": "/images/BaseGame_C2/Base_Game_C2_Tile_M.jpg",
-    "count": 2,
+    "count": 1,
     "expansionId": "base-c2",
     "version": "C2",
     "segments": [
@@ -825,7 +826,7 @@ export const BASE_TILES: TileDefinition[] = [
   {
     "id": "base2_N",
     "imageUrl": "/images/BaseGame_C2/Base_Game_C2_Tile_N.jpg",
-    "count": 3,
+    "count": 2,
     "expansionId": "base-c2",
     "version": "C2",
     "segments": [
@@ -1067,7 +1068,7 @@ export const BASE_TILES: TileDefinition[] = [
   {
     "id": "base2_R",
     "imageUrl": "/images/BaseGame_C2/Base_Game_C2_Tile_R.jpg",
-    "count": 3,
+    "count": 2,
     "expansionId": "base-c2",
     "version": "C2",
     "segments": [
@@ -1277,7 +1278,7 @@ export const BASE_TILES: TileDefinition[] = [
   {
     "id": "base2_U",
     "imageUrl": "/images/BaseGame_C2/Base_Game_C2_Tile_U.jpg",
-    "count": 8,
+    "count": 7,
     "expansionId": "base-c2",
     "version": "C2",
     "segments": [
@@ -1337,7 +1338,7 @@ export const BASE_TILES: TileDefinition[] = [
   {
     "id": "base2_V",
     "imageUrl": "/images/BaseGame_C2/Base_Game_C2_Tile_V.jpg",
-    "count": 9,
+    "count": 8,
     "expansionId": "base-c2",
     "version": "C2",
     "segments": [
@@ -1625,5 +1626,6 @@ export const BASE_TILES: TileDefinition[] = [
         "road_n"
       ]
     ]
-  }
+  },
+  ...ABBOT_C2_GARDEN_TILES,
 ]

@@ -160,11 +160,12 @@ export function GameOverlay() {
     const hasAbbot = expansionList.includes('abbot')
     const tbData = gameState.expansionData?.['tradersBuilders'] as {
         isBuilderBonusTurn?: boolean;
-        useModernTerminology?: boolean;
+        useModernRules?: boolean;
+        usesC31Tiles?: boolean;
         pendingFarmerReturns?: { playerId: string; pigNodeKey: string; fieldFeatureId: string; points: number }[];
     } | undefined
     const isBuilderBonusTurn = tbData?.isBuilderBonusTurn ?? false
-    const useModernTerminology = tbData?.useModernTerminology ?? false
+    const useModernRules = tbData?.useModernRules ?? false
     const dfData = gameState.expansionData?.['dragonFairy'] as {
         dragonPosition?: { x: number; y: number } | null;
         dragonInPlay?: boolean;
@@ -236,11 +237,27 @@ export function GameOverlay() {
             undo: undoTilePlacement,
             discardTile: drawTile,
             selectMeeple: (type: any) => {
-                if (useModernTerminology && (type === 'BUILDER' || type === 'PIG')) {
+                if (useModernRules && (type === 'BUILDER' || type === 'PIG')) {
                     const currentSecondary = useGameStore.getState().tentativeSecondaryMeepleType
                     if (currentSecondary === type) {
                         useGameStore.setState({ tentativeSecondaryMeepleType: null })
                     } else {
+                        // Validate segment compatibility when a segment is already selected
+                        if (interactionState === 'MEEPLE_SELECTED_TENTATIVELY') {
+                            const { tentativeMeepleSegment, tentativeTileCoord, gameState: gs } = useGameStore.getState()
+                            if (gs && tentativeMeepleSegment) {
+                                const coord = tentativeTileCoord ?? gs.lastPlacedCoord
+                                const tileKey = coord ? `${coord.x},${coord.y}` : ''
+                                const tileDef = gs.staticTileMap[gs.board.tiles[tileKey]?.definitionId ?? '']
+                                const segType = tileDef?.segments.find((s: any) => s.id === tentativeMeepleSegment)?.type
+                                const compatible = (type === 'BUILDER' && (segType === 'CITY' || segType === 'ROAD'))
+                                    || (type === 'PIG' && segType === 'FIELD')
+                                if (!compatible) {
+                                    useUIStore.getState().showToast(t(type === 'BUILDER' ? 'meeple.builderNeedsRoadOrCity' : 'meeple.pigNeedsField'))
+                                    return
+                                }
+                            }
+                        }
                         useGameStore.setState({ tentativeSecondaryMeepleType: type })
                         const currentPrimary = useUIStore.getState().selectedMeepleType
                         if (currentPrimary !== 'NORMAL' && currentPrimary !== 'BIG') {
@@ -252,7 +269,10 @@ export function GameOverlay() {
                     }
                 } else {
                     setSelectedMeepleType(type)
-                    if (interactionState === 'MEEPLE_SELECTED_TENTATIVELY') {
+                    if (interactionState === 'MEEPLE_SELECTED_TENTATIVELY' && (type === 'BUILDER' || type === 'PIG')) {
+                        // C2: clear tentative placement so user must click a valid builder/pig segment
+                        cancelMeeplePlacement()
+                    } else if (interactionState === 'MEEPLE_SELECTED_TENTATIVELY') {
                         setTentativeMeepleType(type)
                     }
                 }
@@ -927,7 +947,7 @@ export function GameOverlay() {
                                         hasInnsCathedrals={hasInnsCathedrals}
                                         hasAbbot={hasAbbot}
                                         hasDragonHeldBy={dfData?.dragonHeldBy ?? null}
-                                        useModernTerminology={useModernTerminology}
+                                        usesC31Tiles={tbData?.usesC31Tiles ?? false}
                                         turnState={isActive ? currentPlayerTurnState : undefined}
                                     />
                                 </motion.div>
