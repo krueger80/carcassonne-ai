@@ -570,6 +570,8 @@ export function GameOverlay() {
                 {/* Scoreboard toggle */}
                 <button
                     onClick={() => setShowScoreboard(v => !v)}
+                    aria-label={t('menu.scoreboard', 'Scoreboard')}
+                    aria-expanded={showScoreboard}
                     style={{
                         background: showScoreboard ? 'rgba(232,216,160,0.18)' : 'transparent',
                         border: 'none',
@@ -717,6 +719,8 @@ export function GameOverlay() {
                 >
                     <button
                         onClick={(e) => { e.stopPropagation(); setIsMenuOpen(!isMenuOpen) }}
+                        aria-label={t('menu.menu', 'Menu')}
+                        aria-expanded={isMenuOpen}
                         style={{
                             background: 'rgba(0,0,0,0.6)',
                             border: '1px solid #555',
