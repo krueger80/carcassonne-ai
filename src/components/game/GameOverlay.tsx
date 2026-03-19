@@ -584,6 +584,8 @@ export function GameOverlay() {
                         alignItems: 'center',
                     }}
                     title={t('menu.scoreboard')}
+                    aria-label={t('menu.scoreboard')}
+                    aria-expanded={showScoreboard}
                 >
                     🏆
                 </button>
@@ -728,6 +730,8 @@ export function GameOverlay() {
                             alignItems: 'center',
                             justifyContent: 'center',
                         }}
+                        aria-label={t('menu.menu')}
+                        aria-expanded={isMenuOpen}
                     >
                         <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
                             <line x1="3" y1="12" x2="21" y2="12"></line>
