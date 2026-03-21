@@ -230,6 +230,7 @@ export function SetupScreen({ onCancel }: SetupScreenProps) {
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
         <button
           onClick={toggleLang}
+          aria-label={t('setup.toggleLanguage', 'Toggle Language')}
           style={{
             background: 'rgba(255,255,255,0.08)',
             border: '1px solid #555',
@@ -296,6 +297,7 @@ export function SetupScreen({ onCancel }: SetupScreenProps) {
                         fontSize: 11, cursor: 'pointer', padding: '2px 4px',
                       }}
                       title="Unlink account"
+                      aria-label="Unlink account"
                     >
                       ✕
                     </button>
