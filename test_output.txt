@@ -1,0 +1,2 @@
+Score placing under V (3-tile road): 16.42628571940405
+Score placing under D (1-tile road): 12.268183392110917

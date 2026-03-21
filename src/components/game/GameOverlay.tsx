@@ -958,7 +958,7 @@ export function GameOverlay() {
             </div>
 
             {/* ── Floating action buttons near tile ────────────────────────── */}
-            {tileButtonPos && (
+            {tileButtonPos && !currentPlayer?.isBot && (
                 <div
                     style={{
                         position: 'absolute',

@@ -1,0 +1,7 @@
+State V placed: false
+State A tile placed: false
+State A meeple count: 7
+Score placing under V: 12.663317986959044
+State B tile placed: true
+State B meeple count: 6
+Score placing under D: 16.525758082660737

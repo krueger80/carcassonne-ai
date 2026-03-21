@@ -109,16 +109,16 @@ export const DF_TILES: TileDefinition[] = [
       {
         "id": "river0",
         "type": "RIVER",
-        "svgPath": "M50,100 L50,77 L64,60 L75,52 L100,50",
+        "svgPath": "M50,100 L50,77 L64,62 L94,64 L92,48",
         "meepleCentroid": {
-          "x": 68,
-          "y": 66
+          "x": 64,
+          "y": 64
         }
       },
       {
         "id": "field0",
         "type": "FIELD",
-        "svgPath": "M57,100 L100,100 L100,57 L78,59 L59,76",
+        "svgPath": "M57,100 L100,100 L100,71 L68,71 L57,81",
         "meepleCentroid": {
           "x": 83,
           "y": 79
@@ -127,7 +127,7 @@ export const DF_TILES: TileDefinition[] = [
       {
         "id": "field1",
         "type": "FIELD",
-        "svgPath": "M0,100 L100,0 L100,44 L73,45 L56,56 L43,74 L42,100 Z",
+        "svgPath": "M0,100 L25,63 L54,48 L64,54 L36,76 L39,100 Z",
         "meepleCentroid": {
           "x": 51,
           "y": 54
@@ -136,10 +136,19 @@ export const DF_TILES: TileDefinition[] = [
       {
         "id": "city0",
         "type": "CITY",
-        "svgPath": "M0,0 L100,0 L49,48 L0,100 Z",
+        "svgPath": "M0,0 L100,0 L65,27 L59,45 L25,63 L0,100 Z",
         "meepleCentroid": {
           "x": 29,
           "y": 30
+        }
+      },
+      {
+        "id": "field2",
+        "type": "FIELD",
+        "svgPath": "M85,11 L100,0 L100,15 Z",
+        "meepleCentroid": {
+          "x": 94,
+          "y": 10
         }
       }
     ],
@@ -161,15 +170,23 @@ export const DF_TILES: TileDefinition[] = [
     "adjacencies": [
       [
         "river0",
-        "field1"
-      ],
-      [
-        "river0",
         "field0"
       ],
       [
         "field1",
         "city0"
+      ],
+      [
+        "field1",
+        "river0"
+      ],
+      [
+        "field2",
+        "city0"
+      ],
+      [
+        "field2",
+        "river0"
       ]
     ],
     "imageConfig": {
@@ -188,16 +205,16 @@ export const DF_TILES: TileDefinition[] = [
       {
         "id": "field0",
         "type": "FIELD",
-        "svgPath": "M0,58 L27,58 L59,30 L58,0 L100,0 L100,100 L0,100 Z",
+        "svgPath": "M0,69 L23,68 L58,92 L91,84 L85,66 L68,55 L70,23 L61,12 L60,0 L100,0 L100,100 L0,100 Z",
         "meepleCentroid": {
-          "x": 50,
-          "y": 48
+          "x": 22,
+          "y": 79
         }
       },
       {
         "id": "field1",
         "type": "FIELD",
-        "svgPath": "M0,0 L41,0 L42,24 L20,42 L0,43 Z",
+        "svgPath": "M0,0 L41,0 L42,23 L43,34 L28,17 L0,13 Z",
         "meepleCentroid": {
           "x": 25,
           "y": 22
@@ -208,14 +225,14 @@ export const DF_TILES: TileDefinition[] = [
         "type": "CLOISTER",
         "svgPath": "M40,40 L60,40 L60,60 L40,60 Z",
         "meepleCentroid": {
-          "x": 75,
-          "y": 73
+          "x": 61,
+          "y": 72
         }
       },
       {
         "id": "river0",
         "type": "RIVER",
-        "svgPath": "M50,0 L50,28 L23,50 L0,50",
+        "svgPath": "M50,0 L53,20 L51,40 L23,50 L7,31",
         "meepleCentroid": {
           "x": 38,
           "y": 37
@@ -276,14 +293,14 @@ export const DF_TILES: TileDefinition[] = [
         "type": "FIELD",
         "svgPath": "M0,0 L100,0 L100,100 L0,100 Z",
         "meepleCentroid": {
-          "x": 23,
-          "y": 75
+          "x": 72,
+          "y": 82
         }
       },
       {
         "id": "river0",
         "type": "RIVER",
-        "svgPath": "M50,0 L50,21 L50,42 L50,63",
+        "svgPath": "M60,0 L59,17 L50,42 L30,66",
         "meepleCentroid": {
           "x": 50,
           "y": 23
@@ -344,10 +361,10 @@ export const DF_TILES: TileDefinition[] = [
       {
         "id": "river0",
         "type": "RIVER",
-        "svgPath": "M100,50 L72,55 L50,76 L50,100",
+        "svgPath": "M100,50 L62,44 L41,59 L30,77 L51,87 L62,100",
         "meepleCentroid": {
-          "x": 65,
-          "y": 65
+          "x": 33,
+          "y": 72
         }
       },
       {
@@ -403,14 +420,14 @@ export const DF_TILES: TileDefinition[] = [
         "type": "FIELD",
         "svgPath": "M0,0 L100,0 L100,100 L0,100 Z",
         "meepleCentroid": {
-          "x": 77,
-          "y": 50
+          "x": 24,
+          "y": 77
         }
       },
       {
         "id": "river0",
         "type": "RIVER",
-        "svgPath": "M50,0 L51,21 L51,38 L50,54",
+        "svgPath": "M40,0 L41,19 L51,38 L68,61",
         "meepleCentroid": {
           "x": 51,
           "y": 31
@@ -471,7 +488,7 @@ export const DF_TILES: TileDefinition[] = [
       {
         "id": "river0",
         "type": "RIVER",
-        "svgPath": "M0,50 L31,55 L50,75 L50,100",
+        "svgPath": "M0,50 L40,44 L57,58 L69,74 L56,84 L42,90 L39,100",
         "meepleCentroid": {
           "x": 25,
           "y": 50

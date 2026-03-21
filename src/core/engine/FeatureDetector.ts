@@ -97,8 +97,12 @@ function ufUnion(state: UnionFindState, keyA: string, keyB: string): string {
     // an internal connection (no longer open). Subtract 2 open edges (1 from each side of the connection).
     const existing = state.featureData[rootA]
     if (existing) {
-      existing.openEdgeCount -= 2
-      existing.isComplete = isFeatureComplete(existing)
+      const openEdgeCount = existing.openEdgeCount - 2
+      state.featureData[rootA] = {
+        ...existing,
+        openEdgeCount,
+        isComplete: openEdgeCount === 0 && existing.type !== 'FIELD' && existing.type !== 'CLOISTER' && existing.type !== 'GARDEN',
+      }
     }
     return rootA
   }
@@ -143,7 +147,10 @@ function ufUnion(state: UnionFindState, keyA: string, keyB: string): string {
 
   // Update isComplete
   const merged = state.featureData[newRoot]
-  merged.isComplete = isFeatureComplete(merged)
+  state.featureData[newRoot] = {
+    ...merged,
+    isComplete: isFeatureComplete(merged),
+  }
 
   // Remove the old root's feature data
   delete state.featureData[oldRoot]
@@ -357,20 +364,28 @@ export function addTileToUnionFind(
           metadata: {},
         }
         ufMakeSet(working, cloisterNodeKey, feature)
+
+        if (feature.isComplete) {
+          completedFeatureIds.push(cloisterNodeKey)
+        }
       } else {
         // Update existing cloister/garden
         const root = ufFind(working, cloisterNodeKey)
         const existing = working.featureData[root]
         if (existing) {
-          const surroundCount = countSurroundingTiles(board, checkCoord)
-          const wasComplete = existing.isComplete
-          existing.openEdgeCount = 8 - surroundCount
-          existing.tileCount = surroundCount + 1
-          existing.isComplete = surroundCount === 8
+        const surroundCount = countSurroundingTiles(board, checkCoord)
+        const wasComplete = existing.isComplete
+        const openEdgeCount = 8 - surroundCount
+        working.featureData[root] = {
+          ...existing,
+          openEdgeCount,
+          tileCount: surroundCount + 1,
+          isComplete: surroundCount === 8,
+        }
 
-          if (!wasComplete && existing.isComplete) {
-            completedFeatureIds.push(root)
-          }
+        if (!wasComplete && working.featureData[root].isComplete) {
+          completedFeatureIds.push(root)
+        }
         }
       }
     }

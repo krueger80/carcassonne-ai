@@ -11,7 +11,7 @@ import type { Feature, UnionFindState } from '../../core/types/feature.ts'
 import type { Player } from '../../core/types/player.ts'
 import type { Direction } from '../../core/types/tile.ts'
 
-function getControllingColor(feature: Feature, players: Player[]): string | null {
+function getControllingColors(feature: Feature, players: Player[]): string[] {
   if (feature.meeples.length > 0) {
     const strength: Record<string, number> = {}
     for (const m of feature.meeples) {
@@ -19,32 +19,30 @@ function getControllingColor(feature: Feature, players: Player[]): string | null
     }
     const maxStr = Math.max(...Object.values(strength))
     const topPlayers = Object.keys(strength).filter(id => strength[id] === maxStr)
-    const player = players.find(p => p.id === topPlayers[0])
-    return player?.color ?? null
+    return topPlayers.map(id => players.find(p => p.id === id)?.color).filter(Boolean) as string[]
   }
   if (feature.lastOwnerIds?.length) {
-    const player = players.find(p => p.id === feature.lastOwnerIds![0])
-    return player?.color ?? null
+    return feature.lastOwnerIds.map(id => players.find(p => p.id === id)?.color).filter(Boolean) as string[]
   }
-  return null
+  return []
 }
 
 function computeSegmentOwnerMap(
   uf: UnionFindState,
   players: Player[],
   mode: TerritoryOverlayMode,
-): Record<string, Record<string, string>> {
+): Record<string, Record<string, string[]>> {
   if (mode === 'off') return {}
-  const result: Record<string, Record<string, string>> = {}
+  const result: Record<string, Record<string, string[]>> = {}
   const features = getAllFeatures(uf)
   for (const feature of features) {
     if (mode === 'incomplete' && feature.isComplete) continue
-    const color = getControllingColor(feature, players)
-    if (!color) continue
+    const colors = getControllingColors(feature, players)
+    if (colors.length === 0) continue
     for (const node of feature.nodes) {
       const coordKey = `${node.coordinate.x},${node.coordinate.y}`
       if (!result[coordKey]) result[coordKey] = {}
-      result[coordKey][node.segmentId] = color
+      result[coordKey][node.segmentId] = colors
     }
   }
   return result

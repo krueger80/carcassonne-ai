@@ -23,10 +23,11 @@ interface SegmentPathProps {
   segment: Segment
   highlighted?: boolean
   dimmed?: boolean
-  ownerColor?: string
+  ownerColors?: string[]
+  rotation?: number
 }
 
-export const SegmentPath = memo(({ segment, highlighted = false, dimmed = false, ownerColor }: SegmentPathProps) => {
+export const SegmentPath = memo(({ segment, highlighted = false, dimmed = false, ownerColors, rotation = 0 }: SegmentPathProps) => {
   const fill = highlighted
     ? '#ffffaa'
     : TERRAIN_COLORS[segment.type] ?? '#cccccc'
@@ -34,18 +35,33 @@ export const SegmentPath = memo(({ segment, highlighted = false, dimmed = false,
   const stroke = TERRAIN_STROKE[segment.type] ?? '#999'
   const opacity = dimmed ? 0.5 : 1
 
+  const hasOwners = ownerColors && ownerColors.length > 0;
+  const tieId = hasOwners ? `tie-pattern-${segment.id}-${ownerColors.join('-').replace(/#/g, '')}-rot${rotation}` : '';
+  const stripeSize = hasOwners ? 24 / ownerColors.length : 0;
+  
+  const StripePattern = hasOwners ? (
+    <defs>
+      <pattern id={tieId} width="24" height="24" patternUnits="userSpaceOnUse" patternTransform={`rotate(${45 - rotation})`}>
+        {ownerColors.map((c, i) => (
+          <rect key={c} y={i * stripeSize} width="24" height={stripeSize / 2} fill={c} />
+        ))}
+      </pattern>
+    </defs>
+  ) : null;
+
   if (segment.type === 'CLOISTER') {
     const cx = segment.meepleCentroid.x
     const cy = segment.meepleCentroid.y
     return (
       <g opacity={opacity}>
-        {/* Cloister: use actual svgPath */}
         <path d={segment.svgPath} fill={fill} stroke={stroke} strokeWidth="1.5" />
-        {/* Cross decoration on cloister */}
         <rect x={cx - 2} y={cy - 18} width="4" height="36" fill={TERRAIN_STROKE['CLOISTER']} opacity={0.5} />
         <rect x={cx - 18} y={cy - 2} width="36" height="4" fill={TERRAIN_STROKE['CLOISTER']} opacity={0.5} />
-        {ownerColor && (
-          <path d={segment.svgPath} fill={ownerColor} opacity={0.3} />
+        {hasOwners && (
+          <g>
+            {StripePattern}
+            <path d={segment.svgPath} fill={`url(#${tieId})`} opacity={0.5} />
+          </g>
         )}
       </g>
     )
@@ -59,8 +75,11 @@ export const SegmentPath = memo(({ segment, highlighted = false, dimmed = false,
         <circle cx={segment.meepleCentroid.x} cy={segment.meepleCentroid.y} r="4" fill="#e55" opacity={0.6} />
         <circle cx={segment.meepleCentroid.x - 5} cy={segment.meepleCentroid.y + 3} r="3" fill="#e8e855" opacity={0.5} />
         <circle cx={segment.meepleCentroid.x + 5} cy={segment.meepleCentroid.y + 3} r="3" fill="#e8e855" opacity={0.5} />
-        {ownerColor && (
-          <path d={segment.svgPath} fill={ownerColor} opacity={0.3} />
+        {hasOwners && (
+          <g>
+            {StripePattern}
+            <path d={segment.svgPath} fill={`url(#${tieId})`} opacity={0.5} />
+          </g>
         )}
       </g>
     )
@@ -72,12 +91,13 @@ export const SegmentPath = memo(({ segment, highlighted = false, dimmed = false,
 
     return (
       <g opacity={opacity}>
-        {/* Outer stroke (border) */}
         <path d={segment.svgPath} fill="none" stroke={roadBorder} strokeWidth="12" strokeLinecap="round" strokeLinejoin="round" />
-        {/* Inner stroke (road surface) */}
         <path d={segment.svgPath} fill="none" stroke={roadColor} strokeWidth="8" strokeLinecap="round" strokeLinejoin="round" />
-        {ownerColor && (
-          <path d={segment.svgPath} fill="none" stroke={ownerColor} strokeWidth="8" strokeLinecap="round" strokeLinejoin="round" opacity={0.3} />
+        {hasOwners && (
+          <g>
+            {StripePattern}
+            <path d={segment.svgPath} fill="none" stroke={`url(#${tieId})`} strokeWidth="8" strokeLinecap="round" strokeLinejoin="round" opacity={0.6} />
+          </g>
         )}
       </g>
     )
@@ -89,9 +109,7 @@ export const SegmentPath = memo(({ segment, highlighted = false, dimmed = false,
 
     return (
       <g opacity={opacity}>
-        {/* Outer stroke (border) */}
         <path d={segment.svgPath} fill="none" stroke={riverBorder} strokeWidth="14" strokeLinecap="round" strokeLinejoin="round" />
-        {/* Inner stroke (water surface) */}
         <path d={segment.svgPath} fill="none" stroke={riverColor} strokeWidth="10" strokeLinecap="round" strokeLinejoin="round" />
       </g>
     )
@@ -106,8 +124,11 @@ export const SegmentPath = memo(({ segment, highlighted = false, dimmed = false,
         strokeWidth="0.5"
         opacity={opacity}
       />
-      {ownerColor && (
-        <path d={segment.svgPath} fill={ownerColor} opacity={0.25} />
+      {hasOwners && (
+        <g>
+          {StripePattern}
+          <path d={segment.svgPath} fill={`url(#${tieId})`} opacity={0.5} />
+        </g>
       )}
     </g>
   )

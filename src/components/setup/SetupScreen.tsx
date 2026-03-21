@@ -137,13 +137,14 @@ export function SetupScreen({ onCancel }: SetupScreenProps) {
   const [expansions, setExpansions] = useState<Record<ExpId, ExpansionState>>(DEFAULT_EXP_STATE)
   const [isStarting, setIsStarting] = useState(false)
   const [linkedProfiles, setLinkedProfiles] = useState<Record<number, LinkedProfile>>({})
+  const [bots, setBots] = useState<Record<number, { isBot: boolean, difficulty: 'easy' | 'medium' | 'hard' }>>({})
   const [linkingSlot, setLinkingSlot] = useState<number | null>(null)
   const { newGame } = useGameStore()
   const toggleLang = () => i18n.changeLanguage(i18n.language === 'fr' ? 'en' : 'fr')
 
   // Auto-link first player to primary session
   const handleAutoLink = () => {
-    if (user && profile && !linkedProfiles[0]) {
+    if (user && profile && !linkedProfiles[0] && !bots[0]?.isBot) {
       setLinkedProfiles(prev => ({
         ...prev,
         [0]: { profileId: profile.id, displayName: profile.display_name, avatarUrl: profile.avatar_url },
@@ -163,6 +164,22 @@ export function SetupScreen({ onCancel }: SetupScreenProps) {
 
   const unlinkSlot = (slot: number) => {
     setLinkedProfiles(prev => { const next = { ...prev }; delete next[slot]; return next })
+  }
+
+  const toggleBot = (slot: number) => {
+    setBots(prev => {
+      const isBot = !prev[slot]?.isBot
+      const next = { ...prev, [slot]: { ...prev[slot], isBot, difficulty: prev[slot]?.difficulty || 'medium' } }
+      return next
+    })
+    if (!bots[slot]?.isBot) {
+      // If we are making it a bot, unlink it
+      unlinkSlot(slot)
+    }
+  }
+
+  const setBotDifficulty = (slot: number, difficulty: 'easy' | 'medium' | 'hard') => {
+    setBots(prev => ({ ...prev, [slot]: { ...prev[slot], isBot: true, difficulty } }))
   }
 
   const setExp = (id: ExpId, patch: Partial<ExpansionState>) =>
@@ -199,8 +216,15 @@ export function SetupScreen({ onCancel }: SetupScreenProps) {
         }
       }
 
+      const playerConfigs = names.slice(0, playerCount).map((name, i) => {
+        if (bots[i]?.isBot) {
+          return { name: names[i] || `Bot ${i + 1}`, isBot: true, botDifficulty: bots[i].difficulty }
+        }
+        return name
+      })
+
       await newGame({
-        playerNames: names.slice(0, playerCount),
+        playerNames: playerConfigs,
         baseDefinitions: baseDefs,
         expansionSelections: enabledSelections,
         extraTileDefinitions: extraTileDefs,
@@ -274,6 +298,8 @@ export function SetupScreen({ onCancel }: SetupScreenProps) {
         <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
           {Array.from({ length: playerCount }, (_, i) => {
             const linked = linkedProfiles[i]
+            const isBot = bots[i]?.isBot
+            const botDiff = bots[i]?.difficulty || 'medium'
             return (
               <div key={i} style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
                 <div style={{ width: 12, height: 12, borderRadius: '50%', background: PLAYER_COLORS[i], flexShrink: 0 }} />
@@ -284,9 +310,40 @@ export function SetupScreen({ onCancel }: SetupScreenProps) {
                     flex: 1, background: '#1a1a2e', border: '1px solid #444',
                     color: '#f0f0f0', padding: '5px 8px', borderRadius: 4, fontSize: 13,
                   }}
-                  placeholder={t('setup.playerPlaceholder', { n: i + 1 })}
+                  placeholder={isBot ? `Bot ${i + 1}` : t('setup.playerPlaceholder', { n: i + 1 })}
+                  disabled={isBot}
                 />
-                {linked ? (
+
+                <button
+                  onClick={() => toggleBot(i)}
+                  style={{
+                    background: isBot ? 'rgba(74, 106, 74, 0.2)' : 'transparent',
+                    border: `1px solid ${isBot ? '#6a9a6a' : '#555'}`,
+                    color: isBot ? '#8f8' : '#888',
+                    borderRadius: 4, padding: '4px 6px',
+                    fontSize: 12, cursor: 'pointer',
+                  }}
+                  title="Toggle Bot"
+                >
+                  🤖
+                </button>
+
+                {isBot && (
+                  <select
+                    value={botDiff}
+                    onChange={e => setBotDifficulty(i, e.target.value as 'easy' | 'medium' | 'hard')}
+                    style={{
+                      background: '#1a1a2e', border: '1px solid #444',
+                      color: '#f0f0f0', padding: '4px', borderRadius: 4, fontSize: 12,
+                    }}
+                  >
+                    <option value="easy">Easy</option>
+                    <option value="medium">Med</option>
+                    <option value="hard">Hard</option>
+                  </select>
+                )}
+
+                {!isBot && (linked ? (
                   <div style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
                     <span style={{ fontSize: 11, color: '#2ecc71' }} title={`Linked: ${linked.displayName}`}>✓</span>
                     <button
@@ -317,7 +374,7 @@ export function SetupScreen({ onCancel }: SetupScreenProps) {
                   >
                     🔗 Link
                   </button>
-                )}
+                ))}
               </div>
             )
           })}

@@ -441,8 +441,8 @@ export const TB_C31_TILES: TileDefinition[] = [
         "type": "FIELD",
         "svgPath": "M0,0 L100,0 L100,100 L0,100 Z",
         "meepleCentroid": {
-          "x": 49,
-          "y": 17
+          "x": 50,
+          "y": 13
         }
       }
     ],
@@ -450,14 +450,14 @@ export const TB_C31_TILES: TileDefinition[] = [
       "EAST_LEFT": "city0",
       "WEST_LEFT": "city0",
       "EAST_RIGHT": "city0",
-      "NORTH_LEFT": "city0",
+      "NORTH_LEFT": "field2",
       "SOUTH_LEFT": "field0",
       "WEST_RIGHT": "city0",
       "EAST_CENTER": "city0",
-      "NORTH_RIGHT": "city0",
+      "NORTH_RIGHT": "field2",
       "SOUTH_RIGHT": "field1",
       "WEST_CENTER": "city0",
-      "NORTH_CENTER": "city0",
+      "NORTH_CENTER": "field2",
       "SOUTH_CENTER": "road0"
     },
     "adjacencies": [

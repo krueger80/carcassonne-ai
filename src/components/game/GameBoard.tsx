@@ -7,12 +7,13 @@ import { DragonPiece } from './DragonPiece.tsx'
 import { useGameStore } from '../../store/gameStore.ts'
 import { useUIStore, type TerritoryOverlayMode } from '../../store/uiStore.ts'
 import { GameOverlay } from './GameOverlay.tsx'
+import { BotOrchestrator } from './BotOrchestrator.tsx'
 import { getBuilderPigPlaceableSegments } from '../../core/engine/MeeplePlacement.ts'
 import { getAllFeatures } from '../../core/engine/FeatureDetector.ts'
 import type { Feature, UnionFindState } from '../../core/types/feature.ts'
 import type { Player } from '../../core/types/player.ts'
 
-function getControllingColor(feature: Feature, players: Player[]): string | null {
+function getControllingColors(feature: Feature, players: Player[]): string[] {
   if (feature.meeples.length > 0) {
     const strength: Record<string, number> = {}
     for (const m of feature.meeples) {
@@ -20,33 +21,31 @@ function getControllingColor(feature: Feature, players: Player[]): string | null
     }
     const maxStr = Math.max(...Object.values(strength))
     const topPlayers = Object.keys(strength).filter(id => strength[id] === maxStr)
-    const player = players.find(p => p.id === topPlayers[0])
-    return player?.color ?? null
+    return topPlayers.map(id => players.find(p => p.id === id)?.color).filter(Boolean) as string[]
   }
   // Fallback: completed features with meeples already returned
   if (feature.lastOwnerIds?.length) {
-    const player = players.find(p => p.id === feature.lastOwnerIds![0])
-    return player?.color ?? null
+    return feature.lastOwnerIds.map(id => players.find(p => p.id === id)?.color).filter(Boolean) as string[]
   }
-  return null
+  return []
 }
 
 function computeSegmentOwnerMap(
   uf: UnionFindState,
   players: Player[],
   mode: TerritoryOverlayMode,
-): Record<string, Record<string, string>> {
+): Record<string, Record<string, string[]>> {
   if (mode === 'off') return {}
-  const result: Record<string, Record<string, string>> = {}
+  const result: Record<string, Record<string, string[]>> = {}
   const features = getAllFeatures(uf)
   for (const feature of features) {
     if (mode === 'incomplete' && feature.isComplete) continue
-    const color = getControllingColor(feature, players)
-    if (!color) continue
+    const colors = getControllingColors(feature, players)
+    if (colors.length === 0) continue
     for (const node of feature.nodes) {
       const coordKey = `${node.coordinate.x},${node.coordinate.y}`
       if (!result[coordKey]) result[coordKey] = {}
-      result[coordKey][node.segmentId] = color
+      result[coordKey][node.segmentId] = colors
     }
   }
   return result
@@ -90,7 +89,7 @@ interface BoardGridProps {
   selectedMeepleType: any
   currentPlayer: any
   undoTilePlacement: () => void
-  segmentOwnerMap: Record<string, Record<string, string>>
+  segmentOwnerMap: Record<string, Record<string, string[]>>
 }
 
 const BoardGrid = memo(({
@@ -156,6 +155,7 @@ const BoardGrid = memo(({
                     style={{ width: CELL_SIZE, height: CELL_SIZE, overflow: 'visible' }}
                     onClick={(e) => {
                       e.stopPropagation()
+                      if (currentPlayer?.isBot) return
                       setHoveredCoord(null) // Clear ghost on rotate
                       rotateTentativeTile()
                     }}
@@ -214,6 +214,7 @@ const BoardGrid = memo(({
                     key={key}
                     onClick={(e) => {
                       e.stopPropagation()
+                      if (currentPlayer?.isBot) return
                       if (isDragonOrientHere) {
                         cycleDragonFacing()
                       } else if (isDragonPlaceTarget) {
@@ -243,6 +244,7 @@ const BoardGrid = memo(({
                       players={gameState.players}
                       placeableSegments={segmentsHere}
                       onSegmentClick={(segId) => {
+                        if (currentPlayer?.isBot) return
                         if (gameState.turnPhase === 'PLACE_MEEPLE') {
                           const bMap = builderSegmentsMap[key]
                           const pMap = pigSegmentsMap[key]
@@ -380,10 +382,11 @@ const BoardGrid = memo(({
                   isHovered={isHovered}
                   previewTile={gameState.currentTile}
                   tileMap={gameState.staticTileMap}
-                  onHover={() => setHoveredCoord({ x, y })}
-                  onLeave={() => setHoveredCoord(null)}
+                  onHover={() => { if (!currentPlayer?.isBot) setHoveredCoord({ x, y }) }}
+                  onLeave={() => { if (!currentPlayer?.isBot) setHoveredCoord(null) }}
                   onClick={(e) => {
                     e.stopPropagation()
+                    if (currentPlayer?.isBot) return
                     setHoveredCoord(null) // Clear ghost on place
                     if (!isValid) return
                     if (gameState.turnPhase === 'PLACE_MEEPLE') {
@@ -446,8 +449,20 @@ export function GameBoard() {
   const { rotateTile } = useGameStore()
   useEffect(() => {
     const handler = (e: KeyboardEvent) => {
-      if (e.key === 'r' || e.key === 'R') {
-        const phase = useGameStore.getState().gameState?.turnPhase
+      const state = useGameStore.getState().gameState
+      if (!state) return
+      const currentPlayer = state.players[state.currentPlayerIndex]
+      if (currentPlayer?.isBot) return
+
+      if (e.key === 'Escape') {
+        const store = useGameStore.getState()
+        if (state.turnPhase === 'PLACE_MEEPLE') {
+          undoTilePlacement()
+        } else if (store.interactionState === 'TILE_PLACED_TENTATIVELY') {
+          useGameStore.getState().cancelTilePlacement()
+        }
+      } else if (e.key === 'r' || e.key === 'R') {
+        const phase = state.turnPhase
         if (phase === 'DRAGON_ORIENT') {
           cycleDragonFacing()
         } else {
@@ -457,7 +472,7 @@ export function GameBoard() {
     }
     window.addEventListener('keydown', handler)
     return () => window.removeEventListener('keydown', handler)
-  }, [rotateTile, cycleDragonFacing])
+  }, [rotateTile, cycleDragonFacing, undoTilePlacement])
 
   // ── Pan/zoom ────────────────────────────────────────────────────────────────
 
@@ -923,6 +938,7 @@ export function GameBoard() {
         )}
       </AnimatePresence>
 
+      <BotOrchestrator />
       <GameOverlay />
     </div>
   )

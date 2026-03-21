@@ -1,0 +1,2 @@
+Score B (Top Right - AI picked this): 23.8990589643382
+Score A (Above V - user wants this): 25.09580734453286

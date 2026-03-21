@@ -1,0 +1,28 @@
+Placed V at -1,0: { x: -1, y: 0 }
+[GameEngine] Ending turn (shifting to next player) { pendingBonus: false, isAlreadyBonusTurn: false }
+[GameEngine] completeTurnTransition: RESULTING state: {
+  nextPlayerIndex: 1,
+  isBuilderBonusTurn: undefined,
+  pendingBuilderBonus: undefined,
+  numPlayers: 2
+}
+StateA lastPlacedCoord: { x: -1, y: 1 }
+Can place A? true
+Board meeples A: {
+  '-1,0:field1': {
+    playerId: 'player_0',
+    meepleType: 'NORMAL',
+    segmentId: 'field1',
+    coordinate: { x: -1, y: 0 }
+  },
+  '-1,1:road0': {
+    playerId: 'player_1',
+    meepleType: 'NORMAL',
+    segmentId: 'road0',
+    coordinate: { x: -1, y: 1 }
+  }
+}
+Score placing under V (3-tile road): 27.799162082013915
+Available A: 6
+Score placing under D (1-tile road): 18.913091770922343
+Available B: 6

@@ -25,16 +25,16 @@ export const BASE1_TILES: TileDefinition[] = [
       {
         "id": "road0",
         "type": "ROAD",
-        "svgPath": "M46,50 L54,50 L54,100 L46,100 Z",
+        "svgPath": "M40,60 L35,67 L44,86 L47,100",
         "meepleCentroid": {
-          "x": 17,
-          "y": 41
+          "x": 42,
+          "y": 82
         }
       },
       {
         "id": "cloister0",
         "type": "CLOISTER",
-        "svgPath": "M30,30 L70,30 L70,70 L30,70 Z",
+        "svgPath": "M43,23 L74,57 L64,68 L25,58 Z",
         "meepleCentroid": {
           "x": 50,
           "y": 50
@@ -51,9 +51,9 @@ export const BASE1_TILES: TileDefinition[] = [
       "EAST_CENTER": "field0",
       "NORTH_RIGHT": "field0",
       "SOUTH_RIGHT": "field0",
-      "WEST_CENTER": "road0",
+      "WEST_CENTER": "field0",
       "NORTH_CENTER": "field0",
-      "SOUTH_CENTER": "field0"
+      "SOUTH_CENTER": "road0"
     },
     "adjacencies": [
       [
@@ -89,10 +89,10 @@ export const BASE1_TILES: TileDefinition[] = [
       {
         "id": "cloister0",
         "type": "CLOISTER",
-        "svgPath": "M30,30 L70,30 L70,70 L30,70 Z",
+        "svgPath": "M35,14 L73,46 L42,66 L22,57 Z",
         "meepleCentroid": {
-          "x": 50,
-          "y": 50
+          "x": 44,
+          "y": 44
         }
       }
     ],
@@ -281,7 +281,7 @@ export const BASE1_TILES: TileDefinition[] = [
       {
         "id": "city0",
         "type": "CITY",
-        "svgPath": "M0,100 L0,0 L30,25 L50,30 L70,25 L100,0 L100,100 L70,75 L50,70 L30,75 Z",
+        "svgPath": "M0,100 L0,0 L32,20 L79,18 L100,0 L100,100 L70,72 L53,78 L22,77 Z",
         "hasPennant": true,
         "meepleCentroid": {
           "x": 50,
@@ -291,35 +291,35 @@ export const BASE1_TILES: TileDefinition[] = [
       {
         "id": "field0",
         "type": "FIELD",
-        "svgPath": "M40,0 L60,0 L50,50 Z",
+        "svgPath": "M0,0 L100,0 L79,18 L33,21 Z",
         "meepleCentroid": {
-          "x": 88,
-          "y": 50
+          "x": 50,
+          "y": 13
         }
       },
       {
         "id": "field1",
         "type": "FIELD",
-        "svgPath": "M40,100 L60,100 L50,50 Z",
+        "svgPath": "M0,100 L100,100 L69,71 L53,78 L21,77 Z",
         "meepleCentroid": {
-          "x": 14,
-          "y": 52
+          "x": 50,
+          "y": 87
         }
       }
     ],
     "edgePositionToSegment": {
-      "EAST_LEFT": "field0",
-      "WEST_LEFT": "field1",
-      "EAST_RIGHT": "field0",
-      "NORTH_LEFT": "city0",
-      "SOUTH_LEFT": "city0",
-      "WEST_RIGHT": "field1",
-      "EAST_CENTER": "field0",
-      "NORTH_RIGHT": "city0",
-      "SOUTH_RIGHT": "city0",
-      "WEST_CENTER": "field1",
-      "NORTH_CENTER": "city0",
-      "SOUTH_CENTER": "city0"
+      "EAST_LEFT": "city0",
+      "WEST_LEFT": "city0",
+      "EAST_RIGHT": "city0",
+      "NORTH_LEFT": "field1",
+      "SOUTH_LEFT": "field0",
+      "WEST_RIGHT": "city0",
+      "EAST_CENTER": "city0",
+      "NORTH_RIGHT": "field1",
+      "SOUTH_RIGHT": "field0",
+      "WEST_CENTER": "city0",
+      "NORTH_CENTER": "field1",
+      "SOUTH_CENTER": "field0"
     },
     "adjacencies": [
       [
@@ -342,7 +342,7 @@ export const BASE1_TILES: TileDefinition[] = [
       {
         "id": "city0",
         "type": "CITY",
-        "svgPath": "M0,100 L0,0 L30,25 L50,30 L70,25 L100,0 L100,100 L70,75 L50,70 L30,75 Z",
+        "svgPath": "M100,0 L0,0 L21,28 L18,53 L23,73 L0,100 L100,100 L81,76 L79,33 Z",
         "meepleCentroid": {
           "x": 50,
           "y": 50
@@ -351,19 +351,19 @@ export const BASE1_TILES: TileDefinition[] = [
       {
         "id": "field0",
         "type": "FIELD",
-        "svgPath": "M40,0 L60,0 L50,50 Z",
+        "svgPath": "M100,0 L100,100 L81,75 L81,35 Z",
         "meepleCentroid": {
-          "x": 86,
+          "x": 90,
           "y": 49
         }
       },
       {
         "id": "field1",
         "type": "FIELD",
-        "svgPath": "M40,100 L60,100 L50,50 Z",
+        "svgPath": "M0,0 L0,100 L24,74 L18,52 L21,28 Z",
         "meepleCentroid": {
-          "x": 13,
-          "y": 51
+          "x": 12,
+          "y": 52
         }
       }
     ],
@@ -402,7 +402,7 @@ export const BASE1_TILES: TileDefinition[] = [
       {
         "id": "city0",
         "type": "CITY",
-        "svgPath": "M100,0 L100,100 L75,70 L70,50 L75,30 Z",
+        "svgPath": "M100,0 L0,0 L26,24 L53,30 L77,19 Z",
         "meepleCentroid": {
           "x": 50,
           "y": 14
@@ -411,7 +411,7 @@ export const BASE1_TILES: TileDefinition[] = [
       {
         "id": "city1",
         "type": "CITY",
-        "svgPath": "M0,0 L0,100 L25,70 L30,50 L25,30 Z",
+        "svgPath": "M100,100 L0,100 L14,75 L38,59 L67,61 Z",
         "meepleCentroid": {
           "x": 49,
           "y": 82
@@ -420,7 +420,7 @@ export const BASE1_TILES: TileDefinition[] = [
       {
         "id": "field0",
         "type": "FIELD",
-        "svgPath": "M0,0 L60,0 L50,30 L50,70 L60,100 L0,100 Z",
+        "svgPath": "M0,0 L27,25 L50,30 L79,18 L100,0 L100,100 L67,62 L38,59 L14,75 L0,100 Z",
         "meepleCentroid": {
           "x": 49,
           "y": 45
@@ -462,7 +462,7 @@ export const BASE1_TILES: TileDefinition[] = [
       {
         "id": "city0",
         "type": "CITY",
-        "svgPath": "M100,0 L100,100 L75,70 L70,50 L75,30 Z",
+        "svgPath": "M100,0 L100,100 L69,60 L70,32 L74,19 Z",
         "meepleCentroid": {
           "x": 85,
           "y": 49
@@ -471,7 +471,7 @@ export const BASE1_TILES: TileDefinition[] = [
       {
         "id": "city1",
         "type": "CITY",
-        "svgPath": "M0,100 L100,100 L70,75 L50,70 L30,75 Z",
+        "svgPath": "M0,0 L100,0 L65,13 L40,20 Z",
         "meepleCentroid": {
           "x": 45,
           "y": 9
@@ -480,7 +480,7 @@ export const BASE1_TILES: TileDefinition[] = [
       {
         "id": "field0",
         "type": "FIELD",
-        "svgPath": "M0,0 L60,0 L50,50 L0,60 Z",
+        "svgPath": "M0,0 L41,21 L68,12 L100,0 L74,19 L71,31 L69,60 L100,100 L0,100 Z",
         "meepleCentroid": {
           "x": 41,
           "y": 56
@@ -522,7 +522,7 @@ export const BASE1_TILES: TileDefinition[] = [
       {
         "id": "city0",
         "type": "CITY",
-        "svgPath": "M100,0 L100,100 L75,70 L70,50 L75,30 Z",
+        "svgPath": "M100,0 L0,0 L37,31 L59,30 L60,20 Z",
         "meepleCentroid": {
           "x": 51,
           "y": 15
@@ -531,7 +531,7 @@ export const BASE1_TILES: TileDefinition[] = [
       {
         "id": "road0",
         "type": "ROAD",
-        "svgPath": "M0,46 L54,46 L54,100 L46,100 L46,54 L0,54 Z",
+        "svgPath": "M100,45 L61,46 L55,58 L44,69 L48,100",
         "meepleCentroid": {
           "x": 53,
           "y": 57
@@ -540,7 +540,7 @@ export const BASE1_TILES: TileDefinition[] = [
       {
         "id": "field0",
         "type": "FIELD",
-        "svgPath": "M0,0 L60,0 L50,50 L0,54 Z",
+        "svgPath": "M0,0 L38,32 L60,30 L60,21 L100,0 L100,38 L60,41 L39,66 L39,100 L0,100 Z",
         "meepleCentroid": {
           "x": 17,
           "y": 54
@@ -549,7 +549,7 @@ export const BASE1_TILES: TileDefinition[] = [
       {
         "id": "field1",
         "type": "FIELD",
-        "svgPath": "M0,54 L46,54 L46,100 L0,100 Z",
+        "svgPath": "M50,72 L67,53 L100,50 L100,100 L54,100 Z",
         "meepleCentroid": {
           "x": 77,
           "y": 78
@@ -565,7 +565,7 @@ export const BASE1_TILES: TileDefinition[] = [
       "WEST_RIGHT": "field0",
       "EAST_CENTER": "road0",
       "NORTH_RIGHT": "city0",
-      "SOUTH_RIGHT": "field1",
+      "SOUTH_RIGHT": "field0",
       "WEST_CENTER": "field0",
       "NORTH_CENTER": "city0",
       "SOUTH_CENTER": "road0"
@@ -604,7 +604,7 @@ export const BASE1_TILES: TileDefinition[] = [
       {
         "id": "road0",
         "type": "ROAD",
-        "svgPath": "M0,46 L54,46 L54,100 L46,100 L46,54 L0,54 Z",
+        "svgPath": "M0,49 L26,49 L38,67 L47,74 L47,100",
         "meepleCentroid": {
           "x": 35,
           "y": 61
@@ -668,16 +668,16 @@ export const BASE1_TILES: TileDefinition[] = [
       {
         "id": "city0",
         "type": "CITY",
-        "svgPath": "M0,0 L100,0 L70,25 L50,30 L30,25 Z",
+        "svgPath": "M0,0 L100,0 L74,33 L45,35 L20,27 Z",
         "meepleCentroid": {
-          "x": 49,
-          "y": 15
+          "x": 50,
+          "y": 14
         }
       },
       {
         "id": "road_e",
         "type": "ROAD",
-        "svgPath": "M54,46 L100,46 L100,54 L54,54 Z",
+        "svgPath": "M57,62 L85,51 L100,50",
         "meepleCentroid": {
           "x": 78,
           "y": 55
@@ -686,7 +686,7 @@ export const BASE1_TILES: TileDefinition[] = [
       {
         "id": "road_s",
         "type": "ROAD",
-        "svgPath": "M46,54 L54,54 L54,100 L46,100 Z",
+        "svgPath": "M43,72 L42,85 L46,100",
         "meepleCentroid": {
           "x": 43,
           "y": 80
@@ -695,16 +695,16 @@ export const BASE1_TILES: TileDefinition[] = [
       {
         "id": "road_w",
         "type": "ROAD",
-        "svgPath": "M0,46 L46,46 L46,54 L0,54 Z",
+        "svgPath": "M0,50 L21,52 L37,61",
         "meepleCentroid": {
-          "x": 20,
+          "x": 21,
           "y": 52
         }
       },
       {
         "id": "field0",
         "type": "FIELD",
-        "svgPath": "M54,54 L100,54 L100,100 L54,100 Z",
+        "svgPath": "M61,69 L100,54 L100,100 L54,100 Z",
         "meepleCentroid": {
           "x": 78,
           "y": 79
@@ -713,7 +713,7 @@ export const BASE1_TILES: TileDefinition[] = [
       {
         "id": "field1",
         "type": "FIELD",
-        "svgPath": "M0,54 L46,54 L46,100 L0,100 Z",
+        "svgPath": "M0,54 L35,66 L39,100 L0,100 Z",
         "meepleCentroid": {
           "x": 15,
           "y": 79
@@ -722,7 +722,7 @@ export const BASE1_TILES: TileDefinition[] = [
       {
         "id": "field2",
         "type": "FIELD",
-        "svgPath": "M46,40 L54,40 L54,46 L100,46 L100,40 Q75,35 54,46 L46,46 L0,40 Q25,35 46,40 Z",
+        "svgPath": "M0,0 L21,29 L46,35 L75,33 L100,0 L100,44 L0,43 Z",
         "meepleCentroid": {
           "x": 47,
           "y": 42
@@ -745,14 +745,6 @@ export const BASE1_TILES: TileDefinition[] = [
     },
     "adjacencies": [
       [
-        "city0",
-        "field2"
-      ],
-      [
-        "road_w",
-        "field2"
-      ],
-      [
         "road_e",
         "field0"
       ],
@@ -767,21 +759,9 @@ export const BASE1_TILES: TileDefinition[] = [
       [
         "road_w",
         "field1"
-      ],
-      [
-        "road_w",
-        "road_s"
-      ],
-      [
-        "road_w",
-        "road_e"
       ],
       [
         "field2",
-        "road_s"
-      ],
-      [
-        "road_e",
         "road_s"
       ],
       [
@@ -800,34 +780,34 @@ export const BASE1_TILES: TileDefinition[] = [
       {
         "id": "city0",
         "type": "CITY",
-        "svgPath": "M0,100 L0,0 L100,0 L70,25 L40,40 L30,75 Z",
+        "svgPath": "M0,100 L0,0 L100,0 L65,29 L33,49 L23,89 Z",
         "hasPennant": true,
         "meepleCentroid": {
-          "x": 67,
-          "y": 29
+          "x": 22,
+          "y": 27
         }
       },
       {
         "id": "field0",
         "type": "FIELD",
-        "svgPath": "M51,54 L100,40 L100,100 L0,100 L0,60 Z",
+        "svgPath": "M33,49 L65,30 L100,0 L100,100 L0,100 L23,89 Z",
         "meepleCentroid": {
-          "x": 33,
-          "y": 69
+          "x": 73,
+          "y": 66
         }
       }
     ],
     "edgePositionToSegment": {
-      "EAST_LEFT": "city0",
-      "WEST_LEFT": "field0",
-      "EAST_RIGHT": "city0",
+      "EAST_LEFT": "field0",
+      "WEST_LEFT": "city0",
+      "EAST_RIGHT": "field0",
       "NORTH_LEFT": "city0",
       "SOUTH_LEFT": "field0",
-      "WEST_RIGHT": "field0",
-      "EAST_CENTER": "city0",
+      "WEST_RIGHT": "city0",
+      "EAST_CENTER": "field0",
       "NORTH_RIGHT": "city0",
       "SOUTH_RIGHT": "field0",
-      "WEST_CENTER": "field0",
+      "WEST_CENTER": "city0",
       "NORTH_CENTER": "city0",
       "SOUTH_CENTER": "field0"
     },
@@ -850,31 +830,31 @@ export const BASE1_TILES: TileDefinition[] = [
         "type": "CITY",
         "svgPath": "M0,100 L0,0 L100,0 L70,25 L40,40 L30,75 Z",
         "meepleCentroid": {
-          "x": 78,
-          "y": 23
+          "x": 27,
+          "y": 29
         }
       },
       {
         "id": "field0",
         "type": "FIELD",
-        "svgPath": "M50,50 L100,40 L100,100 L0,100 L0,60 Z",
+        "svgPath": "M41,41 L73,23 L100,0 L100,100 L0,100 L30,75 Z",
         "meepleCentroid": {
-          "x": 32,
-          "y": 69
+          "x": 67,
+          "y": 65
         }
       }
     ],
     "edgePositionToSegment": {
-      "EAST_LEFT": "city0",
-      "WEST_LEFT": "field0",
-      "EAST_RIGHT": "city0",
+      "EAST_LEFT": "field0",
+      "WEST_LEFT": "city0",
+      "EAST_RIGHT": "field0",
       "NORTH_LEFT": "city0",
       "SOUTH_LEFT": "field0",
-      "WEST_RIGHT": "field0",
-      "EAST_CENTER": "city0",
+      "WEST_RIGHT": "city0",
+      "EAST_CENTER": "field0",
       "NORTH_RIGHT": "city0",
       "SOUTH_RIGHT": "field0",
-      "WEST_CENTER": "field0",
+      "WEST_CENTER": "city0",
       "NORTH_CENTER": "city0",
       "SOUTH_CENTER": "field0"
     },
@@ -898,49 +878,49 @@ export const BASE1_TILES: TileDefinition[] = [
         "svgPath": "M0,100 L0,0 L100,0 L70,25 L40,40 L30,75 Z",
         "hasPennant": true,
         "meepleCentroid": {
-          "x": 77,
-          "y": 20
+          "x": 25,
+          "y": 28
         }
       },
       {
         "id": "road0",
         "type": "ROAD",
-        "svgPath": "M46,46 L100,46 L100,54 L54,54 L54,100 L46,100 Z",
+        "svgPath": "M100,51 L83,53 L70,61 L64,74 L50,82 L46,100",
         "meepleCentroid": {
-          "x": 30,
-          "y": 67
+          "x": 66,
+          "y": 71
         }
       },
       {
         "id": "field0",
         "type": "FIELD",
-        "svgPath": "M54,50 L100,40 L100,100 L54,100 Z",
+        "svgPath": "M69,77 L100,57 L100,100 L54,100 Z",
         "meepleCentroid": {
-          "x": 18,
-          "y": 79
+          "x": 79,
+          "y": 84
         }
       },
       {
         "id": "field1",
         "type": "FIELD",
-        "svgPath": "M0,60 L46,50 L46,100 L0,100 Z",
+        "svgPath": "M32,75 L44,47 L100,0 L99,46 L71,51 L43,79 L39,100 L0,100 Z",
         "meepleCentroid": {
-          "x": 44,
-          "y": 52
+          "x": 50,
+          "y": 60
         }
       }
     ],
     "edgePositionToSegment": {
-      "EAST_LEFT": "city0",
-      "WEST_LEFT": "field0",
-      "EAST_RIGHT": "city0",
+      "EAST_LEFT": "field1",
+      "WEST_LEFT": "city0",
+      "EAST_RIGHT": "field0",
       "NORTH_LEFT": "city0",
-      "SOUTH_LEFT": "field1",
-      "WEST_RIGHT": "field1",
-      "EAST_CENTER": "city0",
+      "SOUTH_LEFT": "field0",
+      "WEST_RIGHT": "city0",
+      "EAST_CENTER": "road0",
       "NORTH_RIGHT": "city0",
       "SOUTH_RIGHT": "field0",
-      "WEST_CENTER": "road0",
+      "WEST_CENTER": "city0",
       "NORTH_CENTER": "city0",
       "SOUTH_CENTER": "road0"
     },
@@ -971,49 +951,49 @@ export const BASE1_TILES: TileDefinition[] = [
         "type": "CITY",
         "svgPath": "M0,100 L0,0 L100,0 L70,25 L40,40 L30,75 Z",
         "meepleCentroid": {
-          "x": 77,
-          "y": 20
+          "x": 28,
+          "y": 23
         }
       },
       {
         "id": "road0",
         "type": "ROAD",
-        "svgPath": "M46,46 L100,46 L100,54 L54,54 L54,100 L46,100 Z",
+        "svgPath": "M100,50 L86,52 L70,60 L66,73 L49,84 L47,100",
         "meepleCentroid": {
-          "x": 29,
-          "y": 67
+          "x": 65,
+          "y": 72
         }
       },
       {
         "id": "field0",
         "type": "FIELD",
-        "svgPath": "M54,50 L100,40 L100,100 L54,100 Z",
+        "svgPath": "M69,76 L100,55 L100,100 L54,100 Z",
         "meepleCentroid": {
-          "x": 18,
-          "y": 81
+          "x": 80,
+          "y": 84
         }
       },
       {
         "id": "field1",
         "type": "FIELD",
-        "svgPath": "M0,60 L46,50 L46,100 L0,100 Z",
+        "svgPath": "M24,85 L35,49 L100,0 L100,46 L75,50 L44,83 L41,100 L0,100 Z",
         "meepleCentroid": {
-          "x": 46,
-          "y": 51
+          "x": 50,
+          "y": 56
         }
       }
     ],
     "edgePositionToSegment": {
-      "EAST_LEFT": "city0",
-      "WEST_LEFT": "field0",
-      "EAST_RIGHT": "city0",
+      "EAST_LEFT": "field1",
+      "WEST_LEFT": "city0",
+      "EAST_RIGHT": "field0",
       "NORTH_LEFT": "city0",
-      "SOUTH_LEFT": "field1",
-      "WEST_RIGHT": "field1",
-      "EAST_CENTER": "city0",
+      "SOUTH_LEFT": "field0",
+      "WEST_RIGHT": "city0",
+      "EAST_CENTER": "road0",
       "NORTH_RIGHT": "city0",
-      "SOUTH_RIGHT": "field0",
-      "WEST_CENTER": "road0",
+      "SOUTH_RIGHT": "field1",
+      "WEST_CENTER": "city0",
       "NORTH_CENTER": "city0",
       "SOUTH_CENTER": "road0"
     },
@@ -1045,33 +1025,33 @@ export const BASE1_TILES: TileDefinition[] = [
         "svgPath": "M0,100 L0,0 L100,0 L100,100 L70,75 L50,70 L30,75 Z",
         "hasPennant": true,
         "meepleCentroid": {
-          "x": 59,
-          "y": 43
+          "x": 52,
+          "y": 37
         }
       },
       {
         "id": "field0",
         "type": "FIELD",
-        "svgPath": "M0,60 L50,50 L100,60 L100,100 L0,100 Z",
+        "svgPath": "M29,76 L50,70 L70,75 L100,100 L0,100 Z",
         "meepleCentroid": {
-          "x": 16,
-          "y": 48
+          "x": 49,
+          "y": 82
         }
       }
     ],
     "edgePositionToSegment": {
       "EAST_LEFT": "city0",
-      "WEST_LEFT": "field0",
+      "WEST_LEFT": "city0",
       "EAST_RIGHT": "city0",
       "NORTH_LEFT": "city0",
-      "SOUTH_LEFT": "city0",
-      "WEST_RIGHT": "field0",
+      "SOUTH_LEFT": "field0",
+      "WEST_RIGHT": "city0",
       "EAST_CENTER": "city0",
       "NORTH_RIGHT": "city0",
-      "SOUTH_RIGHT": "city0",
-      "WEST_CENTER": "field0",
+      "SOUTH_RIGHT": "field0",
+      "WEST_CENTER": "city0",
       "NORTH_CENTER": "city0",
-      "SOUTH_CENTER": "city0"
+      "SOUTH_CENTER": "field0"
     },
     "adjacencies": [
       [
@@ -1092,8 +1072,8 @@ export const BASE1_TILES: TileDefinition[] = [
         "type": "CITY",
         "svgPath": "M0,100 L0,0 L100,0 L100,100 L70,75 L50,70 L30,75 Z",
         "meepleCentroid": {
-          "x": 64,
-          "y": 44
+          "x": 51,
+          "y": 39
         }
       },
       {
@@ -1101,24 +1081,24 @@ export const BASE1_TILES: TileDefinition[] = [
         "type": "FIELD",
         "svgPath": "M0,60 L50,50 L100,60 L100,100 L0,100 Z",
         "meepleCentroid": {
-          "x": 16,
-          "y": 47
+          "x": 49,
+          "y": 83
         }
       }
     ],
     "edgePositionToSegment": {
       "EAST_LEFT": "city0",
-      "WEST_LEFT": "field0",
+      "WEST_LEFT": "city0",
       "EAST_RIGHT": "city0",
       "NORTH_LEFT": "city0",
-      "SOUTH_LEFT": "city0",
-      "WEST_RIGHT": "field0",
+      "SOUTH_LEFT": "field0",
+      "WEST_RIGHT": "city0",
       "EAST_CENTER": "city0",
       "NORTH_RIGHT": "city0",
-      "SOUTH_RIGHT": "city0",
-      "WEST_CENTER": "field0",
+      "SOUTH_RIGHT": "field0",
+      "WEST_CENTER": "city0",
       "NORTH_CENTER": "city0",
-      "SOUTH_CENTER": "city0"
+      "SOUTH_CENTER": "field0"
     },
     "adjacencies": [
       [
@@ -1140,51 +1120,51 @@ export const BASE1_TILES: TileDefinition[] = [
         "svgPath": "M0,100 L0,0 L100,0 L100,100 L70,75 L50,70 L30,75 Z",
         "hasPennant": true,
         "meepleCentroid": {
-          "x": 66,
-          "y": 49
+          "x": 51,
+          "y": 38
         }
       },
       {
         "id": "road0",
         "type": "ROAD",
-        "svgPath": "M46,70 L54,70 L54,100 L46,100 Z",
+        "svgPath": "M53,70 L47,85 L50,100",
         "meepleCentroid": {
-          "x": 16,
-          "y": 48
+          "x": 50,
+          "y": 86
         }
       },
       {
         "id": "field0",
         "type": "FIELD",
-        "svgPath": "M0,60 L46,60 L46,100 L0,100 Z",
+        "svgPath": "M23,83 L41,77 L46,100 L0,100 Z",
         "meepleCentroid": {
-          "x": 13,
-          "y": 31
+          "x": 24,
+          "y": 87
         }
       },
       {
         "id": "field1",
         "type": "FIELD",
-        "svgPath": "M54,60 L100,60 L100,100 L54,100 Z",
+        "svgPath": "M56,79 L74,80 L100,100 L54,100 Z",
         "meepleCentroid": {
-          "x": 12,
-          "y": 66
+          "x": 73,
+          "y": 87
         }
       }
     ],
     "edgePositionToSegment": {
       "EAST_LEFT": "city0",
-      "WEST_LEFT": "field1",
+      "WEST_LEFT": "city0",
       "EAST_RIGHT": "city0",
       "NORTH_LEFT": "city0",
-      "SOUTH_LEFT": "city0",
-      "WEST_RIGHT": "field0",
+      "SOUTH_LEFT": "field1",
+      "WEST_RIGHT": "city0",
       "EAST_CENTER": "city0",
       "NORTH_RIGHT": "city0",
-      "SOUTH_RIGHT": "city0",
-      "WEST_CENTER": "road0",
+      "SOUTH_RIGHT": "field0",
+      "WEST_CENTER": "city0",
       "NORTH_CENTER": "city0",
-      "SOUTH_CENTER": "city0"
+      "SOUTH_CENTER": "road0"
     },
     "adjacencies": [
       [
@@ -1221,51 +1201,51 @@ export const BASE1_TILES: TileDefinition[] = [
         "type": "CITY",
         "svgPath": "M0,100 L0,0 L100,0 L100,100 L70,75 L50,70 L30,75 Z",
         "meepleCentroid": {
-          "x": 64,
-          "y": 49
+          "x": 51,
+          "y": 36
         }
       },
       {
         "id": "road0",
         "type": "ROAD",
-        "svgPath": "M46,70 L54,70 L54,100 L46,100 Z",
+        "svgPath": "M53,71 L44,84 L50,100",
         "meepleCentroid": {
-          "x": 17,
-          "y": 46
+          "x": 49,
+          "y": 85
         }
       },
       {
         "id": "field0",
         "type": "FIELD",
-        "svgPath": "M0,60 L46,60 L46,100 L0,100 Z",
+        "svgPath": "M25,82 L36,78 L46,100 L0,100 Z",
         "meepleCentroid": {
-          "x": 12,
-          "y": 27
+          "x": 26,
+          "y": 86
         }
       },
       {
         "id": "field1",
         "type": "FIELD",
-        "svgPath": "M54,60 L100,60 L100,100 L54,100 Z",
+        "svgPath": "M55,79 L71,77 L100,100 L54,100 Z",
         "meepleCentroid": {
-          "x": 12,
-          "y": 67
+          "x": 72,
+          "y": 87
         }
       }
     ],
     "edgePositionToSegment": {
       "EAST_LEFT": "city0",
-      "WEST_LEFT": "field1",
+      "WEST_LEFT": "city0",
       "EAST_RIGHT": "city0",
       "NORTH_LEFT": "city0",
-      "SOUTH_LEFT": "city0",
-      "WEST_RIGHT": "field0",
+      "SOUTH_LEFT": "field1",
+      "WEST_RIGHT": "city0",
       "EAST_CENTER": "city0",
       "NORTH_RIGHT": "city0",
-      "SOUTH_RIGHT": "city0",
-      "WEST_CENTER": "road0",
+      "SOUTH_RIGHT": "field0",
+      "WEST_CENTER": "city0",
       "NORTH_CENTER": "city0",
-      "SOUTH_CENTER": "city0"
+      "SOUTH_CENTER": "road0"
     },
     "adjacencies": [
       [
@@ -1300,7 +1280,7 @@ export const BASE1_TILES: TileDefinition[] = [
       {
         "id": "road0",
         "type": "ROAD",
-        "svgPath": "M46,0 L54,0 L54,100 L46,100 Z",
+        "svgPath": "M0,47 L41,50 L58,36 L100,49",
         "meepleCentroid": {
           "x": 51,
           "y": 41
@@ -1328,10 +1308,10 @@ export const BASE1_TILES: TileDefinition[] = [
     "edgePositionToSegment": {
       "EAST_LEFT": "field0",
       "WEST_LEFT": "field1",
-      "EAST_RIGHT": "field0",
-      "NORTH_LEFT": "field1",
-      "SOUTH_LEFT": "field0",
-      "WEST_RIGHT": "field1",
+      "EAST_RIGHT": "field1",
+      "NORTH_LEFT": "field0",
+      "SOUTH_LEFT": "field1",
+      "WEST_RIGHT": "field0",
       "EAST_CENTER": "road0",
       "NORTH_RIGHT": "field0",
       "SOUTH_RIGHT": "field1",
@@ -1360,7 +1340,7 @@ export const BASE1_TILES: TileDefinition[] = [
       {
         "id": "road0",
         "type": "ROAD",
-        "svgPath": "M0,46 L54,46 L54,100 L46,100 L46,54 L0,54 Z",
+        "svgPath": "M50,100 L50,75 L47,54 L36,42 L0,46",
         "meepleCentroid": {
           "x": 46,
           "y": 52
@@ -1369,7 +1349,7 @@ export const BASE1_TILES: TileDefinition[] = [
       {
         "id": "field0",
         "type": "FIELD",
-        "svgPath": "M0,0 L100,0 L100,100 L54,100 L46,54 L0,54 Z",
+        "svgPath": "M0,0 L100,0 L100,100 L58,100 L53,41 L0,37 Z",
         "meepleCentroid": {
           "x": 70,
           "y": 32
@@ -1378,7 +1358,7 @@ export const BASE1_TILES: TileDefinition[] = [
       {
         "id": "field1",
         "type": "FIELD",
-        "svgPath": "M0,54 L46,54 L46,100 L0,100 Z",
+        "svgPath": "M0,54 L38,55 L43,100 L0,100 Z",
         "meepleCentroid": {
           "x": 23,
           "y": 74
@@ -1420,7 +1400,7 @@ export const BASE1_TILES: TileDefinition[] = [
       {
         "id": "road_e",
         "type": "ROAD",
-        "svgPath": "M54,46 L100,46 L100,54 L54,54 Z",
+        "svgPath": "M70,41 L83,45 L100,49",
         "meepleCentroid": {
           "x": 81,
           "y": 43
@@ -1429,7 +1409,7 @@ export const BASE1_TILES: TileDefinition[] = [
       {
         "id": "road_s",
         "type": "ROAD",
-        "svgPath": "M46,54 L54,54 L54,100 L46,100 Z",
+        "svgPath": "M52,54 L42,77 L46,100",
         "meepleCentroid": {
           "x": 44,
           "y": 75
@@ -1438,7 +1418,7 @@ export const BASE1_TILES: TileDefinition[] = [
       {
         "id": "road_w",
         "type": "ROAD",
-        "svgPath": "M0,46 L46,46 L46,54 L0,54 Z",
+        "svgPath": "M0,48 L15,45 L27,45",
         "meepleCentroid": {
           "x": 21,
           "y": 42
@@ -1447,7 +1427,7 @@ export const BASE1_TILES: TileDefinition[] = [
       {
         "id": "field0",
         "type": "FIELD",
-        "svgPath": "M0,0 L100,0 L100,46 L54,46 L54,46 L50,50 L46,46 L0,46 Z",
+        "svgPath": "M0,0 L100,0 L100,43 L72,33 L55,26 L40,27 L26,37 L0,37 Z",
         "meepleCentroid": {
           "x": 50,
           "y": 20
@@ -1456,7 +1436,7 @@ export const BASE1_TILES: TileDefinition[] = [
       {
         "id": "field1",
         "type": "FIELD",
-        "svgPath": "M54,54 L100,54 L100,100 L54,100 Z",
+        "svgPath": "M58,57 L100,52 L100,100 L54,100 Z",
         "meepleCentroid": {
           "x": 75,
           "y": 75
@@ -1465,7 +1445,7 @@ export const BASE1_TILES: TileDefinition[] = [
       {
         "id": "field2",
         "type": "FIELD",
-        "svgPath": "M0,54 L46,54 L46,100 L0,100 Z",
+        "svgPath": "M0,54 L37,54 L37,100 L0,100 Z",
         "meepleCentroid": {
           "x": 20,
           "y": 74
@@ -1510,18 +1490,6 @@ export const BASE1_TILES: TileDefinition[] = [
       [
         "road_s",
         "field2"
-      ],
-      [
-        "road_w",
-        "road_e"
-      ],
-      [
-        "road_w",
-        "road_s"
-      ],
-      [
-        "road_s",
-        "road_e"
       ]
     ]
   },
@@ -1651,30 +1619,6 @@ export const BASE1_TILES: TileDefinition[] = [
       [
         "field0",
         "road_n"
-      ],
-      [
-        "road_w",
-        "road_n"
-      ],
-      [
-        "road_w",
-        "road_e"
-      ],
-      [
-        "road_w",
-        "road_s"
-      ],
-      [
-        "road_e",
-        "road_n"
-      ],
-      [
-        "road_e",
-        "road_s"
-      ],
-      [
-        "road_n",
-        "road_s"
       ]
     ]
   }

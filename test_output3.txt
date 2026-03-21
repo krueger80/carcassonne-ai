@@ -1,0 +1,5 @@
+Board meeples A: {}
+Score placing under V (3-tile road): 14.273690938797017
+Available A: 7
+Score placing under D (1-tile road): 16.24825303139773
+Available B: 7

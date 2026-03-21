@@ -32,6 +32,8 @@ export interface Player {
   meeples: PlayerMeeples
   traderTokens: Record<'CLOTH' | 'WHEAT' | 'WINE', number>
   scoreBreakdown: Partial<Record<ScoreCategory, number>>
+  isBot?: boolean
+  botDifficulty?: 'easy' | 'medium' | 'hard'
 }
 
 export function createPlayer(
@@ -41,12 +43,16 @@ export function createPlayer(
   bigMeeple = false,
   builderAndPig = false,
   abbot = false,
+  isBot = false,
+  botDifficulty: 'easy' | 'medium' | 'hard' = 'medium',
 ): Player {
   return {
     id,
     name,
     color,
     score: 0,
+    isBot,
+    botDifficulty,
     meeples: {
       available: {
         NORMAL: 7,

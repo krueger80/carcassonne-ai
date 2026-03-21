@@ -19,7 +19,7 @@ interface TileSVGProps {
   /** Force render of schematic data (segments/features) even if image is present */
   showSchematic?: boolean
   /** Segment ID → controlling player color for territory tinting */
-  segmentOwnerColors?: Record<string, string>
+  segmentOwnerColors?: Record<string, string[]>
 }
 
 /**
@@ -96,7 +96,8 @@ export const TileSVG = memo(({
               segment={seg}
               highlighted={highlightedSegments.includes(seg.id)}
               dimmed={highlightedSegments.length > 0 && !highlightedSegments.includes(seg.id)}
-              ownerColor={segmentOwnerColors[seg.id]}
+              ownerColors={segmentOwnerColors[seg.id]}
+              rotation={rotation}
             />
           ))}
 
@@ -184,16 +185,59 @@ export const TileSVG = memo(({
       {Object.keys(segmentOwnerColors).length > 0 && (
         <g style={{ pointerEvents: 'none' }}>
           {sortedSegments.map(seg => {
-            const color = segmentOwnerColors[seg.id]
-            if (!color) return null
+            const colors = segmentOwnerColors[seg.id]
+            if (!colors || colors.length === 0) return null
+            
+            // To properly render diagonal stripes from CSS without complex SVG patterns here, 
+            // since we already handle ownerColors inside SegmentPath for the schematic layer, 
+            // the simplest way is to reuse a generic SVG <pattern> here, or use multiple strokes.
+            // Actually, we can define a pattern just for Layer 3 overlays.
+            
+            const tieId = `tie-pattern-${colors.join('-').replace(/#/g, '')}-rot${rotation}`;
+            
+            // Better yet, let's make an explicit alternating transparent pattern.
+            // If colors is ['#f00', '#00f'], we want: #f00, transparent, #00f, transparent
+            // If colors is ['#f00'], we still want stripes (user requested): #f00, transparent, #f00, transparent
+            
+            const totalStripes = colors.length;
+            // Stripe width total = 20. Each color gets a solid band, followed by a transparent band.
+            // So if 1 color: 10px color, 10px trans.
+            // If 2 colors: 5px C1, 5px trans, 5px C2, 5px trans.
+            const stripeSize = 24 / totalStripes; 
+            
+            const StripePattern = (
+              <defs>
+                <pattern id={tieId} width="24" height="24" patternUnits="userSpaceOnUse" patternTransform={`rotate(${45 - rotation})`}>
+                  {colors.map((c, i) => (
+                    <rect key={c} y={i * stripeSize} width="24" height={stripeSize / 2} fill={c} />
+                  ))}
+                </pattern>
+              </defs>
+            );
+
             if (seg.type === 'CLOISTER') {
-              return <path key={`own-${seg.id}`} d={seg.svgPath} fill={color} opacity={0.3} />
+              return (
+                <g key={`own-${seg.id}`}>
+                  {StripePattern}
+                  <path d={seg.svgPath} fill={`url(#${tieId})`} opacity={0.5} />
+                </g>
+              )
             }
             if (seg.type === 'ROAD') {
-              return <path key={`own-${seg.id}`} d={seg.svgPath} fill="none" stroke={color} strokeWidth="8" strokeLinecap="round" strokeLinejoin="round" opacity={0.35} />
+              return (
+                <g key={`own-${seg.id}`}>
+                  {StripePattern}
+                  <path d={seg.svgPath} fill="none" stroke={`url(#${tieId})`} strokeWidth="8" strokeLinecap="round" strokeLinejoin="round" opacity={0.6} />
+                </g>
+              )
             }
             if (seg.type === 'RIVER') return null
-            return <path key={`own-${seg.id}`} d={seg.svgPath} fill={color} opacity={0.25} />
+            return (
+              <g key={`own-${seg.id}`}>
+                {StripePattern}
+                <path d={seg.svgPath} fill={`url(#${tieId})`} opacity={0.5} />
+              </g>
+            )
           })}
         </g>
       )}

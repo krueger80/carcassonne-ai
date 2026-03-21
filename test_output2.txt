@@ -1,0 +1,4 @@
+Score placing under V (3-tile road): 16.453853342012746
+Available A: 7
+Score placing under D (1-tile road): 15.861526279724222
+Available B: 7

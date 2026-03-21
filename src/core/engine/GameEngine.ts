@@ -96,8 +96,14 @@ export function resolveScoringRules(state: GameState): ScoringRule[] {
 
 // ─── Initialization ───────────────────────────────────────────────────────────
 
+export interface PlayerConfig {
+  name: string
+  isBot?: boolean
+  botDifficulty?: 'easy' | 'medium' | 'hard'
+}
+
 export interface GameConfig {
-  playerNames: string[]
+  playerNames: (string | PlayerConfig)[]
   extraTileDefinitions?: TileDefinition[]
   baseDefinitions?: TileDefinition[]
   scoringRules?: ScoringRule[]
@@ -286,9 +292,13 @@ export function initGame(config: GameConfig): GameState {
   else if (hasIc) scoringRulesKey = isModernIc ? 'ic-c31' : 'ic'
   else if (hasTb) scoringRulesKey = 'tb'
 
-  const players: Player[] = playerNames.map((name, i) =>
-    createPlayer(`player_${i}`, name, PLAYER_COLORS[i], enableBigMeeple, enableBuilderAndPig, hasAbbot)
-  )
+  const players: Player[] = playerNames.map((p, i) => {
+    const isConfig = typeof p !== 'string'
+    const name = isConfig ? p.name : p
+    const isBot = isConfig ? (p.isBot ?? false) : false
+    const botDifficulty = isConfig ? (p.botDifficulty ?? 'medium') : 'medium'
+    return createPlayer(`player_${i}`, name, PLAYER_COLORS[i], enableBigMeeple, enableBuilderAndPig, hasAbbot, isBot, botDifficulty)
+  })
 
   // ── Detect tiles that have river segments (from any expansion) ──
   const hasRiverSegment = (d: TileDefinition) => {

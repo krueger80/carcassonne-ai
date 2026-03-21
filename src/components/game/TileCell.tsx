@@ -42,8 +42,8 @@ interface TileCellProps {
   fairySegmentId?: string
   /** If true, we are in the phase of choosing where to place the fairy */
   isFairyMovePhase?: boolean
-  /** Segment ID → controlling player color for territory tinting */
-  segmentOwnerColors?: Record<string, string>
+  /** Segment ID → controlling player colors for territory tinting */
+  segmentOwnerColors?: Record<string, string[]>
 }
 
 export const TileCell = memo(({

@@ -1,5 +1,4 @@
 import type { TileDefinition } from '../types/tile.ts'
-import { ABBOT_C2_GARDEN_TILES } from './abbotGardenTilesC2.ts'
 
 /** 
  * AUTO-GENERATED FILE. DO NOT EDIT MANUALLY.
@@ -26,19 +25,19 @@ export const BASE_TILES: TileDefinition[] = [
       {
         "id": "road0",
         "type": "ROAD",
-        "svgPath": "M46,50 L54,50 L54,100 L46,100 Z",
+        "svgPath": "M68,63 L79,73 L76,84 L60,89 L51,100",
         "meepleCentroid": {
           "x": 54,
-          "y": 87
+          "y": 86
         }
       },
       {
         "id": "cloister0",
         "type": "CLOISTER",
-        "svgPath": "M30,30 L70,30 L70,70 L30,70 Z",
+        "svgPath": "M40,9 L79,54 L60,67 L23,56 Z",
         "meepleCentroid": {
-          "x": 50,
-          "y": 50
+          "x": 47,
+          "y": 45
         }
       }
     ],
@@ -90,10 +89,10 @@ export const BASE_TILES: TileDefinition[] = [
       {
         "id": "cloister0",
         "type": "CLOISTER",
-        "svgPath": "M30,30 L70,30 L70,70 L30,70 Z",
+        "svgPath": "M46,23 L78,64 L50,81 L21,63 Z",
         "meepleCentroid": {
-          "x": 50,
-          "y": 50
+          "x": 49,
+          "y": 56
         }
       }
     ],
@@ -161,7 +160,7 @@ export const BASE_TILES: TileDefinition[] = [
       {
         "id": "city0",
         "type": "CITY",
-        "svgPath": "M0,0 L100,0 L70,25 L50,30 L30,25 Z",
+        "svgPath": "M0,0 L100,0 L89,22 L70,28 L58,26 L33,29 Z",
         "meepleCentroid": {
           "x": 50,
           "y": 20
@@ -170,7 +169,7 @@ export const BASE_TILES: TileDefinition[] = [
       {
         "id": "road0",
         "type": "ROAD",
-        "svgPath": "M0,46 L100,46 L100,54 L0,54 Z",
+        "svgPath": "M100,49 L89,49 L77,54 L63,53 L48,60 L34,61 L17,51 L0,50",
         "meepleCentroid": {
           "x": 55,
           "y": 58
@@ -179,7 +178,7 @@ export const BASE_TILES: TileDefinition[] = [
       {
         "id": "field0",
         "type": "FIELD",
-        "svgPath": "M0,54 L100,54 L100,100 L0,100 Z",
+        "svgPath": "M0,54 L15,56 L35,66 L64,59 L80,58 L90,55 L100,55 L100,100 L0,100 Z",
         "meepleCentroid": {
           "x": 50,
           "y": 80
@@ -188,10 +187,10 @@ export const BASE_TILES: TileDefinition[] = [
       {
         "id": "field1",
         "type": "FIELD",
-        "svgPath": "M0,40 L46,40 L46,46 L0,46 Z",
+        "svgPath": "M0,0 L34,30 L59,26 L70,28 L90,22 L100,0 L100,43 L76,48 L58,49 L45,55 L32,54 L15,46 L0,46 Z",
         "meepleCentroid": {
-          "x": 26,
-          "y": 31
+          "x": 22,
+          "y": 36
         }
       }
     ],
@@ -235,7 +234,7 @@ export const BASE_TILES: TileDefinition[] = [
       {
         "id": "city0",
         "type": "CITY",
-        "svgPath": "M0,0 L100,0 L70,25 L50,30 L30,25 Z",
+        "svgPath": "M0,0 L100,0 L76,38 L49,35 L31,30 Z",
         "meepleCentroid": {
           "x": 50,
           "y": 20
@@ -244,7 +243,7 @@ export const BASE_TILES: TileDefinition[] = [
       {
         "id": "field0",
         "type": "FIELD",
-        "svgPath": "M0,40 L50,50 L100,40 L100,100 L0,100 Z",
+        "svgPath": "M0,0 L31,30 L50,34 L76,39 L100,0 L100,100 L0,100 Z",
         "meepleCentroid": {
           "x": 50,
           "y": 65
@@ -273,6 +272,65 @@ export const BASE_TILES: TileDefinition[] = [
     ]
   },
   {
+    "id": "base2_E_garden",
+    "imageUrl": "/images/BaseGame_C2/Abbot-Base_Game_C2_Tile_E_Garden.jpg",
+    "count": 1,
+    "expansionId": "base-c2",
+    "segments": [
+      {
+        "id": "city0",
+        "type": "CITY",
+        "svgPath": "M0,0 L100,0 L73,41 L51,39 L33,33 Z",
+        "meepleCentroid": {
+          "x": 50,
+          "y": 20
+        }
+      },
+      {
+        "id": "field0",
+        "type": "FIELD",
+        "svgPath": "M0,0 L33,34 L50,40 L74,41 L100,0 L100,100 L0,100 Z",
+        "meepleCentroid": {
+          "x": 76,
+          "y": 67
+        }
+      },
+      {
+        "id": "garden0",
+        "type": "GARDEN",
+        "svgPath": "M31,43 L62,56 L38,70 L7,55 Z",
+        "meepleCentroid": {
+          "x": 36,
+          "y": 56
+        }
+      }
+    ],
+    "edgePositionToSegment": {
+      "EAST_LEFT": "field0",
+      "WEST_LEFT": "field0",
+      "EAST_RIGHT": "field0",
+      "NORTH_LEFT": "city0",
+      "SOUTH_LEFT": "field0",
+      "WEST_RIGHT": "field0",
+      "EAST_CENTER": "field0",
+      "NORTH_RIGHT": "city0",
+      "SOUTH_RIGHT": "field0",
+      "WEST_CENTER": "field0",
+      "NORTH_CENTER": "city0",
+      "SOUTH_CENTER": "field0"
+    },
+    "adjacencies": [
+      [
+        "field0",
+        "city0"
+      ],
+      [
+        "field0",
+        "garden0"
+      ]
+    ]
+  },
+  {
     "id": "base2_F",
     "imageUrl": "/images/BaseGame_C2/Base_Game_C2_Tile_F.jpg",
     "count": 2,
@@ -282,7 +340,7 @@ export const BASE_TILES: TileDefinition[] = [
       {
         "id": "city0",
         "type": "CITY",
-        "svgPath": "M0,100 L0,0 L30,25 L50,30 L70,25 L100,0 L100,100 L70,75 L50,70 L30,75 Z",
+        "svgPath": "M0,100 L0,0 L30,25 L50,30 L70,25 L100,0 L100,100 L80,84 L64,86 L49,79 L30,84 Z",
         "hasPennant": true,
         "meepleCentroid": {
           "x": 50,
@@ -292,16 +350,16 @@ export const BASE_TILES: TileDefinition[] = [
       {
         "id": "field0",
         "type": "FIELD",
-        "svgPath": "M40,0 L60,0 L50,50 Z",
+        "svgPath": "M0,0 L100,0 L69,27 L50,30 L30,25 Z",
         "meepleCentroid": {
           "x": 50,
-          "y": 25
+          "y": 17
         }
       },
       {
         "id": "field1",
         "type": "FIELD",
-        "svgPath": "M40,100 L60,100 L50,50 Z",
+        "svgPath": "M0,100 L100,100 L79,83 L64,85 L48,80 L29,85 Z",
         "meepleCentroid": {
           "x": 52,
           "y": 85
@@ -343,28 +401,28 @@ export const BASE_TILES: TileDefinition[] = [
       {
         "id": "city0",
         "type": "CITY",
-        "svgPath": "M0,100 L0,0 L30,25 L50,30 L70,25 L100,0 L100,100 L70,75 L50,70 L30,75 Z",
+        "svgPath": "M0,100 L0,0 L28,27 L51,33 L69,29 L100,0 L100,100 L75,83 L61,87 L46,80 Z",
         "meepleCentroid": {
-          "x": 50,
-          "y": 50
+          "x": 52,
+          "y": 55
         }
       },
       {
         "id": "field0",
         "type": "FIELD",
-        "svgPath": "M40,0 L60,0 L50,50 Z",
+        "svgPath": "M0,0 L100,0 L69,29 L50,33 L28,27 Z",
         "meepleCentroid": {
-          "x": 50,
-          "y": 25
+          "x": 49,
+          "y": 18
         }
       },
       {
         "id": "field1",
         "type": "FIELD",
-        "svgPath": "M40,100 L60,100 L50,50 Z",
+        "svgPath": "M0,100 L100,100 L76,83 L60,86 L45,81 L27,86 Z",
         "meepleCentroid": {
           "x": 50,
-          "y": 75
+          "y": 89
         }
       }
     ],
@@ -403,25 +461,25 @@ export const BASE_TILES: TileDefinition[] = [
       {
         "id": "city0",
         "type": "CITY",
-        "svgPath": "M100,0 L100,100 L75,70 L70,50 L75,30 Z",
+        "svgPath": "M63,65 L83,77 L100,100 L0,100 L8,76 L23,68 L42,65 Z",
         "meepleCentroid": {
-          "x": 80,
-          "y": 50
+          "x": 50,
+          "y": 78
         }
       },
       {
         "id": "city1",
         "type": "CITY",
-        "svgPath": "M0,0 L0,100 L25,70 L30,50 L25,30 Z",
+        "svgPath": "M0,0 L34,28 L54,25 L69,28 L83,24 L100,0 Z",
         "meepleCentroid": {
-          "x": 20,
-          "y": 50
+          "x": 51,
+          "y": 16
         }
       },
       {
         "id": "field0",
         "type": "FIELD",
-        "svgPath": "M0,0 L60,0 L50,30 L50,70 L60,100 L0,100 Z",
+        "svgPath": "M0,0 L36,28 L55,25 L69,28 L100,0 L100,100 L83,77 L63,65 L41,65 L22,69 L8,76 L0,100 Z",
         "meepleCentroid": {
           "x": 50,
           "y": 50
@@ -454,6 +512,78 @@ export const BASE_TILES: TileDefinition[] = [
     ]
   },
   {
+    "id": "base2_H_garden",
+    "imageUrl": "/images/BaseGame_C2/Abbot-Base_Game_C2_Tile_H_Garden.jpg",
+    "count": 1,
+    "expansionId": "base-c2",
+    "segments": [
+      {
+        "id": "city0",
+        "type": "CITY",
+        "svgPath": "M50,75 L64,72 L83,83 L100,100 L0,100 L13,81 L34,73 Z",
+        "meepleCentroid": {
+          "x": 48,
+          "y": 87
+        }
+      },
+      {
+        "id": "city1",
+        "type": "CITY",
+        "svgPath": "M0,0 L17,27 L36,35 L58,37 L93,25 L100,0 Z",
+        "meepleCentroid": {
+          "x": 53,
+          "y": 18
+        }
+      },
+      {
+        "id": "field0",
+        "type": "FIELD",
+        "svgPath": "M0,0 L17,26 L36,35 L58,37 L93,25 L100,0 L100,100 L81,82 L64,72 L46,76 L32,74 L12,80 L0,100 Z",
+        "meepleCentroid": {
+          "x": 82,
+          "y": 53
+        }
+      },
+      {
+        "id": "garden0",
+        "type": "GARDEN",
+        "svgPath": "M31,39 L63,52 L37,67 L5,51 Z",
+        "meepleCentroid": {
+          "x": 34,
+          "y": 51
+        }
+      }
+    ],
+    "edgePositionToSegment": {
+      "EAST_LEFT": "city0",
+      "WEST_LEFT": "city1",
+      "EAST_RIGHT": "city0",
+      "NORTH_LEFT": "field0",
+      "SOUTH_LEFT": "field0",
+      "WEST_RIGHT": "city1",
+      "EAST_CENTER": "city0",
+      "NORTH_RIGHT": "field0",
+      "SOUTH_RIGHT": "field0",
+      "WEST_CENTER": "city1",
+      "NORTH_CENTER": "field0",
+      "SOUTH_CENTER": "field0"
+    },
+    "adjacencies": [
+      [
+        "city0",
+        "field0"
+      ],
+      [
+        "field0",
+        "city1"
+      ],
+      [
+        "garden0",
+        "field0"
+      ]
+    ]
+  },
+  {
     "id": "base2_I",
     "imageUrl": "/images/BaseGame_C2/Base_Game_C2_Tile_I.jpg",
     "count": 1,
@@ -463,25 +593,25 @@ export const BASE_TILES: TileDefinition[] = [
       {
         "id": "city0",
         "type": "CITY",
-        "svgPath": "M100,0 L100,100 L75,70 L70,50 L75,30 Z",
+        "svgPath": "M100,0 L100,100 L84,83 L77,69 L77,35 Z",
         "meepleCentroid": {
-          "x": 80,
-          "y": 50
+          "x": 86,
+          "y": 49
         }
       },
       {
         "id": "city1",
         "type": "CITY",
-        "svgPath": "M0,100 L100,100 L70,75 L50,70 L30,75 Z",
+        "svgPath": "M0,0 L100,0 L81,24 L66,29 L46,28 L23,21 Z",
         "meepleCentroid": {
-          "x": 50,
-          "y": 21
+          "x": 52,
+          "y": 16
         }
       },
       {
         "id": "field0",
         "type": "FIELD",
-        "svgPath": "M0,0 L60,0 L50,50 L0,60 Z",
+        "svgPath": "M0,0 L23,22 L47,29 L77,29 L76,70 L85,84 L100,100 L0,100 Z",
         "meepleCentroid": {
           "x": 41,
           "y": 56
@@ -514,6 +644,78 @@ export const BASE_TILES: TileDefinition[] = [
     ]
   },
   {
+    "id": "base2_I_garden",
+    "imageUrl": "/images/BaseGame_C2/Abbot-Base_Game_C2_Tile_I_Garden.jpg",
+    "count": 1,
+    "expansionId": "base-c2",
+    "segments": [
+      {
+        "id": "city0",
+        "type": "CITY",
+        "svgPath": "M100,0 L100,100 L76,79 L70,50 L75,30 Z",
+        "meepleCentroid": {
+          "x": 86,
+          "y": 51
+        }
+      },
+      {
+        "id": "city1",
+        "type": "CITY",
+        "svgPath": "M0,0 L100,0 L74,26 L61,31 L42,28 L19,21 Z",
+        "meepleCentroid": {
+          "x": 53,
+          "y": 15
+        }
+      },
+      {
+        "id": "field0",
+        "type": "FIELD",
+        "svgPath": "M0,0 L19,22 L42,28 L69,33 L69,50 L76,80 L100,100 L0,100 Z",
+        "meepleCentroid": {
+          "x": 20,
+          "y": 42
+        }
+      },
+      {
+        "id": "garden0",
+        "type": "GARDEN",
+        "svgPath": "M9,69 L34,55 L62,70 L39,84 Z",
+        "meepleCentroid": {
+          "x": 37,
+          "y": 69
+        }
+      }
+    ],
+    "edgePositionToSegment": {
+      "EAST_LEFT": "city0",
+      "WEST_LEFT": "field0",
+      "EAST_RIGHT": "city0",
+      "NORTH_LEFT": "city1",
+      "SOUTH_LEFT": "field0",
+      "WEST_RIGHT": "field0",
+      "EAST_CENTER": "city0",
+      "NORTH_RIGHT": "city1",
+      "SOUTH_RIGHT": "field0",
+      "WEST_CENTER": "field0",
+      "NORTH_CENTER": "city1",
+      "SOUTH_CENTER": "field0"
+    },
+    "adjacencies": [
+      [
+        "city1",
+        "field0"
+      ],
+      [
+        "field0",
+        "city0"
+      ],
+      [
+        "garden0",
+        "field0"
+      ]
+    ]
+  },
+  {
     "id": "base2_J",
     "imageUrl": "/images/BaseGame_C2/Base_Game_C2_Tile_J.jpg",
     "count": 3,
@@ -523,7 +725,7 @@ export const BASE_TILES: TileDefinition[] = [
       {
         "id": "city0",
         "type": "CITY",
-        "svgPath": "M100,0 L100,100 L75,70 L70,50 L75,30 Z",
+        "svgPath": "M100,0 L93,25 L76,34 L40,36 L20,27 L0,0 Z",
         "meepleCentroid": {
           "x": 55,
           "y": 20
@@ -532,7 +734,7 @@ export const BASE_TILES: TileDefinition[] = [
       {
         "id": "road0",
         "type": "ROAD",
-        "svgPath": "M0,46 L54,46 L54,100 L46,100 L46,54 L0,54 Z",
+        "svgPath": "M100,51 L75,47 L66,59 L49,56 L37,63 L42,74 L53,83 L51,100",
         "meepleCentroid": {
           "x": 40,
           "y": 63
@@ -541,16 +743,16 @@ export const BASE_TILES: TileDefinition[] = [
       {
         "id": "field0",
         "type": "FIELD",
-        "svgPath": "M0,0 L60,0 L50,50 L0,54 Z",
+        "svgPath": "M0,0 L19,26 L40,36 L76,34 L93,24 L100,0 L100,44 L71,44 L64,51 L46,51 L32,61 L35,73 L46,85 L45,100 L0,100 Z",
         "meepleCentroid": {
           "x": 17,
-          "y": 54
+          "y": 55
         }
       },
       {
         "id": "field1",
         "type": "FIELD",
-        "svgPath": "M0,54 L46,54 L46,100 L0,100 Z",
+        "svgPath": "M79,53 L100,57 L100,100 L56,100 L58,80 L45,68 L50,63 L70,64 Z",
         "meepleCentroid": {
           "x": 77,
           "y": 78
@@ -596,16 +798,16 @@ export const BASE_TILES: TileDefinition[] = [
       {
         "id": "city0",
         "type": "CITY",
-        "svgPath": "M0,0 L100,0 L70,25 L50,30 L30,25 Z",
+        "svgPath": "M0,0 L100,0 L76,40 L52,38 L33,31 Z",
         "meepleCentroid": {
-          "x": 50,
-          "y": 20
+          "x": 55,
+          "y": 19
         }
       },
       {
         "id": "road0",
         "type": "ROAD",
-        "svgPath": "M0,46 L54,46 L54,100 L46,100 L46,54 L0,54 Z",
+        "svgPath": "M50,100 L52,79 L66,65 L60,54 L21,42 L0,52",
         "meepleCentroid": {
           "x": 53,
           "y": 52
@@ -614,7 +816,7 @@ export const BASE_TILES: TileDefinition[] = [
       {
         "id": "field0",
         "type": "FIELD",
-        "svgPath": "M54,46 L100,46 L100,100 L54,100 Z",
+        "svgPath": "M58,83 L69,69 L68,55 L24,37 L0,46 L0,0 L34,31 L52,38 L76,40 L100,0 L100,100 L54,100 Z",
         "meepleCentroid": {
           "x": 82,
           "y": 53
@@ -623,7 +825,7 @@ export const BASE_TILES: TileDefinition[] = [
       {
         "id": "field1",
         "type": "FIELD",
-        "svgPath": "M0,54 L46,54 L46,100 L0,100 Z",
+        "svgPath": "M0,57 L22,48 L52,57 L58,64 L47,77 L46,100 L0,100 Z",
         "meepleCentroid": {
           "x": 25,
           "y": 75
@@ -678,16 +880,16 @@ export const BASE_TILES: TileDefinition[] = [
       {
         "id": "road_e",
         "type": "ROAD",
-        "svgPath": "M54,46 L100,46 L100,54 L54,54 Z",
+        "svgPath": "M77,43 L90,45 L100,51",
         "meepleCentroid": {
-          "x": 79,
-          "y": 46
+          "x": 85,
+          "y": 49
         }
       },
       {
         "id": "road_s",
         "type": "ROAD",
-        "svgPath": "M46,54 L54,54 L54,100 L46,100 Z",
+        "svgPath": "M54,66 L43,79 L50,89 L50,100",
         "meepleCentroid": {
           "x": 45,
           "y": 77
@@ -696,7 +898,7 @@ export const BASE_TILES: TileDefinition[] = [
       {
         "id": "road_w",
         "type": "ROAD",
-        "svgPath": "M0,46 L46,46 L46,54 L0,54 Z",
+        "svgPath": "M34,55 L20,47 L0,49",
         "meepleCentroid": {
           "x": 21,
           "y": 50
@@ -705,7 +907,7 @@ export const BASE_TILES: TileDefinition[] = [
       {
         "id": "field0",
         "type": "FIELD",
-        "svgPath": "M54,54 L100,54 L100,100 L54,100 Z",
+        "svgPath": "M69,66 L100,54 L100,100 L54,100 Z",
         "meepleCentroid": {
           "x": 75,
           "y": 75
@@ -714,7 +916,7 @@ export const BASE_TILES: TileDefinition[] = [
       {
         "id": "field1",
         "type": "FIELD",
-        "svgPath": "M0,54 L46,54 L46,100 L0,100 Z",
+        "svgPath": "M0,54 L28,71 L46,100 L0,100 Z",
         "meepleCentroid": {
           "x": 24,
           "y": 74
@@ -723,10 +925,10 @@ export const BASE_TILES: TileDefinition[] = [
       {
         "id": "field2",
         "type": "FIELD",
-        "svgPath": "M46,40 L54,40 L54,46 L100,46 L100,40 Q75,35 54,46 L46,46 L0,40 Q25,35 46,40 Z",
+        "svgPath": "M100,42 L76,38 Q42,24 20,42 L0,43 L0,0 Q50,59 100,0 Z",
         "meepleCentroid": {
-          "x": 50,
-          "y": 37
+          "x": 20,
+          "y": 30
         }
       }
     ],
@@ -785,7 +987,7 @@ export const BASE_TILES: TileDefinition[] = [
       {
         "id": "city0",
         "type": "CITY",
-        "svgPath": "M0,100 L0,0 L100,0 L70,25 L40,40 L30,75 Z",
+        "svgPath": "M62,60 L18,37 L0,0 L100,0 L100,100 L79,77 L61,72 Z",
         "hasPennant": true,
         "meepleCentroid": {
           "x": 67,
@@ -795,7 +997,7 @@ export const BASE_TILES: TileDefinition[] = [
       {
         "id": "field0",
         "type": "FIELD",
-        "svgPath": "M51,54 L100,40 L100,100 L0,100 L0,60 Z",
+        "svgPath": "M18,37 L62,60 L61,72 L79,77 L100,100 L0,100 L0,0 Z",
         "meepleCentroid": {
           "x": 33,
           "y": 69
@@ -824,6 +1026,66 @@ export const BASE_TILES: TileDefinition[] = [
     ]
   },
   {
+    "id": "base2_M_garden",
+    "imageUrl": "/images/BaseGame_C2/Abbot-Base_Game_C2_Tile_M_Garden.jpg",
+    "count": 1,
+    "expansionId": "base-c2",
+    "segments": [
+      {
+        "id": "city0",
+        "type": "CITY",
+        "svgPath": "M63,60 L23,39 L0,0 L100,0 L100,100 L79,76 L62,71 Z",
+        "hasPennant": true,
+        "meepleCentroid": {
+          "x": 67,
+          "y": 29
+        }
+      },
+      {
+        "id": "field0",
+        "type": "FIELD",
+        "svgPath": "M22,38 L63,59 L63,71 L79,77 L100,100 L0,100 L0,0 Z",
+        "meepleCentroid": {
+          "x": 15,
+          "y": 49
+        }
+      },
+      {
+        "id": "garden0",
+        "type": "GARDEN",
+        "svgPath": "M11,74 L35,62 L61,76 L38,89 Z",
+        "meepleCentroid": {
+          "x": 37,
+          "y": 74
+        }
+      }
+    ],
+    "edgePositionToSegment": {
+      "EAST_LEFT": "city0",
+      "WEST_LEFT": "field0",
+      "EAST_RIGHT": "city0",
+      "NORTH_LEFT": "city0",
+      "SOUTH_LEFT": "field0",
+      "WEST_RIGHT": "field0",
+      "EAST_CENTER": "city0",
+      "NORTH_RIGHT": "city0",
+      "SOUTH_RIGHT": "field0",
+      "WEST_CENTER": "field0",
+      "NORTH_CENTER": "city0",
+      "SOUTH_CENTER": "field0"
+    },
+    "adjacencies": [
+      [
+        "city0",
+        "field0"
+      ],
+      [
+        "garden0",
+        "field0"
+      ]
+    ]
+  },
+  {
     "id": "base2_N",
     "imageUrl": "/images/BaseGame_C2/Base_Game_C2_Tile_N.jpg",
     "count": 2,
@@ -833,7 +1095,7 @@ export const BASE_TILES: TileDefinition[] = [
       {
         "id": "city0",
         "type": "CITY",
-        "svgPath": "M0,100 L0,0 L100,0 L70,25 L40,40 L30,75 Z",
+        "svgPath": "M66,59 L20,35 L0,0 L100,0 L100,100 L81,77 L65,71 Z",
         "meepleCentroid": {
           "x": 69,
           "y": 30
@@ -842,7 +1104,7 @@ export const BASE_TILES: TileDefinition[] = [
       {
         "id": "field0",
         "type": "FIELD",
-        "svgPath": "M50,50 L100,40 L100,100 L0,100 L0,60 Z",
+        "svgPath": "M20,36 L66,58 L65,71 L81,77 L100,100 L0,100 L0,0 Z",
         "meepleCentroid": {
           "x": 32,
           "y": 69
@@ -871,6 +1133,65 @@ export const BASE_TILES: TileDefinition[] = [
     ]
   },
   {
+    "id": "base2_N_garden",
+    "imageUrl": "/images/BaseGame_C2/Abbot-Base_Game_C2_Tile_N_Garden.jpg",
+    "count": 1,
+    "expansionId": "base-c2",
+    "segments": [
+      {
+        "id": "city0",
+        "type": "CITY",
+        "svgPath": "M65,60 L22,39 L0,0 L100,0 L100,100 L82,79 L63,72 Z",
+        "meepleCentroid": {
+          "x": 69,
+          "y": 30
+        }
+      },
+      {
+        "id": "field0",
+        "type": "FIELD",
+        "svgPath": "M22,38 L65,60 L65,73 L82,79 L100,100 L0,100 L0,0 Z",
+        "meepleCentroid": {
+          "x": 17,
+          "y": 51
+        }
+      },
+      {
+        "id": "garden0",
+        "type": "GARDEN",
+        "svgPath": "M6,76 L32,62 L61,77 L37,90 Z",
+        "meepleCentroid": {
+          "x": 34,
+          "y": 75
+        }
+      }
+    ],
+    "edgePositionToSegment": {
+      "EAST_LEFT": "city0",
+      "WEST_LEFT": "field0",
+      "EAST_RIGHT": "city0",
+      "NORTH_LEFT": "city0",
+      "SOUTH_LEFT": "field0",
+      "WEST_RIGHT": "field0",
+      "EAST_CENTER": "city0",
+      "NORTH_RIGHT": "city0",
+      "SOUTH_RIGHT": "field0",
+      "WEST_CENTER": "field0",
+      "NORTH_CENTER": "city0",
+      "SOUTH_CENTER": "field0"
+    },
+    "adjacencies": [
+      [
+        "city0",
+        "field0"
+      ],
+      [
+        "garden0",
+        "field0"
+      ]
+    ]
+  },
+  {
     "id": "base2_O",
     "imageUrl": "/images/BaseGame_C2/Base_Game_C2_Tile_O.jpg",
     "count": 2,
@@ -880,7 +1201,7 @@ export const BASE_TILES: TileDefinition[] = [
       {
         "id": "city0",
         "type": "CITY",
-        "svgPath": "M0,100 L0,0 L100,0 L70,25 L40,40 L30,75 Z",
+        "svgPath": "M0,100 L0,0 L100,0 L80,26 L79,39 L21,71 Z",
         "hasPennant": true,
         "meepleCentroid": {
           "x": 32,
@@ -890,7 +1211,7 @@ export const BASE_TILES: TileDefinition[] = [
       {
         "id": "road0",
         "type": "ROAD",
-        "svgPath": "M46,46 L100,46 L100,54 L54,54 L54,100 L46,100 Z",
+        "svgPath": "M100,46 L83,51 L76,63 L55,69 L55,84 L49,100",
         "meepleCentroid": {
           "x": 58,
           "y": 71
@@ -899,7 +1220,7 @@ export const BASE_TILES: TileDefinition[] = [
       {
         "id": "field0",
         "type": "FIELD",
-        "svgPath": "M54,50 L100,40 L100,100 L54,100 Z",
+        "svgPath": "M72,75 L100,52 L100,100 L54,100 Z",
         "meepleCentroid": {
           "x": 79,
           "y": 77
@@ -908,10 +1229,10 @@ export const BASE_TILES: TileDefinition[] = [
       {
         "id": "field1",
         "type": "FIELD",
-        "svgPath": "M0,60 L46,50 L46,100 L0,100 Z",
+        "svgPath": "M22,71 L80,38 L80,27 L100,0 L100,38 L80,46 L51,67 L46,100 L0,100 Z",
         "meepleCentroid": {
-          "x": 60,
-          "y": 53
+          "x": 35,
+          "y": 76
         }
       }
     ],
@@ -954,7 +1275,7 @@ export const BASE_TILES: TileDefinition[] = [
       {
         "id": "city0",
         "type": "CITY",
-        "svgPath": "M0,100 L0,0 L100,0 L70,25 L40,40 L30,75 Z",
+        "svgPath": "M0,100 L0,0 L100,0 L80,26 L79,39 L25,74 Z",
         "meepleCentroid": {
           "x": 25,
           "y": 25
@@ -963,7 +1284,7 @@ export const BASE_TILES: TileDefinition[] = [
       {
         "id": "road0",
         "type": "ROAD",
-        "svgPath": "M46,46 L100,46 L100,54 L54,54 L54,100 L46,100 Z",
+        "svgPath": "M100,49 L86,51 L78,65 L59,72 L57,86 L49,100",
         "meepleCentroid": {
           "x": 66,
           "y": 70
@@ -972,19 +1293,19 @@ export const BASE_TILES: TileDefinition[] = [
       {
         "id": "field0",
         "type": "FIELD",
-        "svgPath": "M54,50 L100,40 L100,100 L54,100 Z",
+        "svgPath": "M73,71 L100,55 L100,100 L54,100 Z",
         "meepleCentroid": {
-          "x": 80,
-          "y": 77
+          "x": 83,
+          "y": 82
         }
       },
       {
         "id": "field1",
         "type": "FIELD",
-        "svgPath": "M0,60 L46,50 L46,100 L0,100 Z",
+        "svgPath": "M25,75 L80,38 L80,27 L100,0 L100,42 L83,47 L53,70 L46,100 L0,100 Z",
         "meepleCentroid": {
-          "x": 57,
-          "y": 52
+          "x": 35,
+          "y": 80
         }
       }
     ],
@@ -1084,10 +1405,10 @@ export const BASE_TILES: TileDefinition[] = [
       {
         "id": "field0",
         "type": "FIELD",
-        "svgPath": "M0,60 L50,50 L100,60 L100,100 L0,100 Z",
+        "svgPath": "M30,76 L50,70 L70,75 L100,100 L0,100 Z",
         "meepleCentroid": {
           "x": 50,
-          "y": 80
+          "y": 83
         }
       }
     ],
@@ -1113,6 +1434,65 @@ export const BASE_TILES: TileDefinition[] = [
     ]
   },
   {
+    "id": "base2_R_garden",
+    "imageUrl": "/images/BaseGame_C2/Abbot-Base_Game_C2_Tile_R_Garden.jpg",
+    "count": 1,
+    "expansionId": "base-c2",
+    "segments": [
+      {
+        "id": "city0",
+        "type": "CITY",
+        "svgPath": "M0,100 L0,0 L100,0 L100,100 L71,73 L53,67 L32,72 Z",
+        "meepleCentroid": {
+          "x": 52,
+          "y": 31
+        }
+      },
+      {
+        "id": "field0",
+        "type": "FIELD",
+        "svgPath": "M32,73 L53,67 L71,73 L100,100 L0,100 Z",
+        "meepleCentroid": {
+          "x": 28,
+          "y": 85
+        }
+      },
+      {
+        "id": "garden0",
+        "type": "GARDEN",
+        "svgPath": "M49,67 L75,79 L55,90 L29,79 Z",
+        "meepleCentroid": {
+          "x": 52,
+          "y": 77
+        }
+      }
+    ],
+    "edgePositionToSegment": {
+      "EAST_LEFT": "city0",
+      "WEST_LEFT": "city0",
+      "EAST_RIGHT": "city0",
+      "NORTH_LEFT": "city0",
+      "SOUTH_LEFT": "field0",
+      "WEST_RIGHT": "city0",
+      "EAST_CENTER": "city0",
+      "NORTH_RIGHT": "city0",
+      "SOUTH_RIGHT": "field0",
+      "WEST_CENTER": "city0",
+      "NORTH_CENTER": "city0",
+      "SOUTH_CENTER": "field0"
+    },
+    "adjacencies": [
+      [
+        "city0",
+        "field0"
+      ],
+      [
+        "garden0",
+        "field0"
+      ]
+    ]
+  },
+  {
     "id": "base2_S",
     "imageUrl": "/images/BaseGame_C2/Base_Game_C2_Tile_S.jpg",
     "count": 2,
@@ -1132,7 +1512,7 @@ export const BASE_TILES: TileDefinition[] = [
       {
         "id": "road0",
         "type": "ROAD",
-        "svgPath": "M46,70 L54,70 L54,100 L46,100 Z",
+        "svgPath": "M51,69 L51,87 L50,100",
         "meepleCentroid": {
           "x": 52,
           "y": 80
@@ -1143,8 +1523,8 @@ export const BASE_TILES: TileDefinition[] = [
         "type": "FIELD",
         "svgPath": "M0,60 L46,60 L46,100 L0,100 Z",
         "meepleCentroid": {
-          "x": 25,
-          "y": 75
+          "x": 27,
+          "y": 86
         }
       },
       {
@@ -1153,7 +1533,7 @@ export const BASE_TILES: TileDefinition[] = [
         "svgPath": "M54,60 L100,60 L100,100 L54,100 Z",
         "meepleCentroid": {
           "x": 75,
-          "y": 75
+          "y": 86
         }
       }
     ],
@@ -1213,10 +1593,10 @@ export const BASE_TILES: TileDefinition[] = [
       {
         "id": "road0",
         "type": "ROAD",
-        "svgPath": "M46,70 L54,70 L54,100 L46,100 Z",
+        "svgPath": "M46,68 L47,83 L49,100",
         "meepleCentroid": {
-          "x": 51,
-          "y": 83
+          "x": 52,
+          "y": 82
         }
       },
       {
@@ -1224,8 +1604,8 @@ export const BASE_TILES: TileDefinition[] = [
         "type": "FIELD",
         "svgPath": "M0,60 L46,60 L46,100 L0,100 Z",
         "meepleCentroid": {
-          "x": 30,
-          "y": 82
+          "x": 27,
+          "y": 87
         }
       },
       {
@@ -1233,8 +1613,8 @@ export const BASE_TILES: TileDefinition[] = [
         "type": "FIELD",
         "svgPath": "M54,60 L100,60 L100,100 L54,100 Z",
         "meepleCentroid": {
-          "x": 68,
-          "y": 83
+          "x": 73,
+          "y": 86
         }
       }
     ],
@@ -1285,7 +1665,7 @@ export const BASE_TILES: TileDefinition[] = [
       {
         "id": "road0",
         "type": "ROAD",
-        "svgPath": "M46,0 L54,0 L54,100 L46,100 Z",
+        "svgPath": "M50,0 L31,25 L34,43 L55,54 L65,72 L49,90 L49,100",
         "meepleCentroid": {
           "x": 50,
           "y": 50
@@ -1294,7 +1674,7 @@ export const BASE_TILES: TileDefinition[] = [
       {
         "id": "field0",
         "type": "FIELD",
-        "svgPath": "M54,0 L100,0 L100,100 L54,100 Z",
+        "svgPath": "M37,27 L57,0 L100,0 L100,100 L54,100 L57,90 L69,77 L63,54 L40,38 Z",
         "meepleCentroid": {
           "x": 80,
           "y": 50
@@ -1303,7 +1683,7 @@ export const BASE_TILES: TileDefinition[] = [
       {
         "id": "field1",
         "type": "FIELD",
-        "svgPath": "M0,0 L46,0 L46,100 L0,100 Z",
+        "svgPath": "M0,0 L44,0 L30,18 L25,36 L47,58 L56,70 L44,89 L44,100 L0,100 Z",
         "meepleCentroid": {
           "x": 20,
           "y": 50
@@ -1336,6 +1716,78 @@ export const BASE_TILES: TileDefinition[] = [
     ]
   },
   {
+    "id": "base2_U_garden",
+    "imageUrl": "/images/BaseGame_C2/Abbot-Base_Game_C2_Tile_U_Garden.jpg",
+    "count": 1,
+    "expansionId": "base-c2",
+    "segments": [
+      {
+        "id": "road0",
+        "type": "ROAD",
+        "svgPath": "M50,0 L47,15 L36,29 L37,43 L54,53 L65,72 L49,90 L49,100",
+        "meepleCentroid": {
+          "x": 43,
+          "y": 19
+        }
+      },
+      {
+        "id": "field0",
+        "type": "FIELD",
+        "svgPath": "M53,15 L57,0 L100,0 L100,100 L54,100 L57,87 L69,73 L68,62 L57,49 L43,41 L42,28 Z",
+        "meepleCentroid": {
+          "x": 80,
+          "y": 50
+        }
+      },
+      {
+        "id": "field1",
+        "type": "FIELD",
+        "svgPath": "M0,0 L44,0 L40,13 L30,29 L33,45 L48,55 L55,61 L58,71 L47,85 L45,100 L0,100 Z",
+        "meepleCentroid": {
+          "x": 14,
+          "y": 36
+        }
+      },
+      {
+        "id": "garden0",
+        "type": "GARDEN",
+        "svgPath": "M8,64 L31,53 L58,65 L36,77 Z",
+        "meepleCentroid": {
+          "x": 34,
+          "y": 64
+        }
+      }
+    ],
+    "edgePositionToSegment": {
+      "EAST_LEFT": "field0",
+      "WEST_LEFT": "field1",
+      "EAST_RIGHT": "field0",
+      "NORTH_LEFT": "field1",
+      "SOUTH_LEFT": "field0",
+      "WEST_RIGHT": "field1",
+      "EAST_CENTER": "field0",
+      "NORTH_RIGHT": "field0",
+      "SOUTH_RIGHT": "field1",
+      "WEST_CENTER": "field1",
+      "NORTH_CENTER": "road0",
+      "SOUTH_CENTER": "road0"
+    },
+    "adjacencies": [
+      [
+        "field0",
+        "road0"
+      ],
+      [
+        "field1",
+        "road0"
+      ],
+      [
+        "garden0",
+        "field1"
+      ]
+    ]
+  },
+  {
     "id": "base2_V",
     "imageUrl": "/images/BaseGame_C2/Base_Game_C2_Tile_V.jpg",
     "count": 8,
@@ -1345,7 +1797,7 @@ export const BASE_TILES: TileDefinition[] = [
       {
         "id": "road0",
         "type": "ROAD",
-        "svgPath": "M0,46 L54,46 L54,100 L46,100 L46,54 L0,54 Z",
+        "svgPath": "M0,50 L23,35 L38,39 L33,59 L42,70 L59,73 L59,83 L49,90 L49,100",
         "meepleCentroid": {
           "x": 36,
           "y": 60
@@ -1354,16 +1806,16 @@ export const BASE_TILES: TileDefinition[] = [
       {
         "id": "field0",
         "type": "FIELD",
-        "svgPath": "M0,0 L100,0 L100,100 L54,100 L46,54 L0,54 Z",
+        "svgPath": "M0,0 L100,0 L100,100 L54,100 L56,93 L67,81 L63,69 L43,63 L39,55 L43,38 L23,30 L0,42 Z",
         "meepleCentroid": {
-          "x": 70,
-          "y": 32
+          "x": 79,
+          "y": 55
         }
       },
       {
         "id": "field1",
         "type": "FIELD",
-        "svgPath": "M0,54 L46,54 L46,100 L0,100 Z",
+        "svgPath": "M0,57 L22,41 L31,43 L28,59 L37,72 L52,76 L46,88 L45,100 L0,100 Z",
         "meepleCentroid": {
           "x": 23,
           "y": 74
@@ -1392,6 +1844,78 @@ export const BASE_TILES: TileDefinition[] = [
       [
         "field0",
         "road0"
+      ]
+    ]
+  },
+  {
+    "id": "base2_V_garden",
+    "imageUrl": "/images/BaseGame_C2/Abbot-Base_Game_C2_Tile_V_Garden.jpg",
+    "count": 1,
+    "expansionId": "base-c2",
+    "segments": [
+      {
+        "id": "road0",
+        "type": "ROAD",
+        "svgPath": "M0,50 L23,35 L38,39 L33,59 L42,70 L59,73 L59,83 L49,90 L49,100",
+        "meepleCentroid": {
+          "x": 36,
+          "y": 60
+        }
+      },
+      {
+        "id": "field0",
+        "type": "FIELD",
+        "svgPath": "M0,0 L100,0 L100,100 L54,100 L56,93 L67,81 L63,69 L43,63 L39,55 L43,38 L23,30 L0,42 Z",
+        "meepleCentroid": {
+          "x": 80,
+          "y": 58
+        }
+      },
+      {
+        "id": "field1",
+        "type": "FIELD",
+        "svgPath": "M0,57 L22,41 L31,43 L28,59 L37,72 L52,76 L46,88 L45,100 L0,100 Z",
+        "meepleCentroid": {
+          "x": 20,
+          "y": 77
+        }
+      },
+      {
+        "id": "garden0",
+        "type": "GARDEN",
+        "svgPath": "M64,8 L93,21 L70,35 L41,20 Z",
+        "meepleCentroid": {
+          "x": 68,
+          "y": 21
+        }
+      }
+    ],
+    "edgePositionToSegment": {
+      "EAST_LEFT": "field0",
+      "WEST_LEFT": "field1",
+      "EAST_RIGHT": "field0",
+      "NORTH_LEFT": "field0",
+      "SOUTH_LEFT": "field0",
+      "WEST_RIGHT": "field0",
+      "EAST_CENTER": "field0",
+      "NORTH_RIGHT": "field0",
+      "SOUTH_RIGHT": "field1",
+      "WEST_CENTER": "road0",
+      "NORTH_CENTER": "field0",
+      "SOUTH_CENTER": "road0"
+    },
+    "adjacencies": [
+      [
+        "field1",
+        "road0"
+      ],
+      [
+        "field0",
+        "road0"
+      ],
+      [
+        "garden0",
+        "field0"
       ]
     ]
   },
@@ -1626,6 +2150,5 @@ export const BASE_TILES: TileDefinition[] = [
         "road_n"
       ]
     ]
-  },
-  ...ABBOT_C2_GARDEN_TILES,
+  }
 ]
