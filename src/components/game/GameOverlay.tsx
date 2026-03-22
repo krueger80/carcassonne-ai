@@ -717,6 +717,8 @@ export function GameOverlay() {
                 >
                     <button
                         onClick={(e) => { e.stopPropagation(); setIsMenuOpen(!isMenuOpen) }}
+                        aria-expanded={isMenuOpen}
+                        aria-label={t('menu.menu', 'Menu')}
                         style={{
                             background: 'rgba(0,0,0,0.6)',
                             border: '1px solid #555',
