@@ -9,9 +9,25 @@ interface ButtonProps {
     disabled?: boolean
     style?: React.CSSProperties
     title?: string
+    type?: 'button' | 'submit' | 'reset'
+    'aria-label'?: string
+    'aria-expanded'?: boolean
+    'aria-controls'?: string
 }
 
-export function Button({ children, onClick, primary, danger, disabled, style, title }: ButtonProps) {
+export function Button({
+    children,
+    onClick,
+    primary,
+    danger,
+    disabled,
+    style,
+    title,
+    type,
+    'aria-label': ariaLabel,
+    'aria-expanded': ariaExpanded,
+    'aria-controls': ariaControls
+}: ButtonProps) {
     return (
         <motion.button
             whileHover={!disabled ? { scale: 1.05 } : undefined}
@@ -22,6 +38,10 @@ export function Button({ children, onClick, primary, danger, disabled, style, ti
             }}
             title={title}
             disabled={disabled}
+            type={type || 'button'}
+            aria-label={ariaLabel}
+            aria-expanded={ariaExpanded}
+            aria-controls={ariaControls}
             style={{
                 padding: '8px 16px',
                 borderRadius: 8,
