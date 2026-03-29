@@ -2604,6 +2604,8 @@ export function maybeReorientDragon(state: GameState, meepleCoord: Coordinate): 
   }
 }
 
+const segmentCache = new Map<string, string[]>()
+
 export function getValidMeepleTypes(state: GameState): MeepleType[] {
   if (state.turnPhase !== 'PLACE_MEEPLE' || !state.currentTile) return []
 
@@ -2625,7 +2627,17 @@ export function getValidMeepleTypes(state: GameState): MeepleType[] {
   if (!def) return []
 
   // Distinct segment IDs on this tile
-  const segments = Array.from(new Set(def.segments.map(n => n.id)))
+  let segments = segmentCache.get(def.id)
+  if (!segments) {
+    segments = []
+    for (let i = 0; i < def.segments.length; i++) {
+      const id = def.segments[i].id
+      if (!segments.includes(id)) {
+        segments.push(id)
+      }
+    }
+    segmentCache.set(def.id, segments)
+  }
 
   // Check NORMAL
   if (player.meeples.available.NORMAL > 0) {
