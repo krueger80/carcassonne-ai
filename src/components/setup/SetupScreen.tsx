@@ -324,6 +324,7 @@ export function SetupScreen({ onCancel }: SetupScreenProps) {
                     fontSize: 12, cursor: 'pointer',
                   }}
                   title="Toggle Bot"
+                  aria-label="Toggle Bot"
                 >
                   🤖
                 </button>
@@ -353,6 +354,7 @@ export function SetupScreen({ onCancel }: SetupScreenProps) {
                         fontSize: 11, cursor: 'pointer', padding: '2px 4px',
                       }}
                       title="Unlink account"
+                      aria-label="Unlink account"
                     >
                       ✕
                     </button>
