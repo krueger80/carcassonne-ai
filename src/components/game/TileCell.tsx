@@ -111,7 +111,7 @@ export const TileCell = memo(({
     }
   }
 
-  const isInMeeplePlacementMode = placeableSegments.length > 0
+  const isInMeeplePlacementMode = placeableSegments.length > 0 || isFairyMovePhase
 
   return (
     <div

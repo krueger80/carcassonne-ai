@@ -86,7 +86,8 @@ export async function saveGameResult(input: GameResultInput): Promise<{ id: stri
         score: player.score,
         score_road: player.scoreBreakdown?.ROAD ?? 0,
         score_city: player.scoreBreakdown?.CITY ?? 0,
-        score_cloister: player.scoreBreakdown?.CLOISTER ?? 0,
+        // Group Garden with Cloister for storage/display consistency
+        score_cloister: (player.scoreBreakdown?.CLOISTER ?? 0) + (player.scoreBreakdown?.GARDEN ?? 0),
         score_field: player.scoreBreakdown?.FIELD ?? 0,
         score_trader: player.scoreBreakdown?.TRADER ?? 0,
         profile_id: input.linkedProfiles[player.id]?.profileId ?? null,
@@ -98,6 +99,7 @@ export async function saveGameResult(input: GameResultInput): Promise<{ id: stri
 
     if (playerError) {
         console.error('Failed to save player results:', playerError)
+        return null
     }
 
     return { id: gameResult.id }

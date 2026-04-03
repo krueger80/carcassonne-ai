@@ -52,7 +52,7 @@ const COMMODITY_IMAGES_C31 = {
 export function EndGameModal({ players, expansions = [] }: EndGameModalProps) {
   const { t } = useTranslation()
   const { resetGame } = useGameStore()
-  const { user, loading: authLoading } = useAuth()
+  const { user, profile, loading: authLoading } = useAuth()
   const { linkedProfiles, gameState } = useGameStore()
   const hasTradersBuilders = expansions.includes('traders-builders')
   const [hidden, setHidden] = useState(false)
@@ -71,6 +71,7 @@ export function EndGameModal({ players, expansions = [] }: EndGameModalProps) {
     setSaveStatus('saving')
     try {
       const baseEdition = (gameState.expansionData?.baseEdition as string) ?? 'C3'
+      console.log('[EndGame] Saving game result for user:', user.email ?? user.id)
       const success = await saveGameResult({
         players: gameState.players,
         expansions,
@@ -78,13 +79,15 @@ export function EndGameModal({ players, expansions = [] }: EndGameModalProps) {
         linkedProfiles,
       })
       if (success) {
+        console.log('[EndGame] Game saved successfully:', success.id)
         setSaved(true)
         setSaveStatus('saved')
       } else {
+        console.warn('[EndGame] saveGameResult returned null — save failed or not configured')
         setSaveStatus('error')
       }
     } catch (err) {
-      console.error('Failed to save game result:', err)
+      console.error('[EndGame] Failed to save game result:', err)
       setSaveStatus('error')
     }
   }
@@ -142,7 +145,11 @@ export function EndGameModal({ players, expansions = [] }: EndGameModalProps) {
     ...(hasTradersBuilders ? (['TRADER'] as const) : []),
   ]
   const activeCategories = allCategories.filter(cat =>
-    players.some(p => (p.scoreBreakdown?.[cat] ?? 0) > 0)
+    players.some(p => {
+      let pts = p.scoreBreakdown?.[cat] ?? 0
+      if (cat === 'CLOISTER') pts += (p.scoreBreakdown?.['GARDEN' as any] ?? 0)
+      return pts > 0
+    })
   )
 
   // Tie detection
@@ -249,7 +256,8 @@ export function EndGameModal({ players, expansions = [] }: EndGameModalProps) {
                       </div>
                     </td>
                     {activeCategories.map(cat => {
-                      const pts = player.scoreBreakdown?.[cat] ?? 0
+                      let pts = player.scoreBreakdown?.[cat] ?? 0
+                      if (cat === 'CLOISTER') pts += (player.scoreBreakdown?.['GARDEN' as any] ?? 0)
                       return (
                         <td key={cat} style={{ ...tdStyle, textAlign: 'center' }}>
                           {pts > 0
@@ -342,8 +350,8 @@ export function EndGameModal({ players, expansions = [] }: EndGameModalProps) {
             '⏳ Saving results...'
           ) : (
             <>
-              {saveStatus === 'saved' && <span style={{ color: '#2ecc71' }}>✓ Results saved</span>}
-              {saveStatus === 'error' && <span style={{ color: '#e74c3c' }}>⚠ Failed to save results</span>}
+              {saveStatus === 'saved' && <span style={{ color: '#2ecc71' }}>✓ {t('endGame.resultsSaved', { defaultValue: 'Results saved' })}{profile ? ` (${profile.display_name})` : ''}</span>}
+              {saveStatus === 'error' && <span style={{ color: '#e74c3c' }}>⚠ {t('endGame.saveFailed', { defaultValue: 'Failed to save results' })}</span>}
               {saveStatus === 'no-auth' && (
                 <span>
                   <a

@@ -1,6 +1,6 @@
 import { GameState } from '../types/game.ts'
 import { Coordinate } from '../types/board.ts'
-import { Rotation } from '../types/tile.ts'
+import { Rotation, Direction } from '../types/tile.ts'
 import { MeepleType } from '../types/player.ts'
 import { 
   getPotentialPlacementsForState, 
@@ -15,6 +15,19 @@ import {
   getFeature,
 } from '../engine/GameEngine.ts'
 import { nodeKey } from '../types/feature.ts'
+import {
+  getDragonHoardTilesOnBoard,
+  getValidDragonOrientations,
+  placeDragonOnHoard,
+  orientDragon,
+  executeDragonMovement,
+  getFairyMoveTargets,
+  moveFairy,
+  skipFairyMove,
+  getDragonPosition,
+  getDragonHeldBy,
+  getFairyPosition,
+} from '../engine/GameEngine.ts'
 
 export interface BotAction {
   tilePlacement?: {
@@ -25,49 +38,132 @@ export interface BotAction {
     segmentId: string
     meepleType: MeepleType
   } | null // null means skip
+  dragonPlaceTarget?: Coordinate
+  dragonOrientation?: Direction
+  fairyPlacement?: { coordinate: Coordinate, segmentId: string } | null
 }
 
 /**
  * Heuristic-based bot that evaluates moves by immediate score delta and long-term potential.
  */
 export function computeBestMove(state: GameState, difficulty: 'easy' | 'medium' | 'hard' = 'medium'): BotAction {
-  if (state.turnPhase !== 'PLACE_TILE' || !state.currentTile) {
+  const validPhases = ['PLACE_TILE', 'DRAGON_PLACE', 'DRAGON_ORIENT', 'FAIRY_MOVE']
+  if (!validPhases.includes(state.turnPhase)) {
+    return {}
+  }
+  if (state.turnPhase === 'PLACE_TILE' && !state.currentTile) {
     return {}
   }
 
   const myMe = state.players[state.currentPlayerIndex]
   const myPlayerId = myMe.id
   const availableCount = Object.values(myMe.meeples.available).reduce((a, b) => a + b, 0)
-  console.log(`🤖 AI Turn: ${myMe.id} (${myMe.color}) | Available Meeples: ${availableCount} (NORMAL:${myMe.meeples.available.NORMAL}, BIG:${myMe.meeples.available.BIG}) | Tiles Left: ${state.tileBag.length}`)
-
-  // 1. Generate all valid tile placements
-  const validCoords = getPotentialPlacementsForState(state)
-  const allTileMoves: { coordinate: Coordinate, rotation: Rotation }[] = []
-  for (const coord of validCoords) {
-    const validRots = getValidTileRotations(state, coord)
-    for (const rot of validRots) {
-      allTileMoves.push({ coordinate: coord, rotation: rot })
-    }
-  }
-
-  if (allTileMoves.length === 0) return {}
+  console.log(`🤖 AI Turn Phase ${state.turnPhase}: ${myMe.id} (${myMe.color}) | Available Meeples: ${availableCount} | Tiles Left: ${state.tileBag.length}`)
 
   let bestMove: BotAction = {}
 
-  // 2. Evaluate each tile move (and subsequent meeple moves)
-  // Silence engine logs during bulk simulation to improve performance and prevent 500 errors
+  // Silence engine logs during bulk simulation to improve performance
   const originalLog = console.log
   console.log = () => {}
   
   const candidateMoves: { action: BotAction, stateAfterTurn: GameState, score: number, breakdown: Record<string, any> }[] = []
 
   try {
+    if (state.turnPhase === 'DRAGON_PLACE') {
+      const hoards = getDragonHoardTilesOnBoard(state)
+      for (const coord of hoards) {
+        let simState = placeDragonOnHoard(state, coord)
+        const utility = evaluateState(state, simState, myPlayerId, difficulty, {})
+        candidateMoves.push({
+          action: { dragonPlaceTarget: coord },
+          stateAfterTurn: simState,
+          score: utility,
+          breakdown: {}
+        })
+      }
+    } else if (state.turnPhase === 'DRAGON_ORIENT') {
+      const orientations = getValidDragonOrientations(state)
+      for (const dir of orientations) {
+        let simState = orientDragon(state, dir)
+        // Auto play the straight movements for evaluation
+        while (simState.turnPhase === 'DRAGON_MOVEMENT') {
+          simState = executeDragonMovement(simState)
+        }
+        // Finalize turn to get score delta and verify meeple returns/eats
+        const simFinalState = endTurn(simState.turnPhase === 'SCORE' ? simState : { ...simState, turnPhase: 'SCORE' })
+        const utility = evaluateState(state, simFinalState, myPlayerId, difficulty, {})
+        candidateMoves.push({
+          action: { dragonOrientation: dir },
+          stateAfterTurn: simFinalState,
+          score: utility,
+          breakdown: {}
+        })
+      }
+    } else if (state.turnPhase === 'FAIRY_MOVE') {
+      const targets = getFairyMoveTargets(state)
+      let simSkip = skipFairyMove(state)
+      candidateMoves.push({
+        action: { fairyPlacement: null },
+        stateAfterTurn: simSkip,
+        score: evaluateState(state, simSkip, myPlayerId, difficulty, {}),
+        breakdown: {}
+      })
+      for (const target of targets) {
+        let simMove = moveFairy(state, target.coordinate, target.segmentId)
+        candidateMoves.push({
+          action: { fairyPlacement: target },
+          stateAfterTurn: simMove,
+          score: evaluateState(state, simMove, myPlayerId, difficulty, {}),
+          breakdown: {}
+        })
+      }
+    } else if (state.turnPhase === 'PLACE_TILE') {
+      // 1. Generate all valid tile placements
+      const validCoords = getPotentialPlacementsForState(state)
+      const allTileMoves: { coordinate: Coordinate, rotation: Rotation }[] = []
+      for (const coord of validCoords) {
+        const validRots = getValidTileRotations(state, coord)
+        for (const rot of validRots) {
+          allTileMoves.push({ coordinate: coord, rotation: rot })
+        }
+      }
+
+      if (allTileMoves.length === 0) return {}
     for (const tileMove of allTileMoves) {
       let simTileState = state
       while (simTileState.currentTile && simTileState.currentTile.rotation !== tileMove.rotation) {
         simTileState = rotateTile(simTileState)
       }
     simTileState = placeTile(simTileState, tileMove.coordinate)
+
+    // Ensure we handle dragon movement synchronously in the simulation (C3.1 variant)
+    while (simTileState.turnPhase === 'DRAGON_MOVEMENT') {
+      simTileState = executeDragonMovement(simTileState)
+    }
+
+    // NEW: Handle Dragon Hoard placement which leads to DRAGON_ORIENT.
+    // We must simulate the best orientation to correctly value this placement.
+    if (simTileState.turnPhase === 'DRAGON_ORIENT') {
+        const orientations = getValidDragonOrientations(simTileState)
+        let bestOrientedState = simTileState
+        let bestOrientedScore = -Infinity
+        
+        for (const dir of orientations) {
+            let simOrientState = orientDragon(simTileState, dir)
+            while (simOrientState.turnPhase === 'DRAGON_MOVEMENT') {
+                simOrientState = executeDragonMovement(simOrientState)
+            }
+            // Temporarily end turn to get full evaluation (including scoring and eaten meeples)
+            const evaluationState = endTurn(simOrientState.turnPhase === 'SCORE' ? simOrientState : { ...simOrientState, turnPhase: 'SCORE' })
+            const orientScore = evaluateState(state, evaluationState, myPlayerId, difficulty, {})
+            
+            if (orientScore > bestOrientedScore) {
+                bestOrientedScore = orientScore
+                bestOrientedState = simOrientState
+            }
+        }
+        simTileState = bestOrientedState
+    }
 
     // Sub-evaluation: Meeple placement
     const meepleOptions: (BotAction['meeplePlacement'])[] = [null] // skip is always an option
@@ -108,6 +204,7 @@ export function computeBestMove(state: GameState, difficulty: 'easy' | 'medium' 
       })
     }
   }
+}
 
   if (candidateMoves.length === 0) return {}
 
@@ -133,7 +230,7 @@ export function computeBestMove(state: GameState, difficulty: 'easy' | 'medium' 
   if (cityMoves.length > 0) {
     const bestCity = cityMoves.sort((a, b) => b.score - a.score)[0]
     console.log('🔍 Best CITY move:', {
-      coord: `(${bestCity.action.tilePlacement?.coordinate.x},${bestCity.action.tilePlacement?.coordinate.y})`,
+      coord: `(${bestCity.action.tilePlacement?.coordinate?.x},${bestCity.action.tilePlacement?.coordinate?.y})`,
       rot: bestCity.action.tilePlacement?.rotation,
       meeple: `${bestCity.action.meeplePlacement?.meepleType} on ${bestCity.action.meeplePlacement?.segmentId}`,
       score: bestCity.score.toFixed(2),
@@ -147,7 +244,7 @@ export function computeBestMove(state: GameState, difficulty: 'easy' | 'medium' 
   if (immediateMoves.length > 0) {
     const bestImm = immediateMoves.sort((a, b) => b.score - a.score)[0]
     console.log('🔍 Best IMMEDIATE scoring move:', {
-      coord: `(${bestImm.action.tilePlacement?.coordinate.x},${bestImm.action.tilePlacement?.coordinate.y})`,
+      coord: `(${bestImm.action.tilePlacement?.coordinate?.x},${bestImm.action.tilePlacement?.coordinate?.y})`,
       rot: bestImm.action.tilePlacement?.rotation,
       meeple: bestImm.action.meeplePlacement ? `${bestImm.action.meeplePlacement.meepleType} on ${bestImm.action.meeplePlacement.segmentId}` : 'SKIP',
       score: bestImm.score.toFixed(2),
@@ -186,7 +283,7 @@ export function computeBestMove(state: GameState, difficulty: 'easy' | 'medium' 
                      const immediatePenalty = oppImmediateGainRaw * 10 * 4 // Increased to 4x (40x heuristic pts)
                      branchUtility -= immediatePenalty
                      candidate.breakdown[`penalty_opp_${oppId}_immediate`] = -immediatePenalty
-                     console.log(`❗ AI Move (${candidate.action.tilePlacement?.coordinate.x},${candidate.action.tilePlacement?.coordinate.y}) completed opponent ${oppId} feature (+${oppImmediateGainRaw} pts) → applying penalty -${immediatePenalty}`)
+                     console.log(`❗ AI Move (${candidate.action.tilePlacement?.coordinate?.x},${candidate.action.tilePlacement?.coordinate?.y}) completed opponent ${oppId} feature (+${oppImmediateGainRaw} pts) → applying penalty -${immediatePenalty}`)
                  }
                  
                  // Additionally check heuristic delta (potential improvement)
@@ -248,8 +345,8 @@ export function computeBestMove(state: GameState, difficulty: 'easy' | 'medium' 
   const topMovesReport = candidateMoves.slice(0, 5).map(c => {
     return {
       move: {
-        x: c.action.tilePlacement?.coordinate.x,
-        y: c.action.tilePlacement?.coordinate.y,
+        x: c.action.tilePlacement?.coordinate?.x,
+        y: c.action.tilePlacement?.coordinate?.y,
         rot: c.action.tilePlacement?.rotation,
         meeple: c.action.meeplePlacement ? `${c.action.meeplePlacement.meepleType} on [${c.action.meeplePlacement.segmentId}]` : 'SKIP'
       },
@@ -297,6 +394,20 @@ export function evaluateState(oldState: GameState, newState: GameState, myPlayer
   const myMeeplesNew = allMeeplesNew.filter(m => m.playerId === myPlayerId)
   const oppMeeplesNew = allMeeplesNew.filter(m => m.playerId !== myPlayerId && m.playerId !== 'neutral') // ignore neutral/fairy if present
 
+  // Detect if the dragon ate an opponent's meeple (or multiple)
+  if (difficulty === 'hard') {
+    const oppMeeplesOld = Object.values(oldState.boardMeeples).filter(m => m.playerId !== myPlayerId && m.playerId !== 'neutral')
+    const oppScoreDiff = (newState.players.find(p => p.id !== myPlayerId)?.score ?? 0) - (oldState.players.find(p => p.id !== myPlayerId)?.score ?? 0)
+    
+    // If opponent lost meeples on the board but gained no points, the Dragon must have eaten them!
+    if (oppScoreDiff <= 0 && oppMeeplesOld.length > oppMeeplesNew.length) {
+      const eatenCount = oppMeeplesOld.length - oppMeeplesNew.length
+      const eatBonus = eatenCount * 120 // Huge reward for killing opponent meeples
+      score += eatBonus
+      outBreakdown.dragonEatBonus = eatBonus
+    }
+  }
+
   // Track scored union-find IDs so we don't double or triple count points if multiple meeples share a feature
   const scoredUfIds = new Set<string>()
 
@@ -316,9 +427,15 @@ export function evaluateState(oldState: GameState, newState: GameState, myPlayer
           }
         }
         let clScore = surroundingCount * 2
-        if (difficulty === 'hard' && newState.tileBag.length < 10) {
-           const missing = 9 - surroundingCount
-           if (missing > 3) clScore -= (10 - newState.tileBag.length) * 2
+        if (difficulty === 'hard') {
+           // Early game cloisters are almost guaranteed 9 points. Don't undervalue them
+           // just because they aren't surrounded yet. Give them a base potential value.
+           if (newState.tileBag.length > 25) {
+               clScore = 8 + surroundingCount // Between 9 and 17. Multiplied by 8 later: 72 to 136 heuristic points.
+           } else if (newState.tileBag.length < 10) {
+               const missing = 9 - surroundingCount
+               if (missing > 3) clScore -= (10 - newState.tileBag.length) * 2
+           }
         }
         
         // Scale to match 10x heuristic multiplier
@@ -458,6 +575,28 @@ export function evaluateState(oldState: GameState, newState: GameState, myPlayer
     })
   }
 
+  // 2b. Edge Reduction Bonus (Hard mode) — reward tile placements that close open edges
+  // on the AI's own features. Fewer open edges = easier to complete = higher value.
+  // This runs across ALL features the AI has meeples on, comparing old vs new state.
+  outBreakdown.edgeReduction = 0
+  if (difficulty === 'hard') {
+    for (const m of myMeeplesNew) {
+      const featureNew = getFeature(ufNew, nodeKey(m.coordinate, m.segmentId))
+      const featureOld = getFeature(ufOld, nodeKey(m.coordinate, m.segmentId))
+
+      if (featureNew && featureOld && !featureNew.isComplete && featureOld.id === featureNew.id) {
+        const edgeDelta = featureOld.openEdgeCount - featureNew.openEdgeCount
+        if (edgeDelta > 0 && (featureNew.type === 'CITY' || featureNew.type === 'ROAD')) {
+          // Reward proportional to how many edges were closed and how close the feature is to completion
+          const closabilityMultiplier = featureNew.type === 'CITY' ? 15 : 8
+          const bonus = edgeDelta * closabilityMultiplier
+          score += bonus
+          outBreakdown.edgeReduction += bonus
+        }
+      }
+    }
+  }
+
   // 3. Meeple preservation — diminishing returns model
   const availableCount = Object.values(newMe.meeples.available).reduce((a, b) => a + b, 0)
   
@@ -470,9 +609,10 @@ export function evaluateState(oldState: GameState, newState: GameState, myPlayer
      
      let meeplePoints = 0
      for (let i = 0; i < availableCount; i++) {
-       if (i < 2) meeplePoints += baseCost * 1.5      // First 2: high value (safety net)
-       else if (i < 4) meeplePoints += baseCost * 0.8  // 3rd-4th: moderate
-       else meeplePoints += baseCost * 0.3              // 5th+: diminishing
+       if (i === 0) meeplePoints += baseCost * 1.2      // Last meeple: extremely valuable safety net
+       else if (i === 1) meeplePoints += baseCost * 1.0 // 2nd meeple: high value
+       else if (i < 4) meeplePoints += baseCost * 0.6   // 3rd-4th: moderate
+       else meeplePoints += baseCost * 0.2              // 5th+: diminishing
      }
      
      score += meeplePoints
@@ -514,6 +654,58 @@ export function evaluateState(oldState: GameState, newState: GameState, myPlayer
            }
         }
       }
+    }
+  }
+
+  // 5. Dragon and Fairy Heuristics
+  const dfState = newState.expansionData.dragonFairy as any
+  if (dfState) {
+    const fairyPos = getFairyPosition(newState)
+    if (fairyPos) {
+      const fKey = `${fairyPos.coordinate.x},${fairyPos.coordinate.y}:${fairyPos.segmentId}`
+      const fMeeple = newState.boardMeeples[fKey]
+      if (fMeeple && fMeeple.playerId === myPlayerId) {
+        const protPts = (fMeeple.meepleType === 'BUILDER' || fMeeple.meepleType === 'BIG') ? 60 : 40
+        score += protPts
+        outBreakdown.fairyProtection = protPts
+      }
+    }
+
+    const dragonPos = getDragonPosition(newState)
+    if (difficulty === 'hard' && dragonPos) {
+      const dx = dragonPos.x
+      const dy = dragonPos.y
+      let threatPenalty = 0
+      for (const m of myMeeplesNew) {
+        const dist = Math.abs(dx - m.coordinate.x) + Math.abs(dy - m.coordinate.y)
+        if (dist <= 4 && dist > 0) {
+          threatPenalty += (5 - dist) * 15
+        }
+      }
+      if (threatPenalty > 0) {
+        score -= threatPenalty
+        outBreakdown.dragonThreat = -threatPenalty
+      }
+    }
+
+    let oppMeeplesEaten = 0
+    const opps = newState.players.filter(p => p.id !== myPlayerId)
+    for (const opp of opps) {
+      const oldOpp = oldState.players.find(p => p.id === opp.id)
+      if (!oldOpp) continue
+      const oldOnBoard = oldOpp.meeples.onBoard.length
+      const newOnBoard = opp.meeples.onBoard.length
+      if (newOnBoard < oldOnBoard) {
+        const scoreDelta = opp.score - oldOpp.score
+        if (scoreDelta === 0) {
+          oppMeeplesEaten += (oldOnBoard - newOnBoard)
+        }
+      }
+    }
+    if (oppMeeplesEaten > 0) {
+      const sabotagePts = oppMeeplesEaten * 150
+      score += sabotagePts
+      outBreakdown.sabotageDragon = sabotagePts
     }
   }
 

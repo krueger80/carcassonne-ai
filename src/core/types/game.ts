@@ -18,6 +18,8 @@ export type TurnPhase =
   | 'RETURN_FARMER'      // T&B: returning farmers after Pig mid-game scoring
   | 'NEXT_PLAYER'
 
+
+
 export interface ScoreEvent {
   featureId: string
   featureType: FeatureType
@@ -33,6 +35,21 @@ export interface AiPhaseData {
   narrative?: string
   objectives?: unknown[]
   mechanics?: unknown[]
+}
+
+export type PieceType = 'DRAGON' | 'FAIRY' | 'NORMAL' | 'BIG' | 'BUILDER' | 'PIG' | 'ABBOT'
+
+export type PieceLocation =
+  | { type: 'BOARD'; coordinate: Coordinate; segmentId?: string }
+  | { type: 'PLAYER_FRONT'; playerId: string } // e.g. Captured dragon
+  | { type: 'SUPPLY'; playerId: string }       // Available for placement
+  | { type: 'OUT_OF_PLAY' }
+
+export interface PieceState {
+  id: string
+  type: PieceType
+  ownerId: string | null
+  location: PieceLocation
 }
 
 export interface GameState {
@@ -54,6 +71,8 @@ export interface GameState {
   // Tracks all meeples currently on the board across all players
   // key = "x,y:segmentId" (same as node key)
   boardMeeples: Record<string, MeeplePlacement>
+  // Unified registry of all physical pieces
+  pieces: Record<string, PieceState>
   // Extension data for expansions and AI phase
   expansionData: Record<string, unknown>
   aiPhaseData?: AiPhaseData

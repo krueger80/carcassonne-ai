@@ -14,7 +14,16 @@
     "startFailed": "\u00c9chec du d\u00e9marrage : {{error}}",
     "playerPlaceholder": "Joueur {{n}}",
     "browseExtensions": "Catalogue d'extensions",
-    "debugConfigurator": "Configurateur de debug"
+    "debugConfigurator": "Configurateur de debug",
+    "botDifficulty": {
+      "easy": "Facile",
+      "medium": "Moyen",
+      "hard": "Difficile"
+    },
+    "toggleBot": "Basculer Bot",
+    "unlinkAccount": "Délier le compte",
+    "linked": "Lié : {{name}}",
+    "statsAndLeaderboard": "Stats & Classement"
   },
   "game": {
     "bonusTurn": "Tour Bonus",
@@ -79,13 +88,14 @@
     },
     "categoryDetail": {
       "ROAD": "1 pt/tuile",
-      "CITY": "2 pts/tuile (compl\u00e8te)",
+      "CITY": "2 pts/tuile (complète)",
       "CLOISTER": "1 pt/tuile adjacente",
-      "FIELD": "3 pts/cit\u00e9 compl\u00e8te",
+      "FIELD": "3 pts/cité complète",
       "TRADER": "bonus marchand 10 pts"
-    }
-  },
-  "farmer": {
+    },
+    "pts": "Pts"
+    },
+    "farmer": {
     "returnTitle": "Retirer le fermier ?",
     "returnDescription": "{{name}}, votre cochon vient de marquer {{points}} points et a \u00e9t\u00e9 retir\u00e9. Voulez-vous aussi retirer le fermier associ\u00e9 ?",
     "yesReturn": "Oui, retirer le fermier",
@@ -115,5 +125,49 @@
   "language": {
     "en": "EN",
     "fr": "FR"
+  },
+  "stats": {
+    "title": "Statistiques",
+    "backToGame": "Retour au jeu",
+    "myStats": "Mes Statistiques",
+    "leaderboard": "Classement",
+    "signInPrompt": "Connectez-vous pour voir vos statistiques et votre historique",
+    "signIn": "Se connecter",
+    "loadingStats": "Chargement de vos statistiques...",
+    "loggedPlayer": "Joueur connecté",
+    "games": "Parties",
+    "wins": "Victoires",
+    "winRate": "Taux de victoire",
+    "avgScore": "Score moyen",
+    "noGamesPlayed": "Aucune partie jouée",
+    "playWithLinked": "Jouez une partie avec un compte lié pour voir vos statistiques !",
+    "recentGames": "Parties Récentes",
+    "noRecentGames": "Aucune partie récente trouvée.",
+    "players": "joueurs",
+    "loadingRankings": "Chargement du classement mondial...",
+    "rank": "Rang",
+    "player": "Joueur",
+    "winPct": "Victoire %",
+    "avg": "Moy",
+    "noPlayersOnLeaderboard": "Aucun joueur dans le classement pour le moment."
+  },
+  "auth": {
+    "signIn": "Se connecter",
+    "signUp": "S'inscrire",
+    "linkAccount": "Lier un compte",
+    "welcome": "Bienvenue",
+    "signInToLink": "Connectez-vous pour lier cet emplacement de joueur à votre compte",
+    "displayName": "Nom d'affichage",
+    "email": "Email",
+    "password": "Mot de passe",
+    "accountCreated": "Compte créé ! Vérifiez votre email pour confirmer, puis connectez-vous.",
+    "anErrorOccurred": "Une erreur est survenue",
+    "createAccount": "Créer un compte",
+    "or": "ou",
+    "continueWithGoogle": "Continuer avec Google",
+    "cancel": "Annuler",
+    "user": "Utilisateur",
+    "myStats": "Mes Statistiques",
+    "signOut": "Se déconnecter"
   }
 }

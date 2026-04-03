@@ -35,42 +35,10 @@ export function BotOrchestrator() {
         
         const latestActivePlayer = latestState.players[latestState.currentPlayerIndex]
 
-        // --- Handle Auxiliary / Expansion Phases ---
-        if (latestState.turnPhase === 'FAIRY_MOVE') {
-          console.log('[Bot] Skipping Fairy Move')
-          store.skipFairyMove()
-          isThinking.current = false
-          return
-        }
+        // --- Handle Direct / Non-Action Phases ---
         if (latestState.turnPhase === 'RETURN_FARMER') {
           console.log('[Bot] Skipping Farmer Return')
           store.resolveFarmerReturn(false)
-          isThinking.current = false
-          return
-        }
-        if (latestState.turnPhase === 'DRAGON_ORIENT') {
-          console.log('[Bot] Defaulting Dragon Orientation')
-          store.confirmDragonOrientation()
-          isThinking.current = false
-          return
-        }
-        if (latestState.turnPhase === 'DRAGON_PLACE') {
-          console.log('[Bot] Placing Dragon on Hoard')
-          // Find any hoard tile
-          const boardTiles = latestState.board.tiles
-          const dragonHoardTile = Object.entries(boardTiles).find(([_, tile]) => {
-            const def = latestState.staticTileMap[tile.definitionId]
-            return def?.isDragonHoard
-          })
-          
-          if (dragonHoardTile) {
-            const [x, y] = dragonHoardTile[0].split(',').map(Number)
-            store.placeDragonOnHoard({ x, y })
-          } else {
-            console.warn('[Bot] No dragon hoard found to place on!')
-            // Fallback: just skip or try to finish turn if possible
-            store.endTurn() 
-          }
           isThinking.current = false
           return
         }
@@ -80,8 +48,44 @@ export function BotOrchestrator() {
           isThinking.current = false
           return
         }
-
-        // Phase 1: Draw the tile if needed
+        if (latestState.turnPhase === 'DRAGON_ORIENT') {
+          // Pick best orientation locally — no need for full MCTS
+          // Try stored orientations first, fall back to computing from engine
+          let orientations = useGameStore.getState().dragonOrientations ?? []
+          if (orientations.length === 0) {
+            const { getValidDragonOrientations } = await import('../../core/engine/GameEngine.ts')
+            orientations = getValidDragonOrientations(latestState)
+            console.log('[Bot] Computed dragon orientations from engine:', orientations)
+          }
+          if (orientations.length > 0) {
+            const pick = orientations[0] // Already prioritized by getValidDragonOrientations (meeple-facing first)
+            console.log(`[Bot] Orienting dragon to ${pick} (from ${orientations.length} options)`)
+            useGameStore.setState({ tentativeDragonFacing: pick })
+            store.confirmDragonOrientation()
+          } else {
+            console.log('[Bot] No dragon orientations available, confirming default')
+            store.confirmDragonOrientation()
+          }
+          isThinking.current = false
+          return
+        }
+        if (latestState.turnPhase === 'DRAGON_PLACE') {
+          // Pick dragon hoard placement locally
+          const boardTiles = latestState.board.tiles
+          const dragonHoardTile = Object.entries(boardTiles).find(([_, tile]) => {
+            const def = latestState.staticTileMap[tile.definitionId]
+            return def?.isDragonHoard
+          })
+          if (dragonHoardTile) {
+            const [x, y] = dragonHoardTile[0].split(',').map(Number)
+            console.log(`[Bot] Placing Dragon on Hoard at ${x}, ${y}`)
+            store.placeDragonOnHoard({ x, y })
+          } else {
+            store.endTurn()
+          }
+          isThinking.current = false
+          return
+        }
         if (latestState.turnPhase === 'DRAW_TILE') {
           console.log('[Bot] Drawing tile...')
           store.drawTile()
@@ -89,17 +93,22 @@ export function BotOrchestrator() {
           return
         }
 
-        // Phase 2: Calculate and execute moves
-        console.log('[Bot] Calculating moves...')
+        // --- Handle AI Decision-based Phases ---
+        console.log(`[Bot] Calculating moves for phase ${latestState.turnPhase}...`)
         let action: BotAction | null = null
 
         // Try hitting the Vercel serverless function
         try {
+          const controller = new AbortController()
+          const timeoutId = setTimeout(() => controller.abort(), 12000)
+          
           const res = await fetch('/api/bot', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ state: latestState, difficulty: latestActivePlayer.botDifficulty })
+            body: JSON.stringify({ state: latestState, difficulty: latestActivePlayer.botDifficulty }),
+            signal: controller.signal
           })
+          clearTimeout(timeoutId)
           if (res.ok) {
             action = await res.json()
           } else {
@@ -110,13 +119,34 @@ export function BotOrchestrator() {
         }
 
         // Fallback to local computation
-        if (!action) {
+        if (!action || Object.keys(action).length === 0) {
           const { computeBestMove } = await import('../../core/ai/mcts.ts')
           action = computeBestMove(latestState, latestActivePlayer.botDifficulty)
         }
 
-        if (!action || !action.tilePlacement) {
-          console.warn('[Bot] No move found, skipping turn phase')
+        if (!action) {
+          console.warn(`[Bot] No move found for phase ${latestState.turnPhase}, skipping`)
+          store.endTurn()
+          isThinking.current = false
+          return
+        }
+
+        // Execute action based on phase
+        if (latestState.turnPhase === 'FAIRY_MOVE') {
+          if (action.fairyPlacement) {
+             console.log('[Bot] Positioning fairy on', action.fairyPlacement)
+             store.moveFairy(action.fairyPlacement.coordinate, action.fairyPlacement.segmentId)
+          } else {
+             console.log('[Bot] Skipping Fairy Move')
+             store.skipFairyMove()
+          }
+          isThinking.current = false
+          return
+        }
+
+
+        if (latestState.turnPhase !== 'PLACE_TILE' || !action.tilePlacement) {
+          console.warn(`[Bot] Unhandled state ${latestState.turnPhase} or no tile placement found`)
           isThinking.current = false
           return
         }
@@ -145,8 +175,15 @@ export function BotOrchestrator() {
         
         store.confirmTilePlacement()
         
-        console.log('[Bot] State after confirm. Turn phase is now:', useGameStore.getState().gameState?.turnPhase)
+        const phaseAfterPlacement = useGameStore.getState().gameState?.turnPhase
+        console.log('[Bot] State after confirm. Turn phase is now:', phaseAfterPlacement)
 
+        if (phaseAfterPlacement !== 'PLACE_MEEPLE') {
+          // If the phase unexpectedly diverged (e.g. to DRAGON_ORIENT or DRAGON_PLACE),
+          // yield early! This synchronously clears `isThinking.current` before the next React
+          // render occurs, ensuring the `useEffect` reliably catches the new phase and retriggers the Bot.
+          return
+        }
 
         // small delay for UI
         await new Promise(r => setTimeout(r, 600))
@@ -159,6 +196,13 @@ export function BotOrchestrator() {
           store.confirmMeeplePlacement()
         } else {
           console.log('[Bot] Skipping meeple')
+          store.skipMeeple()
+        }
+
+        // Safety check: if the phase didn't advance, force skip
+        const postMeepleState = useGameStore.getState().gameState
+        if (postMeepleState?.turnPhase === 'PLACE_MEEPLE') {
+          console.warn('[Bot] ⚠ Meeple placement did not advance phase — forcing skip')
           store.skipMeeple()
         }
 

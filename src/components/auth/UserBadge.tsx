@@ -1,8 +1,10 @@
 import { useState } from 'react'
+import { useTranslation } from 'react-i18next'
 import { useAuth } from './useAuth.ts'
 import { LoginModal } from './LoginModal.tsx'
 
 export function UserBadge() {
+    const { t } = useTranslation()
     const { user, profile, loading, signOut } = useAuth()
     const [showLogin, setShowLogin] = useState(false)
     const [showMenu, setShowMenu] = useState(false)
@@ -26,14 +28,14 @@ export function UserBadge() {
                         display: 'flex', alignItems: 'center', gap: 6,
                     }}
                 >
-                    <span style={{ fontSize: 14 }}>👤</span> Sign In
+                    <span style={{ fontSize: 14 }}>👤</span> {t('auth.signIn')}
                 </button>
                 {showLogin && <LoginModal onClose={() => setShowLogin(false)} />}
             </>
         )
     }
 
-    const displayName = profile?.display_name || user.email?.split('@')[0] || 'User'
+    const displayName = profile?.display_name || user.email?.split('@')[0] || t('auth.user')
     const initial = displayName[0]?.toUpperCase() || '?'
 
     return (
@@ -90,13 +92,13 @@ export function UserBadge() {
                             onClick={() => { window.location.hash = '#stats'; setShowMenu(false) }}
                             style={menuItemStyle}
                         >
-                            📊 My Stats
+                            📊 {t('auth.myStats')}
                         </button>
                         <button
                             onClick={() => { signOut(); setShowMenu(false) }}
                             style={{ ...menuItemStyle, color: '#e74c3c' }}
                         >
-                            🚪 Sign Out
+                            🚪 {t('auth.signOut')}
                         </button>
                     </div>
                 </>

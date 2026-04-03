@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react'
+import { useTranslation } from 'react-i18next'
 import { useAuth } from '../auth/useAuth.ts'
 import { LoginModal } from '../auth/LoginModal.tsx'
 import { getMyStats, getRecentGames, getLeaderboard, type PlayerStat, type RecentGame, type LeaderboardEntry } from '../../services/gameResultsService.ts'
@@ -6,6 +7,7 @@ import { getMyStats, getRecentGames, getLeaderboard, type PlayerStat, type Recen
 type ViewTab = 'MY_STATS' | 'LEADERBOARD'
 
 export function StatsView() {
+    const { t } = useTranslation()
     const { user, profile, loading: authLoading } = useAuth()
     const [activeTab, setActiveTab] = useState<ViewTab>('MY_STATS')
 
@@ -72,8 +74,8 @@ export function StatsView() {
 
                 {/* Tabs */}
                 <div style={{ display: 'flex', justifyContent: 'center', gap: 20, marginBottom: 32, borderBottom: '1px solid #333' }}>
-                    <div style={tabStyle(activeTab === 'MY_STATS')} onClick={() => setActiveTab('MY_STATS')}>My Stats</div>
-                    <div style={tabStyle(activeTab === 'LEADERBOARD')} onClick={() => setActiveTab('LEADERBOARD')}>Leaderboard</div>
+                    <div style={tabStyle(activeTab === 'MY_STATS')} onClick={() => setActiveTab('MY_STATS')}>{t('stats.myStats')}</div>
+                    <div style={tabStyle(activeTab === 'LEADERBOARD')} onClick={() => setActiveTab('LEADERBOARD')}>{t('stats.leaderboard')}</div>
                 </div>
 
                 {activeTab === 'MY_STATS' ? (
@@ -145,15 +147,15 @@ export function StatsView() {
                                     textAlign: 'center', padding: 32, background: '#252535',
                                     borderRadius: 12, border: '1px solid #444', marginBottom: 32,
                                 }}>
-                                    <p style={{ color: '#888', fontSize: 14 }}>No games played yet</p>
-                                    <p style={{ color: '#666', fontSize: 12 }}>Play a game with a linked account to see stats here!</p>
+                                    <p style={{ color: '#888', fontSize: 14 }}>{t('stats.noGamesPlayed')}</p>
+                                    <p style={{ color: '#666', fontSize: 12 }}>{t('stats.playWithLinked')}</p>
                                 </div>
                             )}
 
                             {/* Recent games */}
-                            <h3 style={{ color: '#e8d8a0', fontFamily: 'serif', marginBottom: 16 }}>Recent Games</h3>
+                            <h3 style={{ color: '#e8d8a0', fontFamily: 'serif', marginBottom: 16 }}>{t('stats.recentGames')}</h3>
                             {games.length === 0 ? (
-                                <p style={{ color: '#888', fontSize: 13 }}>No recent games found.</p>
+                                <p style={{ color: '#888', fontSize: 13 }}>{t('stats.noRecentGames')}</p>
                             ) : (
                                 <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
                                     {games.map(game => (
@@ -163,7 +165,7 @@ export function StatsView() {
                                         }}>
                                             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 8 }}>
                                                 <span style={{ fontSize: 12, color: '#888' }}>
-                                                    {new Date(game.played_at).toLocaleDateString()} · {game.player_count} players
+                                                    {new Date(game.played_at).toLocaleDateString()} · {game.player_count} {t('stats.players')}
                                                 </span>
                                                 {game.expansions.length > 0 && (
                                                     <span style={{ fontSize: 11, color: '#666' }}>
@@ -184,7 +186,7 @@ export function StatsView() {
                                                             }}>
                                                                 {pr.player_name}
                                                             </span>
-                                                            <span style={{ color: '#888' }}>{pr.score} pts</span>
+                                                            <span style={{ color: '#888' }}>{pr.score} {t('stats.pts')}</span>
                                                         </div>
                                                     ))}
                                             </div>
@@ -197,25 +199,25 @@ export function StatsView() {
                 ) : (
                     /* Leaderboard View */
                     loading ? (
-                        <p style={{ textAlign: 'center', color: '#888' }}>Loading global rankings...</p>
+                        <p style={{ textAlign: 'center', color: '#888' }}>{t('stats.loadingRankings')}</p>
                     ) : (
                         <div style={{ background: '#252535', borderRadius: 16, border: '1px solid #444', overflow: 'hidden' }}>
                             <table style={{ width: '100%', borderCollapse: 'collapse' }}>
                                 <thead style={{ background: '#2a2a3a' }}>
                                     <tr>
-                                        <th style={{ padding: '16px', textAlign: 'center', color: '#888', fontWeight: 'normal', width: 60 }}>Rank</th>
-                                        <th style={{ padding: '16px', textAlign: 'left', color: '#888', fontWeight: 'normal' }}>Player</th>
-                                        <th style={{ padding: '16px', textAlign: 'center', color: '#888', fontWeight: 'normal' }}>Wins</th>
-                                        <th style={{ padding: '16px', textAlign: 'center', color: '#888', fontWeight: 'normal' }}>Games</th>
-                                        <th style={{ padding: '16px', textAlign: 'center', color: '#888', fontWeight: 'normal' }}>Win %</th>
-                                        <th style={{ padding: '16px', textAlign: 'center', color: '#888', fontWeight: 'normal' }}>Avg</th>
+                                        <th style={{ padding: '16px', textAlign: 'center', color: '#888', fontWeight: 'normal', width: 60 }}>{t('stats.rank')}</th>
+                                        <th style={{ padding: '16px', textAlign: 'left', color: '#888', fontWeight: 'normal' }}>{t('stats.player')}</th>
+                                        <th style={{ padding: '16px', textAlign: 'center', color: '#888', fontWeight: 'normal' }}>{t('stats.wins')}</th>
+                                        <th style={{ padding: '16px', textAlign: 'center', color: '#888', fontWeight: 'normal' }}>{t('stats.games')}</th>
+                                        <th style={{ padding: '16px', textAlign: 'center', color: '#888', fontWeight: 'normal' }}>{t('stats.winPct')}</th>
+                                        <th style={{ padding: '16px', textAlign: 'center', color: '#888', fontWeight: 'normal' }}>{t('stats.avg')}</th>
                                     </tr>
                                 </thead>
                                 <tbody>
                                     {leaderboard.length === 0 ? (
                                         <tr>
                                             <td colSpan={6} style={{ padding: 40, textAlign: 'center', color: '#666' }}>
-                                                No players on the leaderboard yet.
+                                                {t('stats.noPlayersOnLeaderboard')}
                                             </td>
                                         </tr>
                                     ) : (

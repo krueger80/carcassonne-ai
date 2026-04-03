@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest'
-import { initGame, placeTile, isValidPlacement } from '../../src/core/engine/GameEngine.ts'
+import { initGame, placeTile, isValidPlacement, getDragonPosition } from '../../src/core/engine/GameEngine.ts'
 import { getRotatedOffset } from '../../src/core/engine/TilePlacement.ts'
 import type { GameState } from '../../src/core/types/game.ts'
 import { coordKey } from '../../src/core/types/board.ts'
@@ -106,7 +106,7 @@ describe('Dragon & Fairy River integration', () => {
         // Should transition to DRAGON_ORIENT because df31_B_front_bottom is a Dragon Hoard
         expect(nextState.turnPhase).toBe('DRAGON_ORIENT')
         const dfData = nextState.expansionData['dragonFairy'] as any
-        expect(dfData.dragonPosition).toEqual(placement!.coordinate)
+        expect(getDragonPosition(nextState)).toEqual(placement!.coordinate)
         expect(dfData.dragonInPlay).toBe(true)
     })
 })

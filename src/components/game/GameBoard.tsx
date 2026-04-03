@@ -12,6 +12,7 @@ import { getBuilderPigPlaceableSegments } from '../../core/engine/MeeplePlacemen
 import { getAllFeatures } from '../../core/engine/FeatureDetector.ts'
 import type { Feature, UnionFindState } from '../../core/types/feature.ts'
 import type { Player } from '../../core/types/player.ts'
+import { getDragonPosition, getFairyPosition } from '../../core/engine/GameEngine.ts'
 
 function getControllingColors(feature: Feature, players: Player[]): string[] {
   if (feature.meeples.length > 0) {
@@ -144,7 +145,7 @@ const BoardGrid = memo(({
               const x = minX + colIdx
               const key = `${x},${y}`
               const placedTile = board.tiles[key]
-              const isValid = validSet.has(key)
+              const isValid = validSet.has(key) && (gameState.turnPhase === 'PLACE_TILE' || gameState.turnPhase === 'PLACE_MEEPLE')
               const isHovered = hoveredCoord?.x === x && hoveredCoord?.y === y
               const tentative = tentativeTileCoord && `${tentativeTileCoord.x},${tentativeTileCoord.y}` === key
 
@@ -277,24 +278,20 @@ const BoardGrid = memo(({
 
                           if (canBuild) {
                             if (isModernRules && (selectedMeepleType === 'NORMAL' || selectedMeepleType === 'BIG' || currentTentativeSecondary === 'BUILDER')) {
-                              const isBig = selectedMeepleType === 'BIG' || tentativeMeepleType === 'BIG'
-                              typeToPlace = isBig ? 'BIG' : 'NORMAL'
-                              simultaneousSecondary = 'BUILDER'
-                              if (selectedMeepleType === 'BUILDER') {
-                                useUIStore.setState({ selectedMeepleType: typeToPlace })
-                              }
+                              // If we have a meeple selected and also want a builder, we might be trying simultaneous.
+                              // But if canBuild is true, the feature is ALREADY occupied, so simultaneous (NORMAL+BUILDER) 
+                              // is actually invalid because NORMAL requires an empty feature.
+                              // In this case, we fallback to standalone BUILDER.
+                              typeToPlace = 'BUILDER'
+                              if (selectedMeepleType !== 'BUILDER') useUIStore.setState({ selectedMeepleType: 'BUILDER' })
                             } else {
                               typeToPlace = 'BUILDER'
                               if (selectedMeepleType !== 'BUILDER') useUIStore.setState({ selectedMeepleType: 'BUILDER' })
                             }
                           } else if (canPig) {
                             if (isModernRules && (selectedMeepleType === 'NORMAL' || selectedMeepleType === 'BIG' || currentTentativeSecondary === 'PIG')) {
-                              const isBig = selectedMeepleType === 'BIG' || tentativeMeepleType === 'BIG'
-                              typeToPlace = isBig ? 'BIG' : 'NORMAL'
-                              simultaneousSecondary = 'PIG'
-                              if (selectedMeepleType === 'PIG') {
-                                useUIStore.setState({ selectedMeepleType: typeToPlace })
-                              }
+                              typeToPlace = 'PIG'
+                              if (selectedMeepleType !== 'PIG') useUIStore.setState({ selectedMeepleType: 'PIG' })
                             } else {
                               typeToPlace = 'PIG'
                               if (selectedMeepleType !== 'PIG') useUIStore.setState({ selectedMeepleType: 'PIG' })
@@ -302,8 +299,9 @@ const BoardGrid = memo(({
                           } else if (canNormal) {
                             if (isModernRules && (selectedMeepleType === 'BUILDER' || selectedMeepleType === 'PIG' || currentTentativeSecondary === 'BUILDER' || currentTentativeSecondary === 'PIG')) {
                               // user wants to place builder/pig alongside a normal/big meeple (simultaneously)
+                              // This IS allowed in modern rules on an EMPTY feature.
                               const wantedSecondary = (currentTentativeSecondary || selectedMeepleType) as 'BUILDER' | 'PIG'
-                              const isBig = selectedMeepleType === 'BIG' || tentativeMeepleType === 'BIG'
+                              const isBig = selectedMeepleType === 'BIG' || tentativeMeepleType === 'BIG' || (currentPlayer?.meeples.available['NORMAL'] ?? 0) === 0
                               typeToPlace = isBig ? 'BIG' : 'NORMAL'
                               // resolveSecondary validates compatibility & shows toast if incompatible
                               const validated = resolveSecondary(wantedSecondary)
@@ -652,6 +650,11 @@ export function GameBoard() {
   const builderSegmentsMap = useMemo<Record<string, string[]>>(() => {
     if (!gameState || !currentPlayer || !gameState.lastPlacedCoord) return {}
     if ((currentPlayer.meeples.available['BUILDER'] ?? 0) <= 0) return {}
+    
+    // In Modern Rules (C3.1), standalone placement is not allowed.
+    const tbDataStore = gameState.expansionData?.['tradersBuilders'] as { useModernRules?: boolean } | undefined
+    if (tbDataStore?.useModernRules) return {}
+
     const results = getBuilderPigPlaceableSegments(
       gameState.featureUnionFind,
       gameState.staticTileMap,
@@ -672,6 +675,11 @@ export function GameBoard() {
   const pigSegmentsMap = useMemo<Record<string, string[]>>(() => {
     if (!gameState || !currentPlayer || !gameState.lastPlacedCoord) return {}
     if ((currentPlayer.meeples.available['PIG'] ?? 0) <= 0) return {}
+
+    // In Modern Rules (C3.1), standalone placement is not allowed.
+    const tbDataStore = gameState.expansionData?.['tradersBuilders'] as { useModernRules?: boolean } | undefined
+    if (tbDataStore?.useModernRules) return {}
+
     const results = getBuilderPigPlaceableSegments(
       gameState.featureUnionFind,
       gameState.staticTileMap,

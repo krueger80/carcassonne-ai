@@ -187,13 +187,12 @@ export function PlayerCard({ player, isCurrentTurn, isBuilderBonusTurn = false, 
                     : isCurrentTurn ? `0 4px 20px rgba(0,0,0,0.4)` : '0 2px 4px rgba(0,0,0,0.3)',
                 transition: 'all 0.3s ease',
                 display: 'flex',
-                flexDirection: isCurrentTurn ? 'column' : 'row',
-                alignItems: isCurrentTurn ? 'stretch' : 'center',
-                flexWrap: isCurrentTurn ? 'nowrap' : 'wrap',
+                flexDirection: 'column',
+                alignItems: 'stretch',
                 gap: isCurrentTurn ? 12 : 8,
                 width: isCurrentTurn ? '100%' : 'fit-content',
-                maxWidth: isCurrentTurn ? 280 : 'none',
-                minWidth: isCurrentTurn ? 'auto' : 'auto',
+                maxWidth: 280,
+                minWidth: isCurrentTurn ? 'auto' : '180px',
                 boxSizing: 'border-box',
                 transform: isCurrentTurn ? 'scale(1.02) translateX(4px)' : 'none',
                 zIndex: isCurrentTurn ? 10 : 1,
@@ -201,7 +200,7 @@ export function PlayerCard({ player, isCurrentTurn, isBuilderBonusTurn = false, 
             }}>
             {/* 1. Header: Status (Active) or Name (Inactive) */}
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 6, width: isCurrentTurn ? 'auto' : 'auto', flexShrink: 0 }}>
-                <div style={{ display: 'flex', flexDirection: 'column' }}>
+                <div style={{ display: 'flex', flexDirection: 'column', flex: 1, minWidth: 0 }}>
                     <div style={{
                         fontWeight: 'bold',
                         color: '#f0f0f0',
@@ -209,20 +208,40 @@ export function PlayerCard({ player, isCurrentTurn, isBuilderBonusTurn = false, 
                         whiteSpace: 'nowrap',
                         overflow: 'hidden',
                         textOverflow: 'ellipsis',
-                        maxWidth: isCurrentTurn ? 'none' : '70px'
                     }}>
                         {name}
                     </div>
                 </div>
-                <div style={{
-                    background: isCurrentTurn ? color : 'rgba(255,255,255,0.1)',
-                    color: isCurrentTurn ? '#111' : '#eee',
-                    fontWeight: 'bold', fontSize: isCurrentTurn ? 14 : 11,
-                    padding: isCurrentTurn ? '1px 8px' : '0px 6px', borderRadius: 12,
-                    minWidth: isCurrentTurn ? 20 : 16, textAlign: 'center'
-                }}>
-                    {score}
-                </div>
+                {isCurrentTurn ? (
+                    <div style={{
+                        background: color,
+                        color: '#111',
+                        fontWeight: 'bold', fontSize: 14,
+                        padding: '1px 8px', borderRadius: 12,
+                        minWidth: 20, textAlign: 'center',
+                        flexShrink: 0
+                    }}>
+                        {score}
+                    </div>
+                ) : (
+                    <div style={{
+                        flexShrink: 0,
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                        minWidth: 28,
+                        height: 28,
+                        borderRadius: 14,
+                        border: `2px solid ${color}`,
+                        background: 'rgba(0,0,0,0.3)',
+                        color: '#f0f0f0',
+                        fontWeight: 'bold',
+                        fontSize: 12,
+                        padding: '0 6px',
+                    }}>
+                        {score}
+                    </div>
+                )}
             </div>
 
             {/* 2. Instruction Banner (Active only) */}
@@ -239,7 +258,11 @@ export function PlayerCard({ player, isCurrentTurn, isBuilderBonusTurn = false, 
 
             {/* 3. Main Content: Split columns if we have a tile preview */}
             {(() => {
-                const showTilePreview = isCurrentTurn && turnState?.phase === 'PLACE_TILE' && turnState?.tileDefinition && turnState?.currentTile && turnState?.interactionState === 'IDLE';
+                const showTilePreview = isCurrentTurn && 
+                    (turnState?.phase === 'PLACE_TILE' || turnState?.phase === 'DRAGON_MOVEMENT' || turnState?.phase === 'DRAGON_ORIENT') && 
+                    turnState?.tileDefinition && 
+                    turnState?.currentTile && 
+                    turnState?.interactionState === 'IDLE';
                 return (
                     <div style={{ display: 'flex', gap: isCurrentTurn ? 16 : 4, alignItems: 'center' }}>
 
@@ -296,7 +319,7 @@ export function PlayerCard({ player, isCurrentTurn, isBuilderBonusTurn = false, 
                                                 />
                                             )}
                                             {hasTradersBuilders && (
-                                                <>
+                                                <div style={{ display: 'flex', gap: isCurrentTurn ? 6 : 2 }}>
                                                     <MeepleIcon
                                                         type="BUILDER"
                                                         count={getAdjustedCount('BUILDER')}
@@ -317,7 +340,7 @@ export function PlayerCard({ player, isCurrentTurn, isBuilderBonusTurn = false, 
                                                         disabled={!isCurrentTurn || !isMeeplePhase || (meeples.available.PIG ?? 0) <= 0 || (turnState?.validMeepleTypes && !turnState.validMeepleTypes.includes('PIG'))}
                                                         isCompact={!isCurrentTurn}
                                                     />
-                                                </>
+                                                </div>
                                             )}
                                         </>
                                     );
@@ -435,7 +458,7 @@ export function PlayerCard({ player, isCurrentTurn, isBuilderBonusTurn = false, 
             })()}
 
             {/* 4. Action Buttons (Active only) */}
-            {isCurrentTurn && turnState && (
+            {isCurrentTurn && turnState && !player.isBot && (
                 <div style={{
                     marginTop: (turnState.phase === 'PLACE_TILE' && turnState.interactionState === 'IDLE') ||
                         (turnState.phase === 'DRAGON_ORIENT' && turnState.actions.confirmDragonOrientation) ||

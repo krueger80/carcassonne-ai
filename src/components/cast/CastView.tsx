@@ -9,7 +9,8 @@ import { getAllFeatures } from '../../core/engine/FeatureDetector.ts'
 import { useUIStore, type TerritoryOverlayMode } from '../../store/uiStore.ts'
 import type { Feature, UnionFindState } from '../../core/types/feature.ts'
 import type { Player } from '../../core/types/player.ts'
-import type { Direction } from '../../core/types/tile.ts'
+import { type Direction, coordKey } from '../../core/types/tile.ts'
+import { getDragonPosition, getFairyPosition } from '../../core/engine/GameEngine.ts'
 
 function getControllingColors(feature: Feature, players: Player[]): string[] {
   if (feature.meeples.length > 0) {
@@ -93,7 +94,7 @@ export function CastView() {
     fairyPosition?: { coordinate: { x: number; y: number }; segmentId: string } | null
   } | undefined
 
-  const dragonPos = dfData?.dragonPosition ?? null
+  const dragonPos = getDragonPosition(gameState)
   const dragonFacing = dfData?.dragonFacing ?? null
 
   const territoryOverlay = useUIStore(s => s.territoryOverlay)
@@ -103,9 +104,10 @@ export function CastView() {
   }, [gameState.featureUnionFind, players, territoryOverlay])
 
   // Build fairy segment map
+  const fairyPos = getFairyPosition(gameState)
   const fairySegmentMap: Record<string, string> = {}
-  if (dfData?.fairyPosition) {
-    const { coordinate, segmentId } = dfData.fairyPosition
+  if (fairyPos) {
+    const { coordinate, segmentId } = fairyPos
     fairySegmentMap[`${coordinate.x},${coordinate.y}`] = segmentId
   }
 

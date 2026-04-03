@@ -14,39 +14,30 @@ import { DF_TILES } from '../data/dragonFairyTiles.ts'
 // ─── Dragon & Fairy expansion state (stored in GameState.expansionData) ──────
 
 export interface DragonFairyState {
-  /** Dragon's current position on the board. null = off board / removed. */
-  dragonPosition: Coordinate | null
-  /** Dragon's current facing direction. null = not yet oriented. */
-  dragonFacing: Direction | null
-  /** Fairy's current position. null = not yet placed. */
-  fairyPosition: { coordinate: Coordinate; segmentId: string } | null
   /** Whether the dragon has entered play (first Dragon Hoard placed). */
   dragonInPlay: boolean
   /** Whether the current player can move the fairy this turn. */
   canMoveFairy: boolean
-  /** Player ID holding the captured dragon (fairy hit). null = nobody. */
-  dragonHeldBy: string | null
   /** Whether a dragon movement is pending after meeple placement. */
   pendingMovement?: boolean
   /** Dragon movement state during DRAGON_MOVEMENT phase. */
   dragonMovement: {
     movesRemaining: number  // 2, 1, or 0
-    nextPhase: 'PLACE_TILE' | 'SCORE' // Where to go after movement ends
+    nextPhase: 'PLACE_TILE' | 'PLACE_MEEPLE' | 'SCORE' // Where to go after movement ends
   } | null
   /** Whether the Double Lake tile is available to be played (if River is active) */
   doubleLakeAvailable?: boolean
+  /** Dragon's current facing direction. null = not yet oriented. (facing is not a location property) */
+  dragonFacing: Direction | null
 }
 
 export function createInitialDragonFairyState(): DragonFairyState {
   return {
-    dragonPosition: null,
-    dragonFacing: null,
-    fairyPosition: null,
     dragonInPlay: false,
     canMoveFairy: false,
-    dragonHeldBy: null,
     dragonMovement: null,
     doubleLakeAvailable: false,
+    dragonFacing: null,
   }
 }
 

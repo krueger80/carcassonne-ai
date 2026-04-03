@@ -14,7 +14,16 @@
     "startFailed": "Failed to start game: {{error}}",
     "playerPlaceholder": "Player {{n}}",
     "browseExtensions": "Browse Extension Catalog",
-    "debugConfigurator": "Debug Configurator"
+    "debugConfigurator": "Debug Configurator",
+    "botDifficulty": {
+      "easy": "Easy",
+      "medium": "Med",
+      "hard": "Hard"
+    },
+    "toggleBot": "Toggle Bot",
+    "unlinkAccount": "Unlink account",
+    "linked": "Linked: {{name}}",
+    "statsAndLeaderboard": "Stats & Leaderboard"
   },
   "game": {
     "bonusTurn": "Bonus Turn",
@@ -83,7 +92,8 @@
       "CLOISTER": "1 pt/adjacent tile",
       "FIELD": "3 pts/complete city",
       "TRADER": "trader bonus 10 pts"
-    }
+    },
+    "pts": "Pts"
   },
   "farmer": {
     "returnTitle": "Return Farmer?",
@@ -115,5 +125,49 @@
   "language": {
     "en": "EN",
     "fr": "FR"
+  },
+  "stats": {
+    "title": "Statistics",
+    "backToGame": "Back to Game",
+    "myStats": "My Stats",
+    "leaderboard": "Leaderboard",
+    "signInPrompt": "Sign in to see your personalized game statistics and history",
+    "signIn": "Sign In",
+    "loadingStats": "Loading your stats...",
+    "loggedPlayer": "Logged Player",
+    "games": "Games",
+    "wins": "Wins",
+    "winRate": "Win Rate",
+    "avgScore": "Avg Score",
+    "noGamesPlayed": "No games played yet",
+    "playWithLinked": "Play a game with a linked account to see stats here!",
+    "recentGames": "Recent Games",
+    "noRecentGames": "No recent games found.",
+    "players": "players",
+    "loadingRankings": "Loading global rankings...",
+    "rank": "Rank",
+    "player": "Player",
+    "winPct": "Win %",
+    "avg": "Avg",
+    "noPlayersOnLeaderboard": "No players on the leaderboard yet."
+  },
+  "auth": {
+    "signIn": "Sign In",
+    "signUp": "Sign Up",
+    "linkAccount": "Link Account",
+    "welcome": "Welcome",
+    "signInToLink": "Sign in to link this player slot to your account",
+    "displayName": "Display Name",
+    "email": "Email",
+    "password": "Password",
+    "accountCreated": "Account created! Check your email to confirm, then sign in.",
+    "anErrorOccurred": "An error occurred",
+    "createAccount": "Create Account",
+    "or": "or",
+    "continueWithGoogle": "Continue with Google",
+    "cancel": "Cancel",
+    "user": "User",
+    "myStats": "My Stats",
+    "signOut": "Sign Out"
   }
 }

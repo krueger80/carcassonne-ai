@@ -1,7 +1,7 @@
 import { useTranslation } from 'react-i18next'
 import { useGameStore } from '../../store/gameStore.ts'
 import { useUIStore } from '../../store/uiStore.ts'
-import { getPotentialPlacementsForState, getValidMeepleTypes } from '../../core/engine/GameEngine.ts'
+import { getPotentialPlacementsForState, getValidMeepleTypes, getDragonPosition, getFairyPosition, getDragonHeldBy } from '../../core/engine/GameEngine.ts'
 import { getFallbackTileMap } from '../../services/tileRegistry.ts'
 import { motion, AnimatePresence } from 'framer-motion'
 import { useEffect, useState, useMemo, useRef } from 'react'
@@ -261,9 +261,10 @@ export function GameOverlay() {
                         useGameStore.setState({ tentativeSecondaryMeepleType: type })
                         const currentPrimary = useUIStore.getState().selectedMeepleType
                         if (currentPrimary !== 'NORMAL' && currentPrimary !== 'BIG') {
-                            setSelectedMeepleType('NORMAL')
+                            const fallback = (currentPlayer.meeples.available.NORMAL > 0) ? 'NORMAL' : 'BIG'
+                            setSelectedMeepleType(fallback)
                             if (interactionState === 'MEEPLE_SELECTED_TENTATIVELY') {
-                                setTentativeMeepleType('NORMAL')
+                                setTentativeMeepleType(fallback)
                             }
                         }
                     }
@@ -601,7 +602,7 @@ export function GameOverlay() {
                         <span style={{ marginLeft: 8, fontSize: 11 }}>
                             <span style={{ color: '#e74c3c' }}>{dfData?.dragonInPlay ? '\u25C6' : '\u25C7'}</span>
                             {' '}
-                            <span style={{ color: '#f1c40f' }}>{dfData?.fairyPosition ? '\u2605' : '\u2606'}</span>
+                            <span style={{ color: '#f1c40f' }}>{getFairyPosition(gameState) ? '\u2605' : '\u2606'}</span>
                         </span>
                     )}
                 </div>
@@ -654,7 +655,7 @@ export function GameOverlay() {
                                             {activeCats.map(c => (
                                                 <th key={c} style={{ textAlign: 'center', padding: '4px 4px', color: '#888', fontWeight: 'normal', fontSize: 16 }} title={c}>{CAT_ICONS[c]}</th>
                                             ))}
-                                            <th style={{ textAlign: 'center', padding: '4px 6px', color: '#e8d8a0', fontWeight: 'bold', borderLeft: '1px solid #444' }}>Pts</th>
+                                            <th style={{ textAlign: 'center', padding: '4px 6px', color: '#e8d8a0', fontWeight: 'bold', borderLeft: '1px solid #444' }}>{t('endGame.pts')}</th>
                                         </tr>
                                     </thead>
                                     <tbody>
@@ -946,7 +947,7 @@ export function GameOverlay() {
                                         hasTradersBuilders={hasTradersBuilders}
                                         hasInnsCathedrals={hasInnsCathedrals}
                                         hasAbbot={hasAbbot}
-                                        hasDragonHeldBy={dfData?.dragonHeldBy ?? null}
+                                        hasDragonHeldBy={getDragonHeldBy(gameState)}
                                         usesC31Tiles={tbData?.usesC31Tiles ?? false}
                                         turnState={isActive ? currentPlayerTurnState : undefined}
                                     />

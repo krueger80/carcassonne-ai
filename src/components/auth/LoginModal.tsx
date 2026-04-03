@@ -1,4 +1,5 @@
 import { useState } from 'react'
+import { useTranslation } from 'react-i18next'
 import { motion, AnimatePresence } from 'framer-motion'
 import { useAuth } from './useAuth.ts'
 import type { Profile } from './AuthProvider.tsx'
@@ -13,6 +14,7 @@ interface LoginModalProps {
 type Tab = 'signin' | 'signup'
 
 export function LoginModal({ linkMode = false, onClose, onLinked }: LoginModalProps) {
+    const { t } = useTranslation()
     const { signIn, signUp, signInWithGoogle, signOut, fetchProfile } = useAuth()
     const [tab, setTab] = useState<Tab>('signin')
     const [email, setEmail] = useState('')
@@ -101,30 +103,30 @@ export function LoginModal({ linkMode = false, onClose, onLinked }: LoginModalPr
             >
                 {/* Header */}
                 <h2 style={{ margin: '0 0 4px', color: '#e8d8a0', fontFamily: 'serif', fontSize: 24, textAlign: 'center' }}>
-                    {linkMode ? '🔗 Link Account' : '🏰 Welcome'}
+                    {linkMode ? `🔗 ${t('auth.linkAccount')}` : `🏰 ${t('auth.welcome')}`}
                 </h2>
                 {linkMode && (
                     <p style={{ color: '#888', fontSize: 12, textAlign: 'center', margin: '0 0 16px' }}>
-                        Sign in to link this player slot to your account
+                        {t('auth.signInToLink')}
                     </p>
                 )}
 
                 {/* Tabs */}
                 <div style={{ display: 'flex', gap: 0, marginBottom: 20, borderRadius: 8, overflow: 'hidden', border: '1px solid #444' }}>
-                    {(['signin', 'signup'] as Tab[]).map(t => (
+                    {(['signin', 'signup'] as Tab[]).map(t_tab => (
                         <button
-                            key={t}
-                            onClick={() => { setTab(t); setError(null); setSuccess(null) }}
+                            key={t_tab}
+                            onClick={() => { setTab(t_tab); setError(null); setSuccess(null) }}
                             style={{
                                 flex: 1, padding: '9px 0', border: 'none',
-                                background: tab === t ? 'rgba(200,164,110,0.15)' : 'transparent',
-                                color: tab === t ? '#e8d8a0' : '#888',
-                                fontSize: 13, fontWeight: tab === t ? 700 : 400,
+                                background: tab === t_tab ? 'rgba(200,164,110,0.15)' : 'transparent',
+                                color: tab === t_tab ? '#e8d8a0' : '#888',
+                                fontSize: 13, fontWeight: tab === t_tab ? 700 : 400,
                                 cursor: 'pointer',
-                                borderBottom: tab === t ? '2px solid #c8a46e' : '2px solid transparent',
+                                borderBottom: tab === t_tab ? '2px solid #c8a46e' : '2px solid transparent',
                             }}
                         >
-                            {t === 'signin' ? 'Sign In' : 'Sign Up'}
+                            {t_tab === 'signin' ? t('auth.signIn') : t('auth.signUp')}
                         </button>
                     ))}
                 </div>
@@ -143,7 +145,7 @@ export function LoginModal({ linkMode = false, onClose, onLinked }: LoginModalPr
                             >
                                 <input
                                     type="text"
-                                    placeholder="Display Name"
+                                    placeholder={t('auth.displayName')}
                                     value={displayName}
                                     onChange={e => setDisplayName(e.target.value)}
                                     style={inputStyle}
@@ -154,7 +156,7 @@ export function LoginModal({ linkMode = false, onClose, onLinked }: LoginModalPr
 
                     <input
                         type="email"
-                        placeholder="Email"
+                        placeholder={t('auth.email')}
                         value={email}
                         required
                         onChange={e => setEmail(e.target.value)}
@@ -162,7 +164,7 @@ export function LoginModal({ linkMode = false, onClose, onLinked }: LoginModalPr
                     />
                     <input
                         type="password"
-                        placeholder="Password"
+                        placeholder={t('auth.password')}
                         value={password}
                         required
                         minLength={6}
@@ -192,14 +194,14 @@ export function LoginModal({ linkMode = false, onClose, onLinked }: LoginModalPr
                             opacity: busy ? 0.7 : 1,
                         }}
                     >
-                        {busy ? '...' : tab === 'signin' ? 'Sign In' : 'Create Account'}
+                        {busy ? '...' : tab === 'signin' ? t('auth.signIn') : t('auth.createAccount')}
                     </button>
                 </form>
 
                 {/* Divider */}
                 <div style={{ display: 'flex', alignItems: 'center', gap: 12, margin: '16px 0' }}>
                     <div style={{ flex: 1, height: 1, background: '#444' }} />
-                    <span style={{ color: '#666', fontSize: 11 }}>or</span>
+                    <span style={{ color: '#666', fontSize: 11 }}>{t('auth.or')}</span>
                     <div style={{ flex: 1, height: 1, background: '#444' }} />
                 </div>
 
@@ -214,7 +216,7 @@ export function LoginModal({ linkMode = false, onClose, onLinked }: LoginModalPr
                     }}
                 >
                     <svg width="16" height="16" viewBox="0 0 48 48"><path fill="#EA4335" d="M24 9.5c3.54 0 6.71 1.22 9.21 3.6l6.85-6.85C35.9 2.38 30.47 0 24 0 14.62 0 6.51 5.38 2.56 13.22l7.98 6.19C12.43 13.72 17.74 9.5 24 9.5z" /><path fill="#4285F4" d="M46.98 24.55c0-1.57-.15-3.09-.38-4.55H24v9.02h12.94c-.58 2.96-2.26 5.48-4.78 7.18l7.73 6c4.51-4.18 7.09-10.36 7.09-17.65z" /><path fill="#FBBC05" d="M10.53 28.59A14.5 14.5 0 019.5 24c0-1.59.28-3.14.76-4.59l-7.98-6.19A23.9 23.9 0 000 24c0 3.77.9 7.35 2.56 10.56l7.97-5.97z" /><path fill="#34A853" d="M24 48c6.48 0 11.93-2.13 15.89-5.81l-7.73-6c-2.15 1.45-4.92 2.3-8.16 2.3-6.26 0-11.57-4.22-13.47-9.91l-7.98 5.97C6.51 42.62 14.62 48 24 48z" /></svg>
-                    Continue with Google
+                    {t('auth.continueWithGoogle')}
                 </button>
 
                 {/* Cancel */}
@@ -226,7 +228,7 @@ export function LoginModal({ linkMode = false, onClose, onLinked }: LoginModalPr
                         color: '#888', fontSize: 13, cursor: 'pointer',
                     }}
                 >
-                    Cancel
+                    {t('setup.cancel')}
                 </button>
             </motion.div>
         </div>

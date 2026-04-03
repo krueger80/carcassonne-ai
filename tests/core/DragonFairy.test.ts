@@ -9,7 +9,9 @@ import {
   placeMeepleViaPortal,
   isMagicPortalTile,
   isDragonHoardTile,
-  maybeReorientDragon,
+  getDragonPosition,
+  getFairyPosition,
+  getDragonHeldBy,
 } from '../../src/core/engine/GameEngine.ts'
 import { DF_TILES } from '../../src/core/data/dragonFairyTiles.ts'
 import { DRAGON_FAIRY_EXPANSION, createInitialDragonFairyState } from '../../src/core/expansions/dragonFairy.ts'
@@ -169,9 +171,9 @@ describe('D&F game initialization', () => {
     const state = createDfGame()
     const df = getDfState(state)
     expect(df).toBeDefined()
-    expect(df.dragonPosition).toBeNull()
+    expect(getDragonPosition(state)).toBeNull()
     expect(df.dragonFacing).toBeNull()
-    expect(df.fairyPosition).toBeNull()
+    expect(getFairyPosition(state)).toBeNull()
     expect(df.dragonInPlay).toBe(false)
     expect(df.canMoveFairy).toBe(false)
     expect(df.dragonMovement).toBeNull()
@@ -242,11 +244,16 @@ describe('Magic Portal tile detection', () => {
 describe('Dragon movement', () => {
   it('returns to PLACE_TILE if dragon is not on the board', () => {
     const state = createDfGame()
-    const stateWithDragon = setDfState(state, {
-      dragonPosition: null,
-      dragonFacing: null,
-      dragonMovement: { movesRemaining: 1, nextPhase: 'PLACE_TILE' }
-    })
+    const stateWithDragon = {
+      ...state,
+      expansionData: {
+        ...state.expansionData,
+        dragonFairy: {
+          ...getDfState(state),
+          dragonMovement: { movesRemaining: 1, nextPhase: 'PLACE_TILE' }
+        }
+      }
+    }
     const result = executeDragonMovement(stateWithDragon)
     expect(result.turnPhase).toBe('PLACE_TILE')
   })
@@ -269,12 +276,22 @@ describe('Dragon movement', () => {
     ])
 
     // Set dragon at (0,0) facing EAST
-    state = setDfState(state, {
-      dragonPosition: { x: 0, y: 0 },
-      dragonFacing: 'EAST',
-      dragonInPlay: true,
-      dragonMovement: { movesRemaining: 1, nextPhase: 'PLACE_TILE' }
-    })
+    state = {
+      ...state,
+      pieces: {
+        ...state.pieces,
+        dragon: { id: 'dragon', type: 'DRAGON', ownerId: null, location: { type: 'BOARD', coordinate: { x: 0, y: 0 } } }
+      },
+      expansionData: {
+        ...state.expansionData,
+        dragonFairy: {
+          ...getDfState(state),
+          dragonFacing: 'EAST',
+          dragonInPlay: true,
+          dragonMovement: { movesRemaining: 1, nextPhase: 'PLACE_TILE' }
+        }
+      }
+    }
 
     // Deduct player meeple count
     state = {
@@ -316,19 +333,29 @@ describe('Dragon movement', () => {
       { x: 2, y: 0, defId: 'df31_H' },
     ])
 
-    state = setDfState(state, {
-      dragonPosition: { x: 0, y: 0 },
-      dragonFacing: 'EAST',
-      dragonInPlay: true,
-      dragonMovement: { movesRemaining: 1, nextPhase: 'PLACE_TILE' },
-      fairyPosition: { coordinate: { x: 2, y: 0 }, segmentId: 'city_N' },
-    })
+    state = {
+      ...state,
+      pieces: {
+        ...state.pieces,
+        dragon: { id: 'dragon', type: 'DRAGON', ownerId: null, location: { type: 'BOARD', coordinate: { x: 0, y: 0 } } },
+        fairy: { id: 'fairy', type: 'FAIRY', ownerId: null, location: { type: 'BOARD', coordinate: { x: 2, y: 0 }, segmentId: 'city_N' } }
+      },
+      expansionData: {
+        ...state.expansionData,
+        dragonFairy: {
+          ...getDfState(state),
+          dragonFacing: 'EAST',
+          dragonInPlay: true,
+          dragonMovement: { movesRemaining: 1, nextPhase: 'PLACE_TILE' },
+        }
+      }
+    }
 
     const result = executeDragonMovement(state)
     const df = getDfState(result)
 
     // Dragon should be removed from board
-    expect(df.dragonPosition).toBeNull()
+    expect(getDragonPosition(result)).toBeNull()
     expect(result.turnPhase).toBe('PLACE_TILE')
   })
 
@@ -341,45 +368,27 @@ describe('Dragon movement', () => {
       { x: 1, y: 0, defId: 'df31_K' },
     ])
 
-    state = setDfState(state, {
-      dragonPosition: { x: 0, y: 0 },
-      dragonFacing: 'EAST',
-      dragonInPlay: true,
-      dragonMovement: { movesRemaining: 1, nextPhase: 'PLACE_TILE' }
-    })
+    state = {
+      ...state,
+      pieces: {
+        ...state.pieces,
+        dragon: { id: 'dragon', type: 'DRAGON', ownerId: null, location: { type: 'BOARD', coordinate: { x: 0, y: 0 } } }
+      },
+      expansionData: {
+        ...state.expansionData,
+        dragonFairy: {
+          ...getDfState(state),
+          dragonFacing: 'EAST',
+          dragonInPlay: true,
+          dragonMovement: { movesRemaining: 1, nextPhase: 'PLACE_TILE' }
+        }
+      }
+    }
 
     const result = executeDragonMovement(state)
-    const df = getDfState(result)
 
     // Dragon should be at (1,0) — moved as far east as possible
-    expect(df.dragonPosition).toEqual({ x: 1, y: 0 })
-  })
-})
-
-// ─── Dragon orientation ──────────────────────────────────────────────────────
-
-describe('Dragon orientation', () => {
-  it('maybeReorientDragon does nothing if meeple is in straight line', () => {
-    let state = createDfGame()
-
-    // Dragon at (0,0) facing EAST. Meeple placed at (2,0) (same row = straight line)
-    state = setDfState(state, {
-      dragonPosition: { x: 0, y: 0 },
-      dragonFacing: 'EAST',
-      dragonInPlay: true,
-    })
-
-    const result = maybeReorientDragon(state, { x: 2, y: 0 })
-    const df = getDfState(result)
-    expect(df.dragonFacing).toBe('EAST')  // No change
-  })
-
-  it('maybeReorientDragon does nothing if no dragon on board', () => {
-    let state = createDfGame()
-    state = setDfState(state, { dragonPosition: null })
-
-    const result = maybeReorientDragon(state, { x: 1, y: 1 })
-    expect(result).toBe(state)  // Reference equality — no changes
+    expect(getDragonPosition(result)).toEqual({ x: 1, y: 0 })
   })
 })
 
@@ -438,9 +447,8 @@ describe('Fairy movement', () => {
     state = setDfState(state, { canMoveFairy: true })
 
     const result = moveFairy(state, { x: 1, y: 0 }, 'city_N')
-    const df = getDfState(result)
 
-    expect(df.fairyPosition).toEqual({ coordinate: { x: 1, y: 0 }, segmentId: 'city_N' })
+    expect(getFairyPosition(result)).toEqual({ coordinate: { x: 1, y: 0 }, segmentId: 'city_N' })
     expect(result.turnPhase).toBe('SCORE')
   })
 
@@ -538,9 +546,6 @@ describe('Magic Portal placements', () => {
 describe('createInitialDragonFairyState', () => {
   it('creates correct default state', () => {
     const df = createInitialDragonFairyState()
-    expect(df.dragonPosition).toBeNull()
-    expect(df.dragonFacing).toBeNull()
-    expect(df.fairyPosition).toBeNull()
     expect(df.dragonInPlay).toBe(false)
     expect(df.canMoveFairy).toBe(false)
     expect(df.dragonMovement).toBeNull()

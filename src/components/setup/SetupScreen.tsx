@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { useTranslation } from 'react-i18next'
 import { motion, AnimatePresence } from 'framer-motion'
 import { useGameStore } from '../../store/gameStore.ts'
@@ -130,7 +130,7 @@ interface SetupScreenProps {
 
 export function SetupScreen({ onCancel }: SetupScreenProps) {
   const { t, i18n } = useTranslation()
-  const { user, profile } = useAuth()
+  const { user, profile, loading: authLoading } = useAuth()
   const [playerCount, setPlayerCount] = useState(2)
   const [names, setNames] = useState<string[]>(DEFAULT_NAMES.slice(0, 6))
   const [baseEdition, setBaseEdition] = useState<TileEdition>('C3')
@@ -152,6 +152,13 @@ export function SetupScreen({ onCancel }: SetupScreenProps) {
       setNames(prev => { const n = [...prev]; n[0] = profile.display_name || n[0]; return n })
     }
   }
+
+  // Auto-link first player when auth finishes loading
+  useEffect(() => {
+    if (!authLoading && user && profile) {
+      handleAutoLink()
+    }
+  }, [user, profile, authLoading])
 
   const handlePlayerLinked = (slot: number, p: Profile) => {
     setLinkedProfiles(prev => ({
@@ -345,14 +352,14 @@ export function SetupScreen({ onCancel }: SetupScreenProps) {
 
                 {!isBot && (linked ? (
                   <div style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
-                    <span style={{ fontSize: 11, color: '#2ecc71' }} title={`Linked: ${linked.displayName}`}>✓</span>
+                    <span style={{ fontSize: 11, color: '#2ecc71' }} title={t('setup.linked', { name: linked.displayName })}>✓</span>
                     <button
                       onClick={() => unlinkSlot(i)}
                       style={{
                         background: 'transparent', border: 'none', color: '#888',
                         fontSize: 11, cursor: 'pointer', padding: '2px 4px',
                       }}
-                      title="Unlink account"
+                      title={t('setup.unlinkAccount')}
                     >
                       ✕
                     </button>

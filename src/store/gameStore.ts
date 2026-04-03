@@ -33,6 +33,9 @@ import {
   getMagicPortalPlacements,
   placeMeepleViaPortal,
   isMagicPortalTile,
+  getDragonPosition,
+  getDragonHeldBy,
+  getFairyPosition,
 } from '../core/engine/GameEngine.ts'
 import type { GameConfig } from '../core/engine/GameEngine.ts'
 import type { LinkedProfileMap } from '../services/gameResultsService.ts'
@@ -75,6 +78,7 @@ interface GameStore {
   tentativeDragonFacing: Direction | null
   dragonPlaceTargets: Coordinate[]
   fairyMoveTargets: { coordinate: Coordinate; segmentId: string }[]
+  isDragonMoving: boolean
   magicPortalTargets: { coordinate: Coordinate; segmentId: string }[]
 
   // ── Actions ──────────────────────────────────────────────────────────────
@@ -137,6 +141,7 @@ export const useGameStore = create<GameStore>()(
       dragonPlaceTargets: [],
       fairyMoveTargets: [],
       magicPortalTargets: [],
+      isDragonMoving: false,
 
       newGame: async (config) => {
         let baseDefinitions = config.baseDefinitions
@@ -402,6 +407,7 @@ export const useGameStore = create<GameStore>()(
                 store.tentativeTileCoord!,
                 store.tentativeMeepleSegment,
                 meepleType,
+                store.tentativeSecondaryMeepleType || undefined,
               )
             } else if ((meepleType === 'BUILDER' || meepleType === 'PIG') && !store.tentativeSecondaryMeepleType) {
               // Standalone builder/pig (C2 classic rules) — uses canPlaceBuilderOrPig
@@ -449,8 +455,7 @@ export const useGameStore = create<GameStore>()(
           const coord = store.tentativeTileCoord ?? gameState.lastPlacedCoord
           if (!coord) return
 
-          const dfData = (gameState.expansionData['dragonFairy'] as any)
-          const dragonPos = dfData?.dragonPosition
+          const dragonPos = getDragonPosition(gameState)
           const tbData = (gameState.expansionData['tradersBuilders'] as any)
           const useModernRules = tbData?.useModernRules ?? false
 
@@ -544,6 +549,7 @@ export const useGameStore = create<GameStore>()(
 
         const featureIds = [...gameState.completedFeatureIds]
         const staticTileMap = gameState.staticTileMap
+        const collectedEvents: import('../core/types/game.ts').ScoreEvent[] = []
 
         for (const id of featureIds) {
           const feature = gameState.featureUnionFind.featureData[id]
@@ -551,6 +557,7 @@ export const useGameStore = create<GameStore>()(
 
           const { state: nextState, event } = scoreFeatureCompletion(get().gameState!, id)
           if (!event) continue
+          collectedEvents.push(event)
 
           // Trigger animations for each meeple in this feature
           for (const meeple of feature.meeples) {
@@ -597,14 +604,23 @@ export const useGameStore = create<GameStore>()(
           set(store => { store.gameState = nextState })
         }
 
+        // Store collected events on state so endTurn can use them for fairy logic
         // Pass original IDs to endTurn so pig scoring can detect
         // which pennanted cities just completed (they've been consumed
         // from completedFeatureIds by the animation loop above).
         set(store => {
           if (!store.gameState) return
+          store.gameState.lastScoreEvents = collectedEvents
           const newState = endTurn(store.gameState, featureIds)
           console.log('[gameStore] processScoringSequence endTurn TB:', newState.expansionData?.tradersBuilders);
           store.gameState = newState
+          
+          if (newState.turnPhase === 'FAIRY_MOVE') {
+            store.fairyMoveTargets = getFairyMoveTargets(newState)
+          } else {
+            store.fairyMoveTargets = []
+          }
+
           store.interactionState = 'IDLE'
           store.tentativeMeepleSegment = null
           store.tentativeMeepleType = null
@@ -615,7 +631,14 @@ export const useGameStore = create<GameStore>()(
       resolveFarmerReturn: (returnFarmer: boolean) => {
         set((store) => {
           if (!store.gameState) return
-          store.gameState = engineResolveFarmerReturn(store.gameState, returnFarmer)
+          const newState = engineResolveFarmerReturn(store.gameState, returnFarmer)
+          store.gameState = newState
+
+          if (newState.turnPhase === 'FAIRY_MOVE') {
+            store.fairyMoveTargets = getFairyMoveTargets(newState)
+          } else {
+            store.fairyMoveTargets = []
+          }
         })
 
         const { gameState } = get()
@@ -669,7 +692,15 @@ export const useGameStore = create<GameStore>()(
       endTurn: () => set((store) => {
         // Manual end turn (shouldn't be needed usually)
         if (!store.gameState) return
-        store.gameState = endTurn(store.gameState)
+        const newState = endTurn(store.gameState)
+        store.gameState = newState
+
+        if (newState.turnPhase === 'FAIRY_MOVE') {
+          store.fairyMoveTargets = getFairyMoveTargets(newState)
+        } else {
+          store.fairyMoveTargets = []
+        }
+
         store.interactionState = 'IDLE'
         store.tentativeMeepleSegment = null
         store.tentativeMeepleType = null
@@ -799,12 +830,17 @@ export const useGameStore = create<GameStore>()(
       }),
 
       executeDragon: () => {
-        const { gameState } = get()
-        if (!gameState || gameState.turnPhase !== 'DRAGON_MOVEMENT') return
+        const { gameState, isDragonMoving } = get()
+        if (!gameState || gameState.turnPhase !== 'DRAGON_MOVEMENT' || isDragonMoving) return
+
+        set((store) => { store.isDragonMoving = true })
 
         const animateStep = () => {
           const currentStore = get()
-          if (!currentStore.gameState || currentStore.gameState.turnPhase !== 'DRAGON_MOVEMENT') return
+          if (!currentStore.gameState || currentStore.gameState.turnPhase !== 'DRAGON_MOVEMENT') {
+              set((store) => { store.isDragonMoving = false })
+              return
+          }
 
           // Try to move one tile
           const stepResult = executeDragonTileStep(currentStore.gameState)
@@ -844,21 +880,33 @@ export const useGameStore = create<GameStore>()(
               return
             }
 
+            const dragonPos = getDragonPosition(nextStepState)
+            console.log(`[Dragon] Moved to tile (${dragonPos?.x}, ${dragonPos?.y}). Next step in 350ms...`)
             setTimeout(animateStep, 350)
           } else {
             // Hit edge or no more tiles in this direction: finish this step and check reorientation
             const finishedState = finishDragonMovementStep(currentStore.gameState)
             set((store) => { store.gameState = finishedState })
 
-            // If still in movement phase (auto-reoriented), continue automatically?
-            // Actually, let's stop to allow user to see the reorientation OR if manual orientation needed
-            processPhaseTransition(finishedState)
+            if (finishedState.turnPhase === 'DRAGON_MOVEMENT') {
+                // Auto-reoriented: pause to let the user see the direction change, then animate next stroke
+                console.log('[Dragon] Stroke finished, auto-reoriented. Starting next stroke in 800ms...')
+                setTimeout(animateStep, 800)
+            } else {
+                console.log('[Dragon] Movement sequence complete. Transitioning to:', finishedState.turnPhase)
+                processPhaseTransition(finishedState)
+            }
           }
         }
 
         const processPhaseTransition = (newState: GameState) => {
+          set((store) => { store.isDragonMoving = false })
           if (newState.turnPhase === 'SCORE') {
             get().endTurn()
+          } else if (newState.turnPhase === 'FAIRY_MOVE') {
+            set((store) => {
+              store.fairyMoveTargets = getFairyMoveTargets(newState)
+            })
           } else if (newState.turnPhase === 'PLACE_TILE') {
             if (newState.currentTile) {
               set((store) => {
@@ -866,11 +914,28 @@ export const useGameStore = create<GameStore>()(
               })
             }
           } else if (newState.turnPhase === 'DRAGON_ORIENT') {
+            const orientations = getValidDragonOrientations(newState)
             set((store) => {
-              store.dragonOrientations = getValidDragonOrientations(newState)
-              store.tentativeDragonFacing = store.dragonOrientations.length > 0
-                ? store.dragonOrientations[0] : null
+              store.dragonOrientations = orientations
+              store.tentativeDragonFacing = orientations.length > 0
+                ? orientations[0] : null
             })
+
+            // Auto-resolve for bot players — don't rely on useEffect
+            const currentPlayer = newState.players[newState.currentPlayerIndex]
+            if (currentPlayer?.isBot) {
+              console.log('[Dragon] Auto-confirming orientation for bot:', orientations[0] ?? 'default')
+              setTimeout(() => {
+                const s = get()
+                if (s.gameState?.turnPhase === 'DRAGON_ORIENT') {
+                  // Ensure tentativeDragonFacing is set
+                  if (!s.tentativeDragonFacing && orientations.length > 0) {
+                    set((store) => { store.tentativeDragonFacing = orientations[0] })
+                  }
+                  s.confirmDragonOrientation()
+                }
+              }, 500)
+            }
           }
         }
 
