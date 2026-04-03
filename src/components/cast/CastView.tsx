@@ -9,7 +9,8 @@ import { getAllFeatures } from '../../core/engine/FeatureDetector.ts'
 import { useUIStore, type TerritoryOverlayMode } from '../../store/uiStore.ts'
 import type { Feature, UnionFindState } from '../../core/types/feature.ts'
 import type { Player } from '../../core/types/player.ts'
-import { type Direction, coordKey } from '../../core/types/tile.ts'
+import { type Direction } from '../../core/types/tile.ts'
+import { coordKey } from '../../core/types/board.ts'
 import { getDragonPosition, getFairyPosition } from '../../core/engine/GameEngine.ts'
 
 function getControllingColors(feature: Feature, players: Player[]): string[] {

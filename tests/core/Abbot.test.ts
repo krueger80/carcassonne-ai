@@ -348,6 +348,7 @@ describe('Abbot Extension', () => {
         staticTileMap: tileMap,
         lastScoreEvents: [],
         boardMeeples: { [nKey]: abbotMeeple },
+        pieces: {},
         expansionData: {
           expansions: ['abbot'],
           scoringRulesKey: 'base',

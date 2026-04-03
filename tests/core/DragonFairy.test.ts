@@ -11,7 +11,6 @@ import {
   isDragonHoardTile,
   getDragonPosition,
   getFairyPosition,
-  getDragonHeldBy,
 } from '../../src/core/engine/GameEngine.ts'
 import { DF_TILES } from '../../src/core/data/dragonFairyTiles.ts'
 import { DRAGON_FAIRY_EXPANSION, createInitialDragonFairyState } from '../../src/core/expansions/dragonFairy.ts'

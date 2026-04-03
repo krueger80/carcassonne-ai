@@ -25,7 +25,6 @@ import {
   moveFairy,
   skipFairyMove,
   getDragonPosition,
-  getDragonHeldBy,
   getFairyPosition,
 } from '../engine/GameEngine.ts'
 

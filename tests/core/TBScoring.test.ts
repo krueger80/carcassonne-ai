@@ -5,7 +5,6 @@ import {
     endTurn,
 } from '../../src/core/engine/GameEngine.ts'
 import type { GameState } from '../../src/core/types/game.ts'
-import { coordKey } from '../../src/core/types/board.ts'
 
 describe('Traders & Builders C3.1 Scoring Verification', () => {
     let state: GameState

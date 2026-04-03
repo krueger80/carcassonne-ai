@@ -1,6 +1,6 @@
 import { useState, useEffect, useRef } from 'react'
 import { useTranslation } from 'react-i18next'
-import type { Player } from '../../core/types/player.ts'
+import type { Player, ScoreCategory } from '../../core/types/player.ts'
 import { useGameStore } from '../../store/gameStore.ts'
 import { useAuth } from '../auth/useAuth.ts'
 import { LoginModal } from '../auth/LoginModal.tsx'
@@ -146,8 +146,8 @@ export function EndGameModal({ players, expansions = [] }: EndGameModalProps) {
   ]
   const activeCategories = allCategories.filter(cat =>
     players.some(p => {
-      let pts = p.scoreBreakdown?.[cat] ?? 0
-      if (cat === 'CLOISTER') pts += (p.scoreBreakdown?.['GARDEN' as any] ?? 0)
+      let pts = p.scoreBreakdown?.[cat as ScoreCategory] ?? 0
+      if (cat === 'CLOISTER') pts += (p.scoreBreakdown?.['GARDEN' as ScoreCategory] ?? 0)
       return pts > 0
     })
   )
@@ -256,8 +256,8 @@ export function EndGameModal({ players, expansions = [] }: EndGameModalProps) {
                       </div>
                     </td>
                     {activeCategories.map(cat => {
-                      let pts = player.scoreBreakdown?.[cat] ?? 0
-                      if (cat === 'CLOISTER') pts += (player.scoreBreakdown?.['GARDEN' as any] ?? 0)
+                      let pts = player.scoreBreakdown?.[cat as ScoreCategory] ?? 0
+                      if (cat === 'CLOISTER') pts += (player.scoreBreakdown?.['GARDEN' as ScoreCategory] ?? 0)
                       return (
                         <td key={cat} style={{ ...tdStyle, textAlign: 'center' }}>
                           {pts > 0

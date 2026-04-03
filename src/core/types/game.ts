@@ -37,7 +37,7 @@ export interface AiPhaseData {
   mechanics?: unknown[]
 }
 
-export type PieceType = 'DRAGON' | 'FAIRY' | 'NORMAL' | 'BIG' | 'BUILDER' | 'PIG' | 'ABBOT'
+export type PieceType = 'DRAGON' | 'FAIRY' | 'NORMAL' | 'BIG' | 'BUILDER' | 'PIG' | 'ABBOT' | 'FARMER'
 
 export type PieceLocation =
   | { type: 'BOARD'; coordinate: Coordinate; segmentId?: string }

@@ -5,7 +5,7 @@
  * No side effects, no UI dependencies — fully unit-testable.
  */
 
-import type { GameState, ScoreEvent } from '../types/game.ts'
+import type { GameState, ScoreEvent, PieceState, PieceLocation } from '../types/game.ts'
 import { type Coordinate, coordKey, emptyBoard, keyToCoord, type PlacedTile, type MeeplePlacement } from '../types/board.ts'
 import type { TileDefinition, TileInstance, Rotation, Direction } from '../types/tile.ts'
 import { type Player, type MeepleType, availableMeepleCount } from '../types/player.ts'
@@ -800,7 +800,6 @@ function applyMeeplePlacement(
   secondaryMeepleType?: 'PIG' | 'BUILDER',
 ): GameState {
   const player = state.players[state.currentPlayerIndex]
-  const dfData = getDfState(state)
 
   const meepleData = createMeeplePlacement(player.id, meepleType, segmentId, coord)
   const nKey = nodeKey(coord, segmentId)
@@ -1558,17 +1557,10 @@ export function completeTurnTransition(currentState: GameState, allEvents: Score
     stateAfterBuilderReturn = { ...stateAfterBuilderReturn, players: fairyPlayers, expansionData: { ...stateAfterBuilderReturn.expansionData, dragonFairy: dfUpdated } }
   }
 
-  const nextExpansionData = {
+  const nextExpansionData: Record<string, unknown> = {
     ...stateAfterBuilderReturn.expansionData,
     ...(tbData !== undefined ? { tradersBuilders: nextTbData } : {}),
   }
-
-  console.log('[GameEngine] completeTurnTransition: RESULTING state:', {
-    nextPlayerIndex,
-    isBuilderBonusTurn: (nextExpansionData.tradersBuilders as any)?.isBuilderBonusTurn,
-    pendingBuilderBonus: (nextExpansionData.tradersBuilders as any)?.pendingBuilderBonus,
-    numPlayers: currentState.players.length
-  });
 
   const updatedBoardTiles = stateAfterBuilderReturn.board.tiles
   const updatedPlayers = stateAfterBuilderReturn.players
@@ -1590,14 +1582,13 @@ export function completeTurnTransition(currentState: GameState, allEvents: Score
         completedFeatureIds: [],
         lastScoreEvents: allEvents,
         turnPhase: 'FAIRY_MOVE',
-        expansionData: nextExpansionData,
+        expansionData: { ...nextExpansionData, dragonFairy: dfUpdated },
       }
     } else {
-      if (dfUpdated) dfUpdated.canMoveFairy = false;
+      dfUpdated.canMoveFairy = false;
     }
   }
 
-  const dfFinal = (nextExpansionData['dragonFairy'] as DragonFairyState | undefined)
   const nextPlayer = updatedPlayers[nextPlayerIndex]
   let nextTurnPhase: GameState['turnPhase'] = 'DRAW_TILE'
   if (getDragonHeldBy(stateAfterBuilderReturn) === nextPlayer?.id) {
@@ -1616,7 +1607,7 @@ export function completeTurnTransition(currentState: GameState, allEvents: Score
     completedFeatureIds: [],
     lastScoreEvents: allEvents,
     turnPhase: nextTurnPhase,
-    expansionData: nextExpansionData,
+    expansionData: { ...nextExpansionData, ...(dfUpdated ? { dragonFairy: dfUpdated } : {}) },
   }
 }
 
@@ -2104,25 +2095,13 @@ export function executeDragonTileStep(state: GameState): { state: GameState; eat
   }
 
   // Move to next tile and eat meeples
-  const result = eatMeeplesOnTile(
-    { x: nextX, y: nextY },
-    [...state.players],
-    { ...state.boardMeeples },
-    { ...state.featureUnionFind },
-    { ...state.board.tiles },
-  )
+  const { state: newStateAfterEating, eatenMeeples } = eatMeeplesOnTile(state, { x: nextX, y: nextY })
 
-  const newState = moveDragon(state, { type: 'BOARD', coordinate: { x: nextX, y: nextY } })
+  const newState = moveDragon(newStateAfterEating, { type: 'BOARD', coordinate: { x: nextX, y: nextY } })
 
   return {
-    state: {
-      ...newState,
-      board: { ...state.board, tiles: result.boardTiles },
-      players: result.players,
-      boardMeeples: result.boardMeeples,
-      featureUnionFind: result.ufState,
-    },
-    eatenMeeples: result.eatenMeeples.map(m => ({ ...m, coordinate: { x: nextX, y: nextY } }))
+    state: newState,
+    eatenMeeples: eatenMeeples.map(m => ({ ...m, coordinate: { x: nextX, y: nextY } }))
   }
 }
 
