@@ -10,7 +10,6 @@ import { useUIStore, type TerritoryOverlayMode } from '../../store/uiStore.ts'
 import type { Feature, UnionFindState } from '../../core/types/feature.ts'
 import type { Player } from '../../core/types/player.ts'
 import { type Direction } from '../../core/types/tile.ts'
-import { coordKey } from '../../core/types/board.ts'
 import { getDragonPosition, getFairyPosition } from '../../core/engine/GameEngine.ts'
 
 function getControllingColors(feature: Feature, players: Player[]): string[] {
@@ -90,9 +89,7 @@ export function CastView() {
 
   // Dragon & Fairy data
   const dfData = gameState.expansionData?.['dragonFairy'] as {
-    dragonPosition?: { x: number; y: number } | null
     dragonFacing?: Direction | null
-    fairyPosition?: { coordinate: { x: number; y: number }; segmentId: string } | null
   } | undefined
 
   const dragonPos = getDragonPosition(gameState)

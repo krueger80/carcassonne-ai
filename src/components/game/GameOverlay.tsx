@@ -1,7 +1,7 @@
 import { useTranslation } from 'react-i18next'
 import { useGameStore } from '../../store/gameStore.ts'
 import { useUIStore } from '../../store/uiStore.ts'
-import { getPotentialPlacementsForState, getValidMeepleTypes, getDragonPosition, getFairyPosition, getDragonHeldBy } from '../../core/engine/GameEngine.ts'
+import { getPotentialPlacementsForState, getValidMeepleTypes, getFairyPosition, getDragonHeldBy } from '../../core/engine/GameEngine.ts'
 import { getFallbackTileMap } from '../../services/tileRegistry.ts'
 import { motion, AnimatePresence } from 'framer-motion'
 import { useEffect, useState, useMemo, useRef } from 'react'

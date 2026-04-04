@@ -12,7 +12,6 @@ import { getBuilderPigPlaceableSegments } from '../../core/engine/MeeplePlacemen
 import { getAllFeatures } from '../../core/engine/FeatureDetector.ts'
 import type { Feature, UnionFindState } from '../../core/types/feature.ts'
 import type { Player } from '../../core/types/player.ts'
-import { getDragonPosition, getFairyPosition } from '../../core/engine/GameEngine.ts'
 
 function getControllingColors(feature: Feature, players: Player[]): string[] {
   if (feature.meeples.length > 0) {

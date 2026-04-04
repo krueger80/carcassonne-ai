@@ -351,7 +351,6 @@ describe('Dragon movement', () => {
     }
 
     const result = executeDragonMovement(state)
-    const df = getDfState(result)
 
     // Dragon should be removed from board
     expect(getDragonPosition(result)).toBeNull()

@@ -899,7 +899,6 @@ export function placeMeeple(
   if (!lastCoord) return state
 
   const player = state.players[state.currentPlayerIndex]
-  const dfData = getDfState(state)
 
   const tbData = state.expansionData['tradersBuilders'] as { useModernRules?: boolean } | undefined
   const isModernRules = tbData?.useModernRules ?? false
@@ -1057,9 +1056,8 @@ export function retrieveAbbot(
     return p.ownerId === player.id && p.type === 'ABBOT' &&
       p.location.type === 'BOARD' && coordKey(p.location.coordinate) === coordKey(coord) && p.location.segmentId === segmentId
   })
-  let nextState = state
   if (pieceId) {
-    nextState = movePiece(state, pieceId, { type: 'SUPPLY', playerId: player.id })
+    state = movePiece(state, pieceId, { type: 'SUPPLY', playerId: player.id })
   }
 
   // Remove from tile meeples
@@ -1873,8 +1871,7 @@ export function getAvailableSegmentsForMeeple(state: GameState): string[] {
   if (!lastCoord) return []
 
   const player = state.players[state.currentPlayerIndex]
-  const dfData = getDfState(state)
-  return getPlaceableSegments(state.featureUnionFind, state.staticTileMap, state.board, lastCoord, player, dfData?.dragonPosition)
+  return getPlaceableSegments(state.featureUnionFind, state.staticTileMap, state.board, lastCoord, player, getDragonPosition(state))
 }
 
 // ─── Private helpers ──────────────────────────────────────────────────────────
@@ -1922,7 +1919,6 @@ function getDfState(state: GameState): DragonFairyState | undefined {
  *    restrict to only those directions (gaps interrupt LoS).
  */
 export function getValidDragonOrientations(state: GameState): Direction[] {
-  const dfData = getDfState(state)
   const dragonPos = getDragonPosition(state)
   if (!dragonPos) return []
   const pos = dragonPos
@@ -1970,7 +1966,7 @@ export function orientDragon(state: GameState, direction: Direction): GameState 
 
   const dfData = getDfState(state)
   const dragonPos = getDragonPosition(state)
-  if (!dragonPos) return state
+  if (!dfData || !dragonPos) return state
 
   const updatedDf: DragonFairyState = {
     ...dfData,
@@ -2202,13 +2198,14 @@ export function executeDragonMovement(state: GameState): GameState {
 
     // Enter tile and eat meeples
     dragonPos = { x, y }
-    const result = eatMeeplesOnTile(
-      dragonPos, updatedPlayers, updatedBoardMeeples, updatedUfState, updatedBoardTiles,
+    const { state: newStateAfterEating } = eatMeeplesOnTile(
+      { ...current, players: updatedPlayers, boardMeeples: updatedBoardMeeples, featureUnionFind: updatedUfState, board: { ...current.board, tiles: updatedBoardTiles } },
+      dragonPos,
     )
-    updatedPlayers = result.players
-    updatedBoardMeeples = result.boardMeeples
-    updatedUfState = result.ufState
-    updatedBoardTiles = result.boardTiles
+    updatedPlayers = newStateAfterEating.players
+    updatedBoardMeeples = newStateAfterEating.boardMeeples
+    updatedUfState = newStateAfterEating.featureUnionFind
+    updatedBoardTiles = newStateAfterEating.board.tiles
 
     x += dx
     y += dy
@@ -2548,7 +2545,7 @@ export function getMagicPortalPlacements(state: GameState): { coordinate: Coordi
   const results: { coordinate: Coordinate; segmentId: string }[] = []
   const dragonPos = getDragonPosition(state)
 
-  for (const [tileKey, tile] of Object.entries(state.board.tiles)) {
+  for (const [tileKey] of Object.entries(state.board.tiles)) {
     const coord = keyToCoord(tileKey)
 
     // Reuse unified logic for segment availability

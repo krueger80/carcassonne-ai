@@ -34,8 +34,6 @@ import {
   placeMeepleViaPortal,
   isMagicPortalTile,
   getDragonPosition,
-  getDragonHeldBy,
-  getFairyPosition,
 } from '../core/engine/GameEngine.ts'
 import type { GameConfig } from '../core/engine/GameEngine.ts'
 import type { LinkedProfileMap } from '../services/gameResultsService.ts'

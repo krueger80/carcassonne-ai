@@ -7,7 +7,6 @@
  */
 
 import { ScoringRule, countAdjacentCompletedCities } from '../engine/ScoreCalculator.ts'
-import type { Coordinate } from '../types/board.ts'
 import type { Direction } from '../types/tile.ts'
 import { DF_TILES } from '../data/dragonFairyTiles.ts'
 
