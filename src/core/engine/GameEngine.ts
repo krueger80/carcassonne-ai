@@ -495,17 +495,17 @@ export function initGame(config: GameConfig): GameState {
 // ─── Piece Location Helpers ───────────────────────────────────────────────────
 
 export function getDragonPosition(state: GameState): Coordinate | null {
-  const p = state.pieces['dragon']
+  const p = state.pieces?.['dragon']
   return p?.location.type === 'BOARD' ? p.location.coordinate : null
 }
 
 export function getDragonHeldBy(state: GameState): string | null {
-  const p = state.pieces['dragon']
+  const p = state.pieces?.['dragon']
   return p?.location.type === 'PLAYER_FRONT' ? p.location.playerId : null
 }
 
 export function getFairyPosition(state: GameState): { coordinate: Coordinate; segmentId: string } | null {
-  const p = state.pieces['fairy']
+  const p = state.pieces?.['fairy']
   return p?.location.type === 'BOARD' ? { coordinate: p.location.coordinate, segmentId: p.location.segmentId! } : null
 }
 
@@ -513,6 +513,7 @@ export function getFairyPosition(state: GameState): { coordinate: Coordinate; se
  * Robustly move any piece to a new location in the unified registry.
  */
 function movePiece(state: GameState, pieceId: string, location: PieceLocation): GameState {
+  if (!state.pieces) return state
   const piece = state.pieces[pieceId]
   if (!piece) return state
   return {
