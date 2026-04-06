@@ -25,7 +25,6 @@ import {
   hasAnyValidPlacement,
   getAllPotentialRiverPlacements,
   getValidRiverRotations,
-  isRiverPlacementAllowed,
   getRiverEntryExit,
   computeRiverTurn,
   getRotatedOffset,
@@ -1858,10 +1857,10 @@ export function isValidPlacementForState(
       }
     }
     if (isRiver) {
-      return isRiverPlacementAllowed(
+      return getValidRiverRotations(
         state.board, state.staticTileMap, instance, coord,
         riverData.lastTurnDirection ?? null,
-      )
+      ).includes(instance.rotation)
     }
   }
   return true

@@ -1,5 +1,6 @@
 import { create } from 'zustand'
 import { immer } from 'zustand/middleware/immer'
+import { current } from 'immer'
 import { persist } from 'zustand/middleware'
 import type { GameState } from '../core/types/game.ts'
 import type { Coordinate } from '../core/types/board.ts'
@@ -119,6 +120,7 @@ interface GameStore {
   rotateTile: () => void
 
   playDoubleLake: () => void
+  discardTile: () => void
 }
 
 export const useGameStore = create<GameStore>()(
@@ -203,6 +205,22 @@ export const useGameStore = create<GameStore>()(
         // Redundant if auto-draw is working, but kept for safety/dev
         if (!store.gameState) return
         store.gameState = drawTile(store.gameState)
+        store.interactionState = 'IDLE'
+        store.tentativeTileCoord = null
+        store.validPlacements = store.gameState.currentTile
+          ? getPotentialPlacementsForState(store.gameState)
+          : []
+        store.placeableSegments = []
+      }),
+
+      discardTile: () => set((store) => {
+        if (!store.gameState || store.gameState.turnPhase !== 'PLACE_TILE' || !store.gameState.currentTile) return
+        
+        // Remove current tile and revert phase to DRAW_TILE so we can draw next
+        const currentState = current(store.gameState)
+        const stateToDraw = { ...currentState, currentTile: null, turnPhase: 'DRAW_TILE' as const }
+        store.gameState = drawTile(stateToDraw)
+        
         store.interactionState = 'IDLE'
         store.tentativeTileCoord = null
         store.validPlacements = store.gameState.currentTile

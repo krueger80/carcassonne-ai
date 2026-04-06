@@ -38,6 +38,7 @@ export function GameOverlay() {
         setTentativeMeepleType,
         undoTilePlacement,
         drawTile,
+        discardTile,
         skipFairyMove,
         startFairyMove,
         cancelFairyMove,
@@ -235,7 +236,7 @@ export function GameOverlay() {
             cancel: cancelTilePlacement,
             skip: skipMeeple,
             undo: undoTilePlacement,
-            discardTile: drawTile,
+            discardTile: discardTile,
             selectMeeple: (type: any) => {
                 if (useModernRules && (type === 'BUILDER' || type === 'PIG')) {
                     const currentSecondary = useGameStore.getState().tentativeSecondaryMeepleType
