@@ -222,6 +222,20 @@ export function GameOverlay() {
 
     // ── Current player turn state (shared between floating card and map) ─────
     const validMeepleTypesForCard = getValidMeepleTypes(gameState)
+    
+    let hasValidPlacementsAtAll = validPlacements.length > 0
+    if (!hasValidPlacementsAtAll && currentTile && gameState) {
+        const def = gameState.staticTileMap[currentTile.definitionId]
+        if (def?.flipSideDefinitionId) {
+            const flippedState = {
+                ...gameState,
+                currentTile: { definitionId: def.flipSideDefinitionId, rotation: 0 as const }
+            }
+            const flippedPlacements = getPotentialPlacementsForState(flippedState)
+            hasValidPlacementsAtAll = flippedPlacements.length > 0
+        }
+    }
+
     const currentPlayerTurnState = {
         phase: turnPhase,
         interactionState,
@@ -299,7 +313,7 @@ export function GameOverlay() {
         dragonMovesRemaining: dfData?.dragonMovement?.movesRemaining,
         canUndo: turnPhase === 'DRAGON_ORIENT' && !dfData?.dragonMovement && !!gameState.lastPlacedCoord,
         staticTileMap: gameState.staticTileMap,
-        hasValidPlacements: validPlacements.length > 0,
+        hasValidPlacements: hasValidPlacementsAtAll,
     }
 
     // ── Floating buttons near the active tile ──────────────────────────────────

@@ -319,10 +319,21 @@ export function hasAnyValidPlacement(
   tileMap: Record<string, TileDefinition>,
   instance: TileInstance,
 ): boolean {
+  // Check the current side
   for (const rotation of [0, 90, 180, 270] as Rotation[]) {
     const positions = getValidPositions(board, tileMap, { ...instance, rotation })
     if (positions.length > 0) return true
   }
+
+  // Check the flip side if it exists
+  const def = tileMap[instance.definitionId]
+  if (def?.flipSideDefinitionId) {
+    for (const rotation of [0, 90, 180, 270] as Rotation[]) {
+      const positions = getValidPositions(board, tileMap, { definitionId: def.flipSideDefinitionId, rotation })
+      if (positions.length > 0) return true
+    }
+  }
+
   return false
 }
 

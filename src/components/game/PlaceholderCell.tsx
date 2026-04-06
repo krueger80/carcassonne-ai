@@ -83,7 +83,7 @@ export const PlaceholderCell = memo(({
           border: `2px dashed ${isHovered ? '#ffffaa' : 'rgba(255,255,150,0.5)'}`,
           borderRadius: 2,
           background: isHovered ? 'rgba(255,255,100,0.08)' : 'transparent',
-          pointerEvents: 'none', // Let the parent's size handle click within the origin cell
+          pointerEvents: 'auto', // Let this expanded box intercept clicks
         }} />
       )}
 
