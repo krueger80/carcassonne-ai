@@ -586,7 +586,7 @@ export const useGameStore = create<GameStore>()(
             if (node) {
               const tile = gameState.board.tiles[`${node.coordinate.x},${node.coordinate.y}`]
               const tileDef = staticTileMap[tile?.definitionId || '']
-              const segment = tileDef?.segments.find(s => s.id === node.segmentId)
+              const segment = tileDef?.segmentMap?.[node.segmentId] ?? tileDef?.segments.find(s => s.id === node.segmentId)
 
               if (segment?.meepleCentroid) {
                 useUIStore.getState().addFlyingElement({
@@ -868,7 +868,7 @@ export const useGameStore = create<GameStore>()(
             for (const meeple of eatenMeeples) {
               const tile = nextStepState.board.tiles[`${meeple.coordinate.x},${meeple.coordinate.y}`]
               const tileDef = nextStepState.staticTileMap[tile?.definitionId || '']
-              const segment = tileDef?.segments.find(s => s.id === meeple.segmentId)
+              const segment = tileDef?.segmentMap?.[meeple.segmentId] ?? tileDef?.segments.find(s => s.id === meeple.segmentId)
 
               if (segment?.meepleCentroid) {
                 useUIStore.getState().addFlyingElement({
