@@ -858,9 +858,6 @@ function validateTile(tile: TileDefinition): string[] {
         const { centerType, leftType, rightType } = getEdgePattern(dir)
         if (!centerType) return // Already caught by completeness check
 
-        // Valid patterns: CCC, FFF, FRF
-        // const pattern = `${leftType?.charAt(0)}${centerType?.charAt(0)}${rightType?.charAt(0)}`
-
         if (centerType === 'CITY') {
             if (leftType !== 'CITY' || rightType !== 'CITY') {
                 errors.push(`${dir} edge error: Center is CITY, so sides must be CITY (not ${leftType}/${rightType})`)
