@@ -115,6 +115,7 @@ export function EndGameModal({ players, expansions = [] }: EndGameModalProps) {
     return (
       <button
         onClick={() => setHidden(false)}
+        aria-label={t('endGame.results')}
         style={{
           position: 'fixed',
           bottom: 24,
