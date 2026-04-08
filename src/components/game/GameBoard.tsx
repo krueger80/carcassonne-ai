@@ -884,6 +884,7 @@ export function GameBoard() {
           }}
           style={btnStyle}
           title="Zoom in"
+          aria-label="Zoom in"
         >+</button>
         <button
           onClick={() => {
@@ -892,6 +893,7 @@ export function GameBoard() {
           }}
           style={btnStyle}
           title="Reset view"
+          aria-label="Reset view"
         >⌖</button>
         <button
           onClick={() => {
@@ -900,6 +902,7 @@ export function GameBoard() {
           }}
           style={btnStyle}
           title="Zoom out"
+          aria-label="Zoom out"
         >−</button>
         <div style={{ height: 8 }} />
         <button
@@ -919,6 +922,11 @@ export function GameBoard() {
             territoryOverlay === 'off' ? 'Territory: Off'
               : territoryOverlay === 'incomplete' ? 'Territory: Incomplete'
                 : 'Territory: All'
+          }
+          aria-label={
+            territoryOverlay === 'off' ? 'Cycle Territory Overlay: Currently Off'
+              : territoryOverlay === 'incomplete' ? 'Cycle Territory Overlay: Currently Incomplete'
+                : 'Cycle Territory Overlay: Currently All'
           }
         >
           {territoryOverlay === 'off' ? '◇' : territoryOverlay === 'incomplete' ? '◈' : '◆'}
