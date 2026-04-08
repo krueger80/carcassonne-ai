@@ -585,6 +585,7 @@ export function GameOverlay() {
 
                 {/* Scoreboard toggle */}
                 <button
+                    type="button"
                     onClick={() => setShowScoreboard(v => !v)}
                     style={{
                         background: showScoreboard ? 'rgba(232,216,160,0.18)' : 'transparent',
@@ -600,6 +601,9 @@ export function GameOverlay() {
                         alignItems: 'center',
                     }}
                     title={t('menu.scoreboard')}
+                    aria-label={t('menu.scoreboard')}
+                    aria-expanded={showScoreboard}
+                    aria-controls="scoreboard-panel"
                 >
                     🏆
                 </button>
@@ -633,6 +637,7 @@ export function GameOverlay() {
                     />
                     {/* Panel */}
                     <div
+                        id="scoreboard-panel"
                         style={{
                             position: 'absolute',
                             top: 64,
@@ -732,6 +737,7 @@ export function GameOverlay() {
                     onPointerUp={(e) => e.stopPropagation()}
                 >
                     <button
+                        type="button"
                         onClick={(e) => { e.stopPropagation(); setIsMenuOpen(!isMenuOpen) }}
                         style={{
                             background: 'rgba(0,0,0,0.6)',
@@ -744,6 +750,9 @@ export function GameOverlay() {
                             alignItems: 'center',
                             justifyContent: 'center',
                         }}
+                        aria-label={t('menu.menu')}
+                        aria-expanded={isMenuOpen}
+                        aria-controls="hamburger-menu"
                     >
                         <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
                             <line x1="3" y1="12" x2="21" y2="12"></line>
@@ -755,6 +764,7 @@ export function GameOverlay() {
                     <AnimatePresence>
                         {isMenuOpen && (
                             <motion.div
+                                id="hamburger-menu"
                                 initial={{ opacity: 0, y: -10, scale: 0.95 }}
                                 animate={{ opacity: 1, y: 0, scale: 1 }}
                                 exit={{ opacity: 0, y: -10, scale: 0.95 }}
