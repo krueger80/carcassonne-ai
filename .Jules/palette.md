@@ -1,0 +1,3 @@
+## 2024-06-18 - [Add ARIA labels to icon-only buttons]
+**Learning:** Found multiple instances where buttons contain only emojis or icons without text labels, reducing accessibility for screen reader users. Toggle buttons controlling expandable content must explicitly set `aria-expanded` and `aria-label` attributes to be accessible to screen readers, as `title` attributes alone are insufficient. When applicable, also link `aria-controls` to the container's `id`.
+**Action:** Adding `aria-label`, `aria-expanded`, and `aria-controls` to these buttons improves the overall accessibility of the components.
