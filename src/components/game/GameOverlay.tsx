@@ -600,6 +600,8 @@ export function GameOverlay() {
                         alignItems: 'center',
                     }}
                     title={t('menu.scoreboard')}
+                    aria-label={t('menu.scoreboard')}
+                    aria-expanded={showScoreboard}
                 >
                     🏆
                 </button>
@@ -733,6 +735,8 @@ export function GameOverlay() {
                 >
                     <button
                         onClick={(e) => { e.stopPropagation(); setIsMenuOpen(!isMenuOpen) }}
+                        aria-label={t('menu.menu')}
+                        aria-expanded={isMenuOpen}
                         style={{
                             background: 'rgba(0,0,0,0.6)',
                             border: '1px solid #555',
