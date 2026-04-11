@@ -15,7 +15,7 @@ type Tab = 'signin' | 'signup'
 
 export function LoginModal({ linkMode = false, onClose, onLinked }: LoginModalProps) {
     const { t } = useTranslation()
-    const { signIn, signUp, signInWithGoogle, signOut, fetchProfile } = useAuth()
+    const { signIn, signUp, signInWithGoogle, signOut, fetchProfile, user } = useAuth()
     const [tab, setTab] = useState<Tab>('signin')
     const [email, setEmail] = useState('')
     const [password, setPassword] = useState('')
