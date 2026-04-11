@@ -51,18 +51,17 @@ const COMMODITY_IMAGES_C31 = {
 
 export function EndGameModal({ players, expansions = [] }: EndGameModalProps) {
   const { t } = useTranslation()
-  const { resetGame } = useGameStore()
+  const { resetGame, isGameSaved, setGameSaved } = useGameStore()
   const { user, profile, loading: authLoading } = useAuth()
   const { linkedProfiles, gameState } = useGameStore()
   const hasTradersBuilders = expansions.includes('traders-builders')
   const [hidden, setHidden] = useState(false)
-  const [saveStatus, setSaveStatus] = useState<'idle' | 'saving' | 'saved' | 'error' | 'no-auth'>('idle')
-  const [saved, setSaved] = useState(false)
+  const [saveStatus, setSaveStatus] = useState<'idle' | 'saving' | 'saved' | 'error' | 'no-auth'>(isGameSaved ? 'saved' : 'idle')
   const [showLoginModal, setShowLoginModal] = useState(false)
-  const saveAttempted = useRef(false)
+  const localSaveAttempted = useRef(isGameSaved)
 
   const performSave = async () => {
-    if (saved) return; // Prevent duplicate saves
+    if (isGameSaved) return; // Prevent duplicate saves globally
     if (!user || !gameState) {
       if (!user) setSaveStatus('no-auth')
       return
@@ -80,7 +79,7 @@ export function EndGameModal({ players, expansions = [] }: EndGameModalProps) {
       })
       if (success) {
         console.log('[EndGame] Game saved successfully:', success.id)
-        setSaved(true)
+        setGameSaved(true)
         setSaveStatus('saved')
       } else {
         console.warn('[EndGame] saveGameResult returned null — save failed or not configured')
@@ -94,8 +93,8 @@ export function EndGameModal({ players, expansions = [] }: EndGameModalProps) {
 
   // Auto-save game results on mount if user is already there
   useEffect(() => {
-    if (!saveAttempted.current) {
-      saveAttempted.current = true
+    if (!localSaveAttempted.current && !isGameSaved) {
+      localSaveAttempted.current = true
       if (user) {
         performSave()
       } else {
@@ -106,10 +105,10 @@ export function EndGameModal({ players, expansions = [] }: EndGameModalProps) {
 
   // Also auto-save if user logs in while modal is open (or if auth finishes loading and user is found)
   useEffect(() => {
-    if (!authLoading && user && (saveStatus === 'no-auth' || saveStatus === 'idle') && !saved) {
+    if (!authLoading && user && (saveStatus === 'no-auth' || saveStatus === 'idle') && !isGameSaved) {
       performSave()
     }
-  }, [user, authLoading, saveStatus])
+  }, [user, authLoading, saveStatus, isGameSaved])
 
   if (hidden) {
     return (

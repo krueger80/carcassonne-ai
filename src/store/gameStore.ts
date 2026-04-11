@@ -121,6 +121,8 @@ interface GameStore {
 
   playDoubleLake: () => void
   discardTile: () => void
+  isGameSaved: boolean
+  setGameSaved: (saved: boolean) => void
 }
 
 export const useGameStore = create<GameStore>()(
@@ -142,6 +144,7 @@ export const useGameStore = create<GameStore>()(
       fairyMoveTargets: [],
       magicPortalTargets: [],
       isDragonMoving: false,
+      isGameSaved: false,
 
       newGame: async (config) => {
         let baseDefinitions = config.baseDefinitions
@@ -198,8 +201,11 @@ export const useGameStore = create<GameStore>()(
           } else {
             store.linkedProfiles = {}
           }
+          store.isGameSaved = false
         })
       },
+
+      setGameSaved: (saved: boolean) => set({ isGameSaved: saved }),
 
       drawTile: () => set((store) => {
         // Redundant if auto-draw is working, but kept for safety/dev
@@ -733,6 +739,7 @@ export const useGameStore = create<GameStore>()(
         store.tentativeMeepleType = null
         store.tentativeSecondaryMeepleType = null
         store.interactionState = 'IDLE'
+        store.isGameSaved = false
       }),
 
       refreshDefinitions: async () => {
@@ -1078,6 +1085,7 @@ export const useGameStore = create<GameStore>()(
         placeableSegments: s.placeableSegments,
         fairyMoveTargets: s.fairyMoveTargets,
         magicPortalTargets: s.magicPortalTargets,
+        isGameSaved: s.isGameSaved,
         // prevGameState: s.prevGameState, // Exclude to reduce size/complexity
       }),
     }
