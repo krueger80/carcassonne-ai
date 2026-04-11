@@ -2526,10 +2526,9 @@ export function getFairyMoveTargets(state: GameState): { coordinate: Coordinate;
   const player = state.players[state.currentPlayerIndex]
   const targets: { coordinate: Coordinate; segmentId: string }[] = []
 
-  for (const [nKey, meeple] of Object.entries(state.boardMeeples)) {
+  for (const [, meeple] of Object.entries(state.boardMeeples)) {
     if (meeple.playerId === player.id) {
-      const [coordStr, segmentId] = nKey.split(':') as [string, string]
-      targets.push({ coordinate: keyToCoord(coordStr), segmentId })
+      targets.push({ coordinate: meeple.coordinate, segmentId: meeple.segmentId })
     }
   }
 

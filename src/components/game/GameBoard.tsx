@@ -10,6 +10,7 @@ import { GameOverlay } from './GameOverlay.tsx'
 import { BotOrchestrator } from './BotOrchestrator.tsx'
 import { getBuilderPigPlaceableSegments } from '../../core/engine/MeeplePlacement.ts'
 import { getAllFeatures } from '../../core/engine/FeatureDetector.ts'
+import { getDragonPosition, getFairyPosition } from '../../core/engine/GameEngine.ts'
 import type { Feature, UnionFindState } from '../../core/types/feature.ts'
 import type { Player } from '../../core/types/player.ts'
 
@@ -724,7 +725,7 @@ export function GameBoard() {
   const maxY = board.maxY + BOARD_PADDING
 
   const dfData = gameState.expansionData?.['dragonFairy'] as any
-  const dragonPos = dfData?.dragonPosition ?? null
+  const dragonPos = getDragonPosition(gameState)
   const isDragonOrientPhase = gameState.turnPhase === 'DRAGON_ORIENT'
   const dragonFacing = isDragonOrientPhase ? (tentativeDragonFacing ?? null) : (dfData?.dragonFacing ?? null)
 
@@ -736,11 +737,12 @@ export function GameBoard() {
 
   const validSet = useMemo(() => new Set(validPlacements.map(c => `${c.x},${c.y}`)), [validPlacements])
 
+  const fairyPos = getFairyPosition(gameState)
   const fairySegmentMap = useMemo<Record<string, string>>(() => {
-    if (!dfData?.fairyPosition) return {}
-    const { coordinate, segmentId } = dfData.fairyPosition
+    if (!fairyPos) return {}
+    const { coordinate, segmentId } = fairyPos
     return { [`${coordinate.x},${coordinate.y}`]: segmentId }
-  }, [dfData?.fairyPosition])
+  }, [fairyPos])
 
   const fairyTargetMap = useMemo<Record<string, string[]>>(() => {
     const map: Record<string, string[]> = {}
