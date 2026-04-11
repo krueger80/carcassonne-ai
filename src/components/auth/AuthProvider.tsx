@@ -15,7 +15,7 @@ export interface AuthContextType {
     signIn: (email: string, password: string) => Promise<{ error: string | null }>
     signUp: (email: string, password: string, displayName?: string) => Promise<{ error: string | null }>
     signOut: () => Promise<void>
-    signInWithGoogle: () => Promise<{ error: string | null }>
+    signInWithGoogle: (options?: { promptSelectAccount?: boolean }) => Promise<{ error: string | null }>
     fetchProfile: (userId: string) => Promise<Profile | null>
 }
 
@@ -94,12 +94,13 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         setProfile(null)
     }, [])
 
-    const signInWithGoogle = useCallback(async () => {
+    const signInWithGoogle = useCallback(async (options?: { promptSelectAccount?: boolean }) => {
         if (!supabase) return { error: 'Supabase not configured' }
         const { error } = await supabase.auth.signInWithOAuth({
             provider: 'google',
             options: {
                 redirectTo: `${window.location.origin}/`,
+                ...(options?.promptSelectAccount ? { queryParams: { prompt: 'select_account' } } : {}),
             },
         })
         return { error: error?.message ?? null }

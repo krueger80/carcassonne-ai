@@ -142,6 +142,34 @@ export function SetupScreen({ onCancel }: SetupScreenProps) {
   const { newGame } = useGameStore()
   const toggleLang = () => i18n.changeLanguage(i18n.language === 'fr' ? 'en' : 'fr')
 
+  // Restore state from sessionStorage if returning from OAuth
+  useEffect(() => {
+    const saved = sessionStorage.getItem('carcassonne_setup_state')
+    if (saved) {
+      try {
+        const s = JSON.parse(saved)
+        if (s.playerCount) setPlayerCount(s.playerCount)
+        if (s.names) setNames(s.names)
+        if (s.baseEdition) setBaseEdition(s.baseEdition)
+        if (s.expansions) setExpansions(s.expansions)
+        if (s.linkedProfiles) setLinkedProfiles(s.linkedProfiles)
+        if (s.bots) setBots(s.bots)
+        if (s.linkingSlot !== undefined) setLinkingSlot(s.linkingSlot) // Very important for OAuth restoration
+      } catch (e) {
+        console.error('Failed to parse saved setup state', e)
+      }
+      // We do NOT remove it yet, so a forced refresh doesn't lose it.
+      // It will be overwritten continuously by the save effect.
+    }
+  }, [])
+
+  // Persist state to sessionStorage for OAuth redirects
+  useEffect(() => {
+    sessionStorage.setItem('carcassonne_setup_state', JSON.stringify({
+      playerCount, names, baseEdition, expansions, linkedProfiles, bots, linkingSlot
+    }))
+  }, [playerCount, names, baseEdition, expansions, linkedProfiles, bots, linkingSlot])
+
   // Auto-link first player to primary session
   const handleAutoLink = () => {
     if (user && profile && !linkedProfiles[0] && !bots[0]?.isBot) {

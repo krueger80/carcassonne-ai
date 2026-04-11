@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useState, useEffect, useRef } from 'react'
 import { useTranslation } from 'react-i18next'
 import { motion, AnimatePresence } from 'framer-motion'
 import { useAuth } from './useAuth.ts'
@@ -69,10 +69,34 @@ export function LoginModal({ linkMode = false, onClose, onLinked }: LoginModalPr
 
     const handleGoogle = async () => {
         setError(null)
-        const { error: err } = await signInWithGoogle()
+        const { error: err } = await signInWithGoogle({ promptSelectAccount: linkMode })
         if (err) setError(err)
         // OAuth redirects, so modal closes on redirect
     }
+
+    // Auto-finalize linking when returning from OAuth redirect
+    // If the modal mounts in linkMode and there's ALREADY a user logged in, we finalize.
+    const oauthProcessed = useRef(false)
+
+    useEffect(() => {
+        if (linkMode && user && onLinked && !busy && !oauthProcessed.current) {
+            oauthProcessed.current = true
+            setBusy(true)
+            const finishOAuthLink = async () => {
+                try {
+                    const profile = await fetchProfile(user.id)
+                    if (profile) onLinked(profile)
+                    await signOut() // sign out the linked user so the browser doesn't falsely retain their session as primary
+                    onClose()
+                } catch (e: any) {
+                    setError(e.message || 'Failed to complete linking')
+                } finally {
+                    setBusy(false)
+                }
+            }
+            finishOAuthLink()
+        }
+    }, [user, linkMode, onLinked, busy, fetchProfile, signOut, onClose])
 
     return (
         <div
