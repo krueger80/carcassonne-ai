@@ -24,6 +24,34 @@ export function LoginModal({ linkMode = false, onClose, onLinked }: LoginModalPr
     const [success, setSuccess] = useState<string | null>(null)
     const [busy, setBusy] = useState(false)
 
+    const savePrimary = async () => {
+        if (!linkMode) return
+        const { supabase } = await import('../../supabaseClient.ts')
+        const { data } = await supabase?.auth.getSession() || {}
+        if (data?.session) {
+            sessionStorage.setItem('carcassonne_primary_session', JSON.stringify({
+                access_token: data.session.access_token,
+                refresh_token: data.session.refresh_token
+            }))
+        }
+    }
+
+    const restorePrimary = async () => {
+        const savedSession = sessionStorage.getItem('carcassonne_primary_session')
+        if (!savedSession) return
+        try {
+            const params = JSON.parse(savedSession)
+            const { supabase } = await import('../../supabaseClient.ts')
+            if (supabase && params.access_token && params.refresh_token) {
+                await supabase.auth.setSession(params)
+            }
+        } catch (err) {
+            console.error('Failed to restore primary session', err)
+        } finally {
+            sessionStorage.removeItem('carcassonne_primary_session')
+        }
+    }
+
     const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault()
         setError(null)
@@ -31,16 +59,19 @@ export function LoginModal({ linkMode = false, onClose, onLinked }: LoginModalPr
         setBusy(true)
 
         try {
+            await savePrimary()
+            
             if (tab === 'signin') {
                 const { error: err } = await signIn(email, password)
-                if (err) { setError(err); setBusy(false); return }
+                if (err) { setError(err); setBusy(false); await restorePrimary(); return }
             } else {
                 const { error: err } = await signUp(email, password, displayName || undefined)
-                if (err) { setError(err); setBusy(false); return }
+                if (err) { setError(err); setBusy(false); await restorePrimary(); return }
                 // Some setups require email confirmation
                 setSuccess('Account created! Check your email to confirm, then sign in.')
                 setTab('signin')
                 setBusy(false)
+                await restorePrimary()
                 return
             }
 
@@ -58,10 +89,12 @@ export function LoginModal({ linkMode = false, onClose, onLinked }: LoginModalPr
                     }
                 }
                 await signOut()
+                await restorePrimary()
             }
             onClose()
         } catch (err: any) {
             setError(err.message || 'An error occurred')
+            await restorePrimary()
         } finally {
             setBusy(false)
         }
@@ -69,6 +102,8 @@ export function LoginModal({ linkMode = false, onClose, onLinked }: LoginModalPr
 
     const handleGoogle = async () => {
         setError(null)
+        await savePrimary()
+        
         const { error: err } = await signInWithGoogle({ promptSelectAccount: linkMode })
         if (err) setError(err)
         // OAuth redirects, so modal closes on redirect
@@ -86,7 +121,10 @@ export function LoginModal({ linkMode = false, onClose, onLinked }: LoginModalPr
                 try {
                     const profile = await fetchProfile(user.id)
                     if (profile) onLinked(profile)
+                    
                     await signOut() // sign out the linked user so the browser doesn't falsely retain their session as primary
+                    await restorePrimary()
+                    
                     onClose()
                 } catch (e: any) {
                     setError(e.message || 'Failed to complete linking')
