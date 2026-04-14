@@ -33,6 +33,7 @@ interface UIStore {
   territoryOverlay: TerritoryOverlayMode
   isManualInteraction: boolean
   toastMessage: string | null
+  tileButtonPos: { x: number; y: number } | null
   cycleTerritoryOverlay: () => void
   setIsManualInteraction: (isManual: boolean) => void
 
@@ -63,6 +64,7 @@ export const useUIStore = create<UIStore>((set) => ({
   territoryOverlay: 'off' as TerritoryOverlayMode,
   isManualInteraction: false,
   toastMessage: null,
+  tileButtonPos: null,
   cycleTerritoryOverlay: () => set((s) => {
     const next: TerritoryOverlayMode =
       s.territoryOverlay === 'off' ? 'incomplete'
