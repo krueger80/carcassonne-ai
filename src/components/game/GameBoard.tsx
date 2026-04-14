@@ -880,31 +880,39 @@ export function GameBoard() {
         zIndex: 100,
       }}>
         <button
+          aria-label="Zoom in"
           onClick={() => {
             setIsManualInteraction(false);
             setBoardScale(boardScale * 1.5);
           }}
           style={btnStyle}
           title="Zoom in"
-        >+</button>
+        ><span aria-hidden="true">+</span></button>
         <button
+          aria-label="Reset view"
           onClick={() => {
             setIsManualInteraction(false);
             resetView();
           }}
           style={btnStyle}
           title="Reset view"
-        >⌖</button>
+        ><span aria-hidden="true">⌖</span></button>
         <button
+          aria-label="Zoom out"
           onClick={() => {
             setIsManualInteraction(false);
             setBoardScale(boardScale * 0.66);
           }}
           style={btnStyle}
           title="Zoom out"
-        >−</button>
+        ><span aria-hidden="true">−</span></button>
         <div style={{ height: 8 }} />
         <button
+          aria-label={
+            territoryOverlay === 'off' ? 'Territory: Off'
+              : territoryOverlay === 'incomplete' ? 'Territory: Incomplete'
+                : 'Territory: All'
+          }
           onClick={() => useUIStore.getState().cycleTerritoryOverlay()}
           style={{
             ...btnStyle,
@@ -923,7 +931,7 @@ export function GameBoard() {
                 : 'Territory: All'
           }
         >
-          {territoryOverlay === 'off' ? '◇' : territoryOverlay === 'incomplete' ? '◈' : '◆'}
+          <span aria-hidden="true">{territoryOverlay === 'off' ? '◇' : territoryOverlay === 'incomplete' ? '◈' : '◆'}</span>
         </button>
       </div>
 
