@@ -9,11 +9,13 @@ interface ButtonProps {
     disabled?: boolean
     style?: React.CSSProperties
     title?: string
+    'aria-label'?: string
 }
 
-export function Button({ children, onClick, primary, danger, disabled, style, title }: ButtonProps) {
+export function Button({ children, onClick, primary, danger, disabled, style, title, 'aria-label': ariaLabel }: ButtonProps) {
     return (
         <motion.button
+            type="button"
             whileHover={!disabled ? { scale: 1.05 } : undefined}
             whileTap={!disabled ? { scale: 0.95 } : undefined}
             onClick={(e) => {
@@ -21,6 +23,7 @@ export function Button({ children, onClick, primary, danger, disabled, style, ti
                 if (!disabled) onClick()
             }}
             title={title}
+            aria-label={ariaLabel}
             disabled={disabled}
             style={{
                 padding: '8px 16px',

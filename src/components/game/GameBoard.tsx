@@ -886,7 +886,8 @@ export function GameBoard() {
           }}
           style={btnStyle}
           title="Zoom in"
-        >+</button>
+          aria-label="Zoom in"
+        ><span aria-hidden="true">+</span></button>
         <button
           onClick={() => {
             setIsManualInteraction(false);
@@ -894,7 +895,8 @@ export function GameBoard() {
           }}
           style={btnStyle}
           title="Reset view"
-        >⌖</button>
+          aria-label="Reset view"
+        ><span aria-hidden="true">⌖</span></button>
         <button
           onClick={() => {
             setIsManualInteraction(false);
@@ -902,7 +904,8 @@ export function GameBoard() {
           }}
           style={btnStyle}
           title="Zoom out"
-        >−</button>
+          aria-label="Zoom out"
+        ><span aria-hidden="true">−</span></button>
         <div style={{ height: 8 }} />
         <button
           onClick={() => useUIStore.getState().cycleTerritoryOverlay()}
@@ -922,8 +925,13 @@ export function GameBoard() {
               : territoryOverlay === 'incomplete' ? 'Territory: Incomplete'
                 : 'Territory: All'
           }
+          aria-label={
+            territoryOverlay === 'off' ? 'Territory Overlay: Off'
+              : territoryOverlay === 'incomplete' ? 'Territory Overlay: Incomplete Features'
+                : 'Territory Overlay: All Features'
+          }
         >
-          {territoryOverlay === 'off' ? '◇' : territoryOverlay === 'incomplete' ? '◈' : '◆'}
+          <span aria-hidden="true">{territoryOverlay === 'off' ? '◇' : territoryOverlay === 'incomplete' ? '◈' : '◆'}</span>
         </button>
       </div>
 
