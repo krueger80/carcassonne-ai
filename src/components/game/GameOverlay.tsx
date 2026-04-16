@@ -600,8 +600,10 @@ export function GameOverlay() {
                         alignItems: 'center',
                     }}
                     title={t('menu.scoreboard')}
+                    aria-label={t('menu.scoreboard', 'Scoreboard')}
+                    aria-expanded={showScoreboard}
                 >
-                    🏆
+                    <span aria-hidden="true">🏆</span>
                 </button>
 
                 {/* Tiles counter */}
