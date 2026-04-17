@@ -1,6 +1,8 @@
 import { useMemo, Suspense, useEffect } from 'react'
 import * as THREE from 'three'
 import { useTexture } from '@react-three/drei'
+// @ts-ignore
+import { SVGLoader } from 'three/examples/jsm/loaders/SVGLoader'
 import { SCALE_FACTOR, MEEPLE_DIMENSIONS } from './MeepleShapes'
 
 const TILE_SIZE = 8.8 // Mapping 88px to 8.8 world units for scale consistency
@@ -18,7 +20,7 @@ interface Tile3DProps {
   segmentOwnerColors?: Record<string, string[]>
 }
 
-function OwnershipOverlay({ colors, segmentId, definition }: { colors: string[], segmentId: string, definition: any }) {
+function SegmentOwnership3D({ colors, segment, rotation }: { colors: string[], segment: any, rotation: number }) {
   const texture = useMemo(() => {
     const canvas = document.createElement('canvas')
     canvas.width = 128
@@ -30,44 +32,87 @@ function OwnershipOverlay({ colors, segmentId, definition }: { colors: string[],
     ctx.fillStyle = colors[0]
     ctx.fillRect(0, 0, 128, 128)
 
-    if (colors.length > 1 || true) { // Always show stripes if we have colors
-      const stripeWidth = 128 / 8
-      ctx.translate(64, 64)
-      ctx.rotate(Math.PI / 4)
-      ctx.translate(-128, -128)
+    // Draw diagonal stripes
+    const stripeWidth = 128 / 8
+    ctx.save()
+    ctx.translate(64, 64)
+    // Counter-rotate stripes to keep them diagonal relative to the board
+    ctx.rotate((45 - rotation) * (Math.PI / 180))
+    ctx.translate(-128, -128)
 
-      for (let i = 0; i < 16; i++) {
-        ctx.fillStyle = colors[i % colors.length]
-        ctx.fillRect(i * stripeWidth * 2, 0, stripeWidth, 256)
-      }
+    for (let i = 0; i < 32; i++) {
+      ctx.fillStyle = colors[i % colors.length]
+      ctx.fillRect(i * stripeWidth * 2, 0, stripeWidth, 256)
     }
+    ctx.restore()
 
     const t = new THREE.CanvasTexture(canvas)
+    t.colorSpace = THREE.SRGBColorSpace
     t.wrapS = t.wrapT = THREE.RepeatWrapping
     t.anisotropy = 4
     return t
-  }, [colors])
+  }, [colors, rotation])
 
-  const center = useMemo(() => {
-    const segment = definition.segments.find((s: any) => s.id === segmentId)
-    const centroid = segment?.meepleCentroid || segment?.centroid
-    if (!centroid) return new THREE.Vector3(0, 0.05, 0)
-    const ox = (centroid.x - 50) / 100 * TILE_SIZE
-    const oy = (centroid.y - 50) / 100 * TILE_SIZE
-    return new THREE.Vector3(ox, 0.05, oy)
-  }, [segmentId, definition])
+  const geometry = useMemo(() => {
+    if (!segment.svgPath) return null
+    const loader = new SVGLoader()
+    const result = loader.parse(`<svg><path d="${segment.svgPath}" /></svg>`)
+    const path = result.paths[0]
+    
+    const isClosed = segment.svgPath.toLowerCase().includes('z')
+    let finalGeometry: THREE.BufferGeometry | null = null
 
-  if (!texture) return null
+    if (isClosed) {
+      const shapes = SVGLoader.createShapes(path)
+      finalGeometry = new THREE.ShapeGeometry(shapes)
+    } else {
+      // For open paths (Roads/Rivers), we create a "ribbon"
+      // We can use the subPaths to get points and then create a shape from them
+      const points = path.subPaths[0].getPoints()
+      if (points.length < 2) return null
+
+      // Create a ribbon shape by offsetting the path
+      const ribbonWidth = 8 // Matches 2D strokeWidth
+      const ribbonShape = new THREE.Shape()
+      
+      const leftPoints: THREE.Vector2[] = []
+      const rightPoints: THREE.Vector2[] = []
+
+      for (let i = 0; i < points.length; i++) {
+        const p = points[i]
+        const next = points[i + 1] || points[i]
+        const prev = points[i - 1] || points[i]
+        
+        const dir = new THREE.Vector2().subVectors(next, prev).normalize()
+        const normal = new THREE.Vector2(-dir.y, dir.x)
+        
+        leftPoints.push(new THREE.Vector2().addVectors(p, normal.clone().multiplyScalar(ribbonWidth / 2)))
+        rightPoints.push(new THREE.Vector2().addVectors(p, normal.clone().multiplyScalar(-ribbonWidth / 2)))
+      }
+
+      ribbonShape.moveTo(leftPoints[0].x, leftPoints[0].y)
+      for (let i = 1; i < leftPoints.length; i++) ribbonShape.lineTo(leftPoints[i].x, leftPoints[i].y)
+      for (let i = rightPoints.length - 1; i >= 0; i--) ribbonShape.lineTo(rightPoints[i].x, rightPoints[i].y)
+      ribbonShape.closePath()
+
+      finalGeometry = new THREE.ShapeGeometry(ribbonShape)
+    }
+
+    if (finalGeometry) {
+      // Coordinate Mapping: SVG (0-100) -> World (-4.4 to 4.4) with Y inversion
+      const scale = TILE_SIZE / 100
+      finalGeometry.scale(scale, -scale, 1)
+      finalGeometry.translate(-TILE_SIZE / 2, TILE_SIZE / 2, 0)
+    }
+
+    return finalGeometry
+  }, [segment.svgPath])
+
+  if (!texture || !geometry) return null
 
   return (
-    <mesh position={center} rotation={[-Math.PI / 2, 0, 0]}>
-      <circleGeometry args={[1.2, 32]} />
-      <meshBasicMaterial map={texture} transparent opacity={0.7} />
-      {/* Border */}
-      <mesh position={[0, 0, -0.01]}>
-        <ringGeometry args={[1.2, 1.3, 32]} />
-        <meshBasicMaterial color="white" transparent opacity={0.5} />
-      </mesh>
+    <mesh geometry={geometry} position={[0, 0.02, 0]} rotation={[-Math.PI / 2, 0, 0]}>
+      <meshBasicMaterial map={texture} transparent opacity={0.6} depthWrite={false} />
     </mesh>
   )
 }
@@ -170,14 +215,18 @@ export function Tile3D({
           </mesh>
 
           {/* Ownership Overlays */}
-          {Object.entries(segmentOwnerColors).map(([segId, colors]) => (
-            <OwnershipOverlay 
-              key={segId} 
-              colors={colors} 
-              segmentId={segId} 
-              definition={fp.def} 
-            />
-          ))}
+          {Object.entries(segmentOwnerColors).map(([segId, colors]) => {
+            const seg = fp.def.segments.find((s: any) => s.id === segId)
+            if (!seg) return null
+            return (
+              <SegmentOwnership3D 
+                key={segId} 
+                colors={colors} 
+                segment={seg} 
+                rotation={tile.rotation || 0}
+              />
+            )
+          })}
         </group>
       ))}
     </group>

@@ -17,7 +17,10 @@ export function GameBoard() {
     rotateTentativeTile,
     tentativeDragonFacing,
     undoTilePlacement,
+    cancelTilePlacement,
     cancelMeeplePlacement,
+    cancelDragonPlaceTarget,
+    cancelFairyTarget,
     rotateTile,
     cycleDragonFacing,
     placeableSegments,
@@ -48,10 +51,16 @@ export function GameBoard() {
 
       if (e.key === 'Escape') {
         const store = useGameStore.getState()
-        if (state.turnPhase === 'PLACE_MEEPLE') {
-          undoTilePlacement()
+        if (store.interactionState === 'MEEPLE_SELECTED_TENTATIVELY') {
+          store.cancelMeeplePlacement()
+        } else if (store.tentativeFairyTarget) {
+          store.cancelFairyTarget()
+        } else if (store.tentativeDragonPlaceTarget) {
+          store.cancelDragonPlaceTarget()
         } else if (store.interactionState === 'TILE_PLACED_TENTATIVELY') {
-          useGameStore.getState().cancelTilePlacement()
+          store.cancelTilePlacement()
+        } else if (['PLACE_MEEPLE', 'DRAGON_ORIENT', 'DRAGON_PLACE', 'FAIRY_MOVE'].includes(state.turnPhase)) {
+          undoTilePlacement()
         }
       } else if (e.key === 'r' || e.key === 'R') {
         const phase = state.turnPhase
@@ -68,7 +77,7 @@ export function GameBoard() {
     }
     window.addEventListener('keydown', handler)
     return () => window.removeEventListener('keydown', handler)
-  }, [rotateTile, cycleDragonFacing, undoTilePlacement, cameraZoomIn, cameraZoomOut])
+  }, [rotateTile, cycleDragonFacing, undoTilePlacement, cancelMeeplePlacement, cancelTilePlacement, cancelDragonPlaceTarget, cancelFairyTarget, cameraZoomIn, cameraZoomOut])
 
   const currentPlayer = gameState?.players[gameState.currentPlayerIndex]
   const tbData = gameState?.expansionData?.['tradersBuilders'] as { isBuilderBonusTurn?: boolean } | undefined

@@ -1120,12 +1120,33 @@ export function scoreFeatureCompletion(state: GameState, featureId: string): { s
   if (events.length === 0) return { state, event: null }
 
   const event = events[0]
+  
+  // ── Fairy Scoring logic (Dragon & Fairy C3.1) ──
+  const fairyPos = getFairyPosition(state)
+  const feature = state.featureUnionFind.featureData[featureId]
+  let fairyMeepleRemoved = false
+  if (fairyPos && feature) {
+    const { coordinate: fCoord, segmentId: fSegId } = fairyPos
+    const isFairyInFeature = feature.nodes.some(
+      n => n.coordinate.x === fCoord.x && n.coordinate.y === fCoord.y && n.segmentId === fSegId
+    )
+    if (isFairyInFeature) {
+      const fNodeKey = nodeKey(fCoord, fSegId)
+      const meepleNextToFairy = state.boardMeeples[fNodeKey]
+      if (meepleNextToFairy) {
+        // Award 3 points to the owner of that meeple
+        event.scores[meepleNextToFairy.playerId] = (event.scores[meepleNextToFairy.playerId] ?? 0) + 3
+        fairyMeepleRemoved = true
+      }
+    }
+  }
+
   let updatedPlayers = applyScoreEvents(state.players, [event])
   let updatedBoardMeeples = { ...state.boardMeeples }
   let updatedUfState = { ...state.featureUnionFind }
   let updatedBoardTiles = { ...state.board.tiles }
+  let currentState = state
 
-  const feature = state.featureUnionFind.featureData[featureId]
   if (feature) {
     for (const meeple of feature.meeples) {
       const owner = updatedPlayers.find(p => p.id === meeple.playerId)
@@ -1223,15 +1244,21 @@ export function scoreFeatureCompletion(state: GameState, featureId: string): { s
     })
   }
 
+  let finalState = {
+    ...state,
+    players: updatedPlayers,
+    board: { ...state.board, tiles: updatedBoardTiles },
+    boardMeeples: updatedBoardMeeples,
+    featureUnionFind: updatedUfState,
+    completedFeatureIds: state.completedFeatureIds.filter(fid => fid !== featureId),
+  }
+
+  if (fairyMeepleRemoved) {
+    finalState = moveFairyToLocation(finalState, { type: 'OUT_OF_PLAY' })
+  }
+
   return {
-    state: {
-      ...state,
-      players: updatedPlayers,
-      board: { ...state.board, tiles: updatedBoardTiles },
-      boardMeeples: updatedBoardMeeples,
-      featureUnionFind: updatedUfState,
-      completedFeatureIds: state.completedFeatureIds.filter(fid => fid !== featureId),
-    },
+    state: finalState,
     event
   }
 }
@@ -1496,65 +1523,28 @@ export function completeTurnTransition(currentState: GameState, allEvents: Score
   }
 
 
-  // ── Dragon & Fairy: fairy scoring & fairy move opportunity ──────────────
+  // ── Dragon & Fairy: Fairy move opportunity ──────────────
   const dfData = currentState.expansionData['dragonFairy'] as DragonFairyState | undefined
   let dfUpdated: DragonFairyState | undefined
 
   if (dfData) {
     let currentDf = { ...dfData }
-    let fairyPlayers = [...stateAfterBuilderReturn.players]
-    const fairyPos = getFairyPosition(currentState)
-
-    if (fairyPos) {
-      const { coordinate: fCoord, segmentId: fSegId } = fairyPos
-      const fNodeKey = nodeKey(fCoord, fSegId)
-      let fairyScoredThisTurn = false
-
-      for (const event of allEvents) {
-        const feature = stateAfterBuilderReturn.featureUnionFind.featureData[event.featureId]
-        if (!feature) continue
-
-        const fairyInFeature = feature.nodes.some(
-          n => n.coordinate.x === fCoord.x && n.coordinate.y === fCoord.y && n.segmentId === fSegId
-        )
-
-        if (fairyInFeature) {
-          const meeple = stateAfterBuilderReturn.boardMeeples[fNodeKey]
-          if (meeple) {
-            fairyPlayers = fairyPlayers.map(p =>
-              p.id === meeple.playerId ? { ...p, score: p.score + 3 } : p
-            )
-          }
-          fairyScoredThisTurn = true
-          break
-        }
-      }
-
-      if (fairyScoredThisTurn) {
-        stateAfterBuilderReturn = moveFairyToLocation(stateAfterBuilderReturn, { type: 'OUT_OF_PLAY' })
-      }
-    }
-
     const currentPlayer = stateAfterBuilderReturn.players[stateAfterBuilderReturn.currentPlayerIndex]
-    let scoredZeroOnAtLeastOne = false;
+    
+    // Check if the current player scored 0 points for feature completions in their turn
+    // (excluding Fairy bonus itself).
+    const playerFeaturePoints = allEvents.reduce((sum, event) => 
+      sum + (event.scores[currentPlayer.id] ?? 0), 0
+    )
 
-    for (const id of featureIds) {
-      const f = currentState.featureUnionFind.featureData[id];
-      if (f && (f.type === 'ROAD' || f.type === 'CITY')) {
-        const event = allEvents.find(e => e.featureId === id);
-        const points = event?.scores[currentPlayer.id] ?? 0;
-        if (points === 0) {
-          scoredZeroOnAtLeastOne = true;
-          break;
-        }
-      }
-    }
-
-    if (scoredZeroOnAtLeastOne && !currentDf.canMoveFairy) {
+    if (playerFeaturePoints === 0 && !currentDf.canMoveFairy) {
       currentDf.canMoveFairy = true
     }
     dfUpdated = currentDf
-    stateAfterBuilderReturn = { ...stateAfterBuilderReturn, players: fairyPlayers, expansionData: { ...stateAfterBuilderReturn.expansionData, dragonFairy: dfUpdated } }
+    stateAfterBuilderReturn = { 
+      ...stateAfterBuilderReturn, 
+      expansionData: { ...stateAfterBuilderReturn.expansionData, dragonFairy: dfUpdated } 
+    }
   }
 
   const nextExpansionData: Record<string, unknown> = {
