@@ -6,7 +6,8 @@ import {
   createBigMeepleShape, 
   createBuilderShape, 
   createPigShape,
-  createCountShape 
+  createCountShape,
+  createAbbotShape 
 } from './MeepleShapes'
 
 interface Meeple3DProps {
@@ -36,6 +37,7 @@ export function Meeple3D({
       case 'BUILDER': return createBuilderShape()
       case 'BIG': return createBigMeepleShape()
       case 'COUNT': return createCountShape()
+      case 'ABBOT': return createAbbotShape()
       default: return createRegularMeepleShape()
     }
   }, [type])
@@ -46,6 +48,7 @@ export function Meeple3D({
       case 'BUILDER': return MEEPLE_DIMENSIONS.BUILDER
       case 'BIG': return MEEPLE_DIMENSIONS.BIG
       case 'COUNT': return MEEPLE_DIMENSIONS.COUNT
+      case 'ABBOT': return MEEPLE_DIMENSIONS.ABBOT
       default: return MEEPLE_DIMENSIONS.NORMAL
     }
   }, [type])

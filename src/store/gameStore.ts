@@ -852,13 +852,26 @@ export const useGameStore = create<GameStore>()(
                 const existingHasRiver = existing.segments?.some((s: any) => s.type === 'RIVER')
                 const dbHasRiver = dbDef.segments?.some((s: any) => s.type === 'RIVER')
                 const preserveSegments = existingHasRiver && !dbHasRiver
+
+                // Deep merge segments to ensure hasPennant/commodity flags from DB are merged correctly
+                // or preserved from existing if DB is incomplete.
+                const mergedSegments = dbDef.segments.map((dbSeg: any) => {
+                  const existingSeg = existing.segments?.find((s: any) => s.id === dbSeg.id)
+                  return {
+                    ...existingSeg,
+                    ...dbSeg,
+                    // commodity and hasPennant are critical for scoring
+                    commodity: dbSeg.commodity ?? existingSeg?.commodity,
+                    hasPennant: dbSeg.hasPennant ?? existingSeg?.hasPennant,
+                  }
+                })
+
                 merged[id] = {
                   ...existing,
                   ...dbDef,
-                  ...(preserveSegments && {
-                    segments: existing.segments,
-                    edgePositionToSegment: existing.edgePositionToSegment,
-                  }),
+                  segments: preserveSegments ? existing.segments : mergedSegments,
+                  edgePositionToSegment: preserveSegments ? existing.edgePositionToSegment : dbDef.edgePositionToSegment,
+                  adjacencies: dbDef.adjacencies ?? existing.adjacencies,
                   imageConfig: dbDef.imageConfig ?? existing.imageConfig,
                   linkedTiles: dbDef.linkedTiles ?? existing.linkedTiles,
                   flipSideDefinitionId: dbDef.flipSideDefinitionId ?? existing.flipSideDefinitionId,

@@ -77,7 +77,34 @@ function CastReceiver() {
           // Sender strips staticTileMap to stay under Cast's message size limit.
           // Rebuild it from the hardcoded fallback tile definitions.
           const fallback = getFallbackTileMap()
-          gameState.staticTileMap = { ...fallback, ...(gameState.staticTileMap ?? {}) }
+          const incomingMap = gameState.staticTileMap ?? {}
+          
+          const mergedMap: Record<string, any> = { ...fallback }
+          for (const [id, incomingDef] of Object.entries(incomingMap)) {
+             const base = fallback[id]
+             if (base) {
+                // Deep merge critical scoring fields
+                const mergedSegments = incomingDef.segments?.map((inSeg: any) => {
+                   const baseSeg = base.segments?.find((s: any) => s.id === inSeg.id)
+                   return {
+                      ...baseSeg,
+                      ...inSeg,
+                      hasPennant: inSeg.hasPennant ?? baseSeg?.hasPennant,
+                      commodity: inSeg.commodity ?? baseSeg?.commodity
+                   }
+                }) ?? base.segments
+
+                mergedMap[id] = {
+                   ...base,
+                   ...incomingDef,
+                   segments: mergedSegments,
+                   adjacencies: incomingDef.adjacencies ?? base.adjacencies
+                }
+             } else {
+                mergedMap[id] = incomingDef
+             }
+          }
+          gameState.staticTileMap = mergedMap
 
           // Patch imageUrls from sender (fallback editions may lack them)
           const imageUrlMap = message.imageUrlMap as Record<string, string> | undefined

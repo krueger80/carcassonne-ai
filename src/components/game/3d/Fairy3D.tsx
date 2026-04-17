@@ -42,11 +42,11 @@ export function Fairy3D({
           <meshStandardMaterial 
             color="#FFF0F5" 
             emissive="#FFB6C1" 
-            emissiveIntensity={0.8}
+            emissiveIntensity={0.3}
             roughness={0} 
           />
           {/* Glow point light */}
-          <pointLight intensity={2} distance={3} color="#FFB6C1" />
+          <pointLight intensity={0.8} distance={3} color="#FFB6C1" />
         </mesh>
       </group>
     </group>

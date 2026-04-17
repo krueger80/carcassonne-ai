@@ -9,6 +9,7 @@ export const MEEPLE_DIMENSIONS = {
   PIG: { width: 22.11, height: 11.15, depth: 8.01 },
   COUNT: { width: 19.40, height: 29.02, depth: 10.99 },
   FAIRY: { width: 10.62, height: 18.05, depth: 10.11 },
+  ABBOT: { width: 16, height: 19.5, depth: 9.94 },
   DRAGON: { width: 52.80, height: 24.88, depth: 12.03 },
   TILE: { width: 45, height: 45, depth: 2 },
 }
@@ -150,5 +151,32 @@ export function createDragonShape() {
   s.bezierCurveTo(-18.40, 1.56, -26.40, -0.44, -26.40, -4.44)
   s.bezierCurveTo(-26.40, -8.44, -20.40, -8.44, -16.40, -6.44)
   s.bezierCurveTo(-14.40, -8.44, -12.40, -7.44, -10.40, -7.44)
+  return s
+}
+
+export function createAbbotShape() {
+  const s = new THREE.Shape()
+  // Centered: Height is 19.5. Half is 9.75.
+  // We want it to be pointier at the top (mitre).
+  
+  s.moveTo(0.00, -9.75) // Pointy top of the mitre
+  s.bezierCurveTo(1.5, -9.75, 2.40, -8.5, 2.40, -6.5) // Mitre side
+  s.bezierCurveTo(2.40, -5.5, 2.40, -5.5, 2.40, -4.95) // Base of mitre / head top
+  s.bezierCurveTo(4.00, -3.99, 6.88, -2.56, 7.36, -1.99) // Arm
+  s.bezierCurveTo(8.00, -1.44, 8.00, -0.48, 7.52, 0.01)
+  s.bezierCurveTo(6.08, 0.96, 3.52, 0.48, 3.52, 0.48)
+  s.bezierCurveTo(4.00, 3.04, 5.44, 8.5, 5.44, 9.25) // Taller leg
+  s.bezierCurveTo(5.44, 9.75, 4.00, 9.75, 1.92, 9.75)
+  s.lineTo(1.44, 9.75)
+  s.bezierCurveTo(0.48, 7.0, 0.00, 5.5, 0.00, 5.5) // V-split between legs
+  s.bezierCurveTo(0.00, 5.5, -0.48, 7.0, -1.44, 9.75)
+  s.lineTo(-1.92, 9.75)
+  s.bezierCurveTo(-4.00, 9.75, -5.44, 9.75, -5.44, 9.25)
+  s.bezierCurveTo(-5.44, 8.5, -4.00, 3.04, -3.52, 0.48)
+  s.bezierCurveTo(-3.52, 0.48, -6.08, 0.96, -7.52, 0.01)
+  s.bezierCurveTo(-8.00, -0.48, -8.00, -1.44, -7.36, -1.99)
+  s.bezierCurveTo(-6.88, -2.56, -4.00, -3.99, -2.40, -4.95)
+  s.bezierCurveTo(-2.40, -5.5, -2.40, -5.5, -2.40, -6.5)
+  s.bezierCurveTo(-2.40, -8.5, -1.5, -9.75, 0.00, -9.75)
   return s
 }

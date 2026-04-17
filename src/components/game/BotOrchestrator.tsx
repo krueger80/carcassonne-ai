@@ -37,8 +37,25 @@ export function BotOrchestrator() {
 
         // --- Handle Direct / Non-Action Phases ---
         if (latestState.turnPhase === 'RETURN_FARMER') {
-          console.log('[Bot] Skipping Farmer Return')
-          store.resolveFarmerReturn(false)
+          const tbData = latestState.expansionData['tradersBuilders'] as any
+          const queue = tbData?.pendingFarmerReturns as any[]
+          const currentPrompt = queue?.[0]
+          
+          if (currentPrompt) {
+            const promptedPlayer = latestState.players.find((p: any) => p.id === currentPrompt.playerId)
+            if (promptedPlayer?.isBot) {
+              console.log(`[Bot] Auto-resolving farmer return for bot ${promptedPlayer.name}`)
+              store.resolveFarmerReturn(false) // Bots never return farmers mid-game to keep it simple
+            } else {
+              // Human player is being prompted, bot must wait
+              isThinking.current = false
+              return
+            }
+          } else {
+            // Queue empty, but phase is still RETURN_FARMER? Safety resolve.
+            store.resolveFarmerReturn(false)
+          }
+          
           isThinking.current = false
           return
         }
