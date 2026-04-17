@@ -18,9 +18,14 @@ body {
   color: #f0f0f0;
   overflow: hidden;
   touch-action: none;
+  cursor: grab;
 }
 
 #root {
   height: 100%;
   width: 100%;
+}
+
+body.is-dragging, body.is-dragging * {
+  cursor: grabbing !important;
 }

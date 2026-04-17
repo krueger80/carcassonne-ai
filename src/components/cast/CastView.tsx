@@ -5,49 +5,9 @@ import { TileCell } from '../game/TileCell.tsx'
 import { DragonPiece } from '../game/DragonPiece.tsx'
 import { useCastAutoFit } from './useCastAutoFit.ts'
 import { CastScoreboard } from './CastScoreboard.tsx'
-import { getAllFeatures } from '../../core/engine/FeatureDetector.ts'
-import { useUIStore, type TerritoryOverlayMode } from '../../store/uiStore.ts'
-import type { Feature, UnionFindState } from '../../core/types/feature.ts'
-import type { Player } from '../../core/types/player.ts'
+import { useUIStore } from '../../store/uiStore.ts'
 import { type Direction } from '../../core/types/tile.ts'
-import { getDragonPosition, getFairyPosition } from '../../core/engine/GameEngine.ts'
-
-function getControllingColors(feature: Feature, players: Player[]): string[] {
-  if (feature.meeples.length > 0) {
-    const strength: Record<string, number> = {}
-    for (const m of feature.meeples) {
-      strength[m.playerId] = (strength[m.playerId] ?? 0) + (m.meepleType === 'BIG' ? 2 : 1)
-    }
-    const maxStr = Math.max(...Object.values(strength))
-    const topPlayers = Object.keys(strength).filter(id => strength[id] === maxStr)
-    return topPlayers.map(id => players.find(p => p.id === id)?.color).filter(Boolean) as string[]
-  }
-  if (feature.lastOwnerIds?.length) {
-    return feature.lastOwnerIds.map(id => players.find(p => p.id === id)?.color).filter(Boolean) as string[]
-  }
-  return []
-}
-
-function computeSegmentOwnerMap(
-  uf: UnionFindState,
-  players: Player[],
-  mode: TerritoryOverlayMode,
-): Record<string, Record<string, string[]>> {
-  if (mode === 'off') return {}
-  const result: Record<string, Record<string, string[]>> = {}
-  const features = getAllFeatures(uf)
-  for (const feature of features) {
-    if (mode === 'incomplete' && feature.isComplete) continue
-    const colors = getControllingColors(feature, players)
-    if (colors.length === 0) continue
-    for (const node of feature.nodes) {
-      const coordKey = `${node.coordinate.x},${node.coordinate.y}`
-      if (!result[coordKey]) result[coordKey] = {}
-      result[coordKey][node.segmentId] = colors
-    }
-  }
-  return result
-}
+import { getDragonPosition, getFairyPosition, computeSegmentOwnerMap } from '../../core/engine/GameEngine.ts'
 
 const CELL_SIZE = 88
 const BOARD_PADDING = 1  // Minimal padding (display only)

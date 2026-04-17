@@ -1,134 +1,100 @@
 import { useMemo } from 'react'
-import * as THREE from 'three'
+import { 
+  SCALE_FACTOR, 
+  MEEPLE_DIMENSIONS,
+  createRegularMeepleShape, 
+  createBigMeepleShape, 
+  createBuilderShape, 
+  createPigShape,
+  createCountShape 
+} from './MeepleShapes'
 
 interface Meeple3DProps {
-  type: 'NORMAL' | 'BIG' | 'BUILDER' | 'PIG' | 'ABBOT' | 'FARMER'
+  type: 'NORMAL' | 'BIG' | 'BUILDER' | 'PIG' | 'ABBOT' | 'FARMER' | 'COUNT'
   color: string
   isFarmer?: boolean
   position?: [number, number, number]
   rotation?: [number, number, number]
   isTentative?: boolean
-}
-
-function createMeepleShape() {
-  const shape = new THREE.Shape()
-  shape.moveTo(-0.4, 0)
-  shape.lineTo(-0.4, 0.3)
-  shape.lineTo(-0.8, 0.3)
-  shape.lineTo(-0.8, 0.8)
-  shape.lineTo(-0.4, 0.8)
-  shape.lineTo(-0.4, 1.2)
-  shape.bezierCurveTo(-0.4, 1.5, 0.4, 1.5, 0.4, 1.2)
-  shape.lineTo(0.4, 0.8)
-  shape.lineTo(0.8, 0.8)
-  shape.lineTo(0.8, 0.3)
-  shape.lineTo(0.4, 0.3)
-  shape.lineTo(0.4, 0)
-  shape.lineTo(-0.4, 0)
-  return shape
-}
-
-function createAbbotShape() {
-  const shape = new THREE.Shape()
-  shape.moveTo(-0.3, 0)
-  shape.lineTo(-0.3, 0.4)
-  shape.lineTo(-0.6, 0.4)
-  shape.lineTo(-0.6, 0.9)
-  shape.lineTo(-0.3, 0.9)
-  shape.lineTo(-0.3, 1.3)
-  // Abbot mitre (pointy hat)
-  shape.lineTo(0, 1.7)
-  shape.lineTo(0.3, 1.3)
-  shape.lineTo(0.3, 0.9)
-  shape.lineTo(0.6, 0.9)
-  shape.lineTo(0.6, 0.4)
-  shape.lineTo(0.3, 0.4)
-  shape.lineTo(0.3, 0)
-  shape.lineTo(-0.3, 0)
-  return shape
-}
-
-function createBuilderShape() {
-  const shape = new THREE.Shape()
-  // Builder with wide hat
-  shape.moveTo(-0.4, 0)
-  shape.lineTo(-0.4, 0.4)
-  shape.lineTo(-0.7, 0.4)
-  shape.lineTo(-0.7, 0.8)
-  shape.lineTo(-0.9, 0.8) // wide brim
-  shape.lineTo(0.9, 0.8)
-  shape.lineTo(0.7, 0.8)
-  shape.lineTo(0.7, 0.4)
-  shape.lineTo(0.4, 0.4)
-  shape.lineTo(0.4, 0)
-  shape.lineTo(-0.4, 0)
-  return shape
-}
-
-function createPigShape() {
-  const shape = new THREE.Shape()
-  shape.moveTo(-0.8, 0)
-  shape.lineTo(-0.8, 0.5)
-  shape.bezierCurveTo(-0.8, 0.8, -0.5, 1.0, 0, 1.0)
-  shape.bezierCurveTo(0.5, 1.0, 0.8, 0.8, 0.8, 0.5)
-  shape.lineTo(0.8, 0)
-  shape.lineTo(0.5, 0)
-  shape.lineTo(0.5, 0.2)
-  shape.lineTo(-0.5, 0.2)
-  shape.lineTo(-0.5, 0)
-  shape.lineTo(-0.8, 0)
-  return shape
+  onClick?: (e: any) => void
+  onPointerOver?: (e: any) => void
+  onPointerOut?: (e: any) => void
 }
 
 export function Meeple3D({ 
   type, color, isFarmer = false, 
   position = [0, 0, 0], 
   rotation = [0, 0, 0], 
-  isTentative = false 
+  isTentative = false,
+  onClick,
+  onPointerOver,
+  onPointerOut
 }: Meeple3DProps) {
   const shape = useMemo(() => {
     switch (type) {
       case 'PIG': return createPigShape()
-      case 'ABBOT': return createAbbotShape()
       case 'BUILDER': return createBuilderShape()
-      default: return createMeepleShape()
+      case 'BIG': return createBigMeepleShape()
+      case 'COUNT': return createCountShape()
+      default: return createRegularMeepleShape()
     }
   }, [type])
 
-  const scale = type === 'BIG' ? 1.4 : 1.0
+  const dimensions = useMemo(() => {
+    switch (type) {
+      case 'PIG': return MEEPLE_DIMENSIONS.PIG
+      case 'BUILDER': return MEEPLE_DIMENSIONS.BUILDER
+      case 'BIG': return MEEPLE_DIMENSIONS.BIG
+      case 'COUNT': return MEEPLE_DIMENSIONS.COUNT
+      default: return MEEPLE_DIMENSIONS.NORMAL
+    }
+  }, [type])
 
+  const worldScale = SCALE_FACTOR
   const extrudeSettings = useMemo(() => ({
-    depth: 0.4, // 10mm
+    depth: dimensions.depth * SCALE_FACTOR,
     bevelEnabled: true,
     bevelSegments: 2,
     bevelSize: 0.05,
     bevelThickness: 0.05
-  }), [])
+  }), [dimensions])
 
-  // Farmer lies on its back
-  const groupRot: [number, number, number] = isFarmer 
-    ? [rotation[0] - Math.PI / 2, rotation[1], rotation[2]] 
-    : rotation
-  const groupPos: [number, number, number] = isFarmer 
-    ? [position[0], position[1] + 0.2, position[2]]
-    : position
+  const depthUnits = extrudeSettings.depth
+  const heightUnits = dimensions.height * worldScale
+
+  // Grounding logic:
+  // Standing: feet are at World Y = 0 (relative to group)
+  // Farmer: back is at World Y = 0 (relative to group)
+  const verticalOffset = isFarmer ? (depthUnits / 2) : (heightUnits / 2)
 
   return (
-    <group position={groupPos} rotation={groupRot} scale={[scale, scale, scale]}>
-      <mesh 
-        castShadow 
-        receiveShadow 
-        position={[0, 0, -0.2]}
-      >
-        <extrudeGeometry args={[shape, extrudeSettings]} />
-        <meshStandardMaterial 
-          color={color} 
-          roughness={0.5} 
-          metalness={0.1}
-          transparent={isTentative}
-          opacity={isTentative ? 0.5 : 1}
-        />
-      </mesh>
+    // 1. Placement on Board at the segment center
+    <group position={[position[0], position[1] + verticalOffset, position[2]]}>
+      {/* 2. Vertical Axis Spin (Preserves upright or lying posture) */}
+      <group rotation={[0, rotation[1], 0]}>
+        {/* 3. Posture Tilt (Math.PI flips SVG Y-down to stand Y-up, -Math.PI/2 lies on back) */}
+        <group rotation={isFarmer ? [-Math.PI / 2, 0, 0] : [Math.PI, 0, 0]}>
+          {/* 4. Volume Centering: Center the extruded thickness on the origin */}
+          <mesh 
+            castShadow 
+            receiveShadow 
+            position={[0, 0, -depthUnits / 2]}
+            scale={[worldScale, worldScale, 1]}
+            onClick={onClick}
+            onPointerOver={onPointerOver}
+            onPointerOut={onPointerOut}
+          >
+            <extrudeGeometry args={[shape, extrudeSettings]} />
+            <meshStandardMaterial 
+              color={color} 
+              roughness={0.5} 
+              metalness={0.1}
+              transparent={isTentative}
+              opacity={isTentative ? 0.5 : 1}
+            />
+          </mesh>
+        </group>
+      </group>
     </group>
   )
 }

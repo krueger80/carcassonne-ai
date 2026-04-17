@@ -5,7 +5,7 @@ import { useGameStore } from '../../store/gameStore.ts'
 import { useUIStore } from '../../store/uiStore.ts'
 import { GameOverlay } from './GameOverlay.tsx'
 import { BotOrchestrator } from './BotOrchestrator.tsx'
-import { getFairyPosition } from '../../core/engine/GameEngine.ts'
+import { getFairyPosition, getDragonPosition, getDragonHoardTilesOnBoard, getFairyMoveTargets, computeSegmentOwnerMap } from '../../core/engine/GameEngine.ts'
 
 export function GameBoard() {
   const {
@@ -17,7 +17,6 @@ export function GameBoard() {
     rotateTentativeTile,
     tentativeDragonFacing,
     undoTilePlacement,
-    confirmMeeplePlacement,
     cancelMeeplePlacement,
     rotateTile,
     cycleDragonFacing,
@@ -26,9 +25,18 @@ export function GameBoard() {
     tentativeMeepleType,
     tentativeSecondaryMeepleType,
     selectMeeplePlacement,
+    fairyMoveTargets,
+    moveFairy,
+    dragonPlaceTargets,
+    placeDragonOnHoard,
+    tentativeFairyTarget,
+    tentativeDragonPlaceTarget,
+    selectFairyTarget,
+    selectDragonPlaceTarget,
+    magicPortalTargets,
   } = useGameStore()
 
-  const { hoveredCoord, territoryOverlay, selectedMeepleType } = useUIStore()
+  const { hoveredCoord, territoryOverlay, selectedMeepleType, cameraZoomIn, cameraZoomOut, cameraReset } = useUIStore()
 
   // ── Keyboard shortcuts ──────────────────────────────────────────────────────
   useEffect(() => {
@@ -52,11 +60,15 @@ export function GameBoard() {
         } else {
           rotateTile()
         }
+      } else if (e.key === '+') {
+        cameraZoomIn()
+      } else if (e.key === '-') {
+        cameraZoomOut()
       }
     }
     window.addEventListener('keydown', handler)
     return () => window.removeEventListener('keydown', handler)
-  }, [rotateTile, cycleDragonFacing, undoTilePlacement])
+  }, [rotateTile, cycleDragonFacing, undoTilePlacement, cameraZoomIn, cameraZoomOut])
 
   const currentPlayer = gameState?.players[gameState.currentPlayerIndex]
   const tbData = gameState?.expansionData?.['tradersBuilders'] as { isBuilderBonusTurn?: boolean } | undefined
@@ -66,11 +78,20 @@ export function GameBoard() {
 
   const validSet = useMemo(() => new Set(validPlacements.map(c => `${c.x},${c.y}`)), [validPlacements])
 
+  // Sync targets on phase transition
+  useEffect(() => {
+    if (!gameState) return
+    const store = useGameStore.getState()
+    if (gameState.turnPhase === 'DRAGON_PLACE' && store.dragonPlaceTargets.length === 0) {
+      useGameStore.setState({ dragonPlaceTargets: getDragonHoardTilesOnBoard(gameState) })
+    }
+    if (gameState.turnPhase === 'FAIRY_MOVE' && store.fairyMoveTargets.length === 0) {
+      useGameStore.setState({ fairyMoveTargets: getFairyMoveTargets(gameState) })
+    }
+  }, [gameState?.turnPhase, gameState])
+
   const fairyPos = getFairyPosition(gameState)
-  const dragonPos = useMemo(() => {
-    const dfData = gameState.expansionData?.['dragonFairy'] as any
-    return dfData?.dragonPosition || null
-  }, [gameState])
+  const dragonPos = getDragonPosition(gameState)
 
   const isDragonOrientPhase = gameState.turnPhase === 'DRAGON_ORIENT'
   const dragonFacing = isDragonOrientPhase 
@@ -92,6 +113,11 @@ export function GameBoard() {
     selectTilePlacement(coord)
   }, [gameState?.turnPhase, gameState?.lastPlacedCoord, undoTilePlacement, selectTilePlacement])
 
+  const segmentOwnerMap = useMemo(() => {
+    if (!gameState.featureUnionFind || territoryOverlay === 'off') return {}
+    return computeSegmentOwnerMap(gameState.featureUnionFind, gameState.players, territoryOverlay)
+  }, [gameState.featureUnionFind, gameState.players, territoryOverlay])
+
   return (
     <div className="w-full h-full bg-[#0a0a0a]" style={{ width: '100vw', height: '100vh', position: 'relative', overflow: 'hidden' }}>
       <div style={{ position: 'absolute', inset: 0 }}>
@@ -104,7 +130,6 @@ export function GameBoard() {
           currentPlayer={currentPlayer}
           rotateTentativeTile={handleRotateTentativeTile}
           selectTilePlacement={handleSelectTilePlacement}
-          onConfirmMeeple={confirmMeeplePlacement}
           onCancelMeeple={cancelMeeplePlacement}
           dragonPos={dragonPos}
           dragonFacing={dragonFacing || 0}
@@ -115,6 +140,18 @@ export function GameBoard() {
           tentativeMeepleType={tentativeMeepleType}
           tentativeSecondaryMeepleType={tentativeSecondaryMeepleType}
           selectMeeplePlacement={selectMeeplePlacement}
+          fairyMoveTargets={fairyMoveTargets}
+          moveFairy={moveFairy}
+          dragonPlaceTargets={dragonPlaceTargets}
+          placeDragonOnHoard={placeDragonOnHoard}
+          cycleDragonFacing={cycleDragonFacing}
+          tentativeFairyTarget={tentativeFairyTarget}
+          selectFairyTarget={selectFairyTarget}
+          tentativeDragonPlaceTarget={tentativeDragonPlaceTarget}
+          selectDragonPlaceTarget={selectDragonPlaceTarget}
+          magicPortalTargets={magicPortalTargets}
+          territoryMode={territoryOverlay}
+          segmentOwnerMap={segmentOwnerMap}
         />
       </div>
 
@@ -124,11 +161,33 @@ export function GameBoard() {
         right: 16,
         display: 'flex',
         flexDirection: 'column',
-        gap: 4,
-        opacity: 0.7,
+        gap: 8,
+        opacity: 0.9,
         pointerEvents: 'auto',
         zIndex: 100,
       }}>
+        <button
+          onClick={() => cameraZoomIn()}
+          style={btnStyle}
+          title="Zoom In"
+        >
+          ＋
+        </button>
+        <button
+          onClick={() => cameraZoomOut()}
+          style={btnStyle}
+          title="Zoom Out"
+        >
+          －
+        </button>
+        <button
+          onClick={() => cameraReset()}
+          style={{...btnStyle, fontSize: 14}}
+          title="Reset View"
+        >
+          🏠
+        </button>
+        <div style={{ height: 4 }} />
         <button
           onClick={() => useUIStore.getState().cycleTerritoryOverlay()}
           style={btnStyle}

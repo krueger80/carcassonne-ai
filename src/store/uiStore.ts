@@ -1,5 +1,6 @@
 import { create } from 'zustand'
 import type { MeepleType } from '../core/types/player.ts'
+import type { TerritoryOverlayMode } from '../core/types/game.ts'
 
 interface ScorePopup {
   id: string
@@ -20,8 +21,6 @@ export interface FlyingElement {
   meepleType?: MeepleType
 }
 
-export type TerritoryOverlayMode = 'off' | 'incomplete' | 'all'
-
 interface UIStore {
   boardScale: number
   boardOffset: { x: number; y: number }
@@ -34,6 +33,7 @@ interface UIStore {
   isManualInteraction: boolean
   toastMessage: string | null
   tileButtonPos: { x: number; y: number } | null
+  cameraAction: { type: 'NONE' | 'ZOOM_IN' | 'ZOOM_OUT' | 'RESET', timestamp: number }
   cycleTerritoryOverlay: () => void
   setIsManualInteraction: (isManual: boolean) => void
 
@@ -46,6 +46,9 @@ interface UIStore {
   removeFlyingElement: (id: string) => void
   toggleDevGallery: () => void
   resetView: () => void
+  cameraZoomIn: () => void
+  cameraZoomOut: () => void
+  cameraReset: () => void
   setSelectedMeepleType: (type: MeepleType) => void
   showToast: (message: string, durationMs?: number) => void
   dismissToast: () => void
@@ -65,6 +68,7 @@ export const useUIStore = create<UIStore>((set) => ({
   isManualInteraction: false,
   toastMessage: null,
   tileButtonPos: null,
+  cameraAction: { type: 'NONE', timestamp: 0 },
   cycleTerritoryOverlay: () => set((s) => {
     const next: TerritoryOverlayMode =
       s.territoryOverlay === 'off' ? 'incomplete'
@@ -100,6 +104,10 @@ export const useUIStore = create<UIStore>((set) => ({
   toggleDevGallery: () => set((s) => ({ showDevGallery: !s.showDevGallery })),
 
   resetView: () => set({ boardScale: 1, boardOffset: { x: 0, y: 0 } }),
+
+  cameraZoomIn: () => set({ cameraAction: { type: 'ZOOM_IN', timestamp: Date.now() } }),
+  cameraZoomOut: () => set({ cameraAction: { type: 'ZOOM_OUT', timestamp: Date.now() } }),
+  cameraReset: () => set({ cameraAction: { type: 'RESET', timestamp: Date.now() } }),
 
   setSelectedMeepleType: (type) => set({ selectedMeepleType: type }),
 

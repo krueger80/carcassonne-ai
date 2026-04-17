@@ -244,18 +244,6 @@ export function PlayerCard({ player, isCurrentTurn, isBuilderBonusTurn = false, 
                 )}
             </div>
 
-            {/* 2. Instruction Banner (Active only) */}
-            {isCurrentTurn && turnState && (
-                <div style={{
-                    fontSize: 13, color: '#ddd',
-                    background: isBuilderBonusTurn ? `${color}12` : 'rgba(255,255,255,0.05)',
-                    padding: '6px 10px', borderRadius: 6,
-                    borderLeft: `2px solid ${isBuilderBonusTurn ? color : '#777'}`
-                }}>
-                    {turnState.instructionText}
-                </div>
-            )}
-
             {/* 3. Main Content: Split columns if we have a tile preview */}
             {(() => {
                 const showTilePreview = isCurrentTurn && 
@@ -494,28 +482,6 @@ export function PlayerCard({ player, isCurrentTurn, isBuilderBonusTurn = false, 
                         </>
                     )}
                     {/* PLACE_MEEPLE buttons are shown floating near the tile */}
-                    {turnState.phase === 'DRAGON_ORIENT' && turnState.actions.confirmDragonOrientation && (
-                        <>
-                            <Button onClick={turnState.actions.cycleDragonFacing!} style={{ flex: 1 }}>↻ {t('game.cycle')}</Button>
-                            <Button
-                                onClick={turnState.actions.confirmDragonOrientation}
-                                primary
-                                style={{ flex: 1 }}
-                                disabled={!turnState.tentativeDragonFacing}
-                            >
-                                {turnState.dragonMovesRemaining && turnState.dragonMovesRemaining > 0 ? t('game.confirmAndMove') : t('game.confirm')}
-                            </Button>
-                            {turnState.canUndo && (
-                                <Button
-                                    onClick={turnState.actions.undo!}
-                                    danger
-                                    style={{ flex: 1 }}
-                                >
-                                    {t('game.undoTile')}
-                                </Button>
-                            )}
-                        </>
-                    )}
                     {turnState.phase === 'DRAGON_PLACE' && turnState.dragonPlaceTargets && turnState.dragonPlaceTargets.length > 0 && (
                         <div style={{ fontSize: 12, color: '#e74c3c', textAlign: 'center', flex: 1, padding: '6px 0' }}>
                             🐉 {t('game.clickDragonHoard')}
@@ -527,7 +493,7 @@ export function PlayerCard({ player, isCurrentTurn, isBuilderBonusTurn = false, 
                     {turnState.phase === 'FAIRY_MOVE' && (
                         <div style={{ display: 'flex', gap: 8, flex: 1 }}>
                             {turnState.actions.cancelMeeple && (
-                                <Button onClick={turnState.actions.cancelMeeple} danger style={{ flex: 1 }}>{t('game.cancelBtn')}</Button>
+                                <Button onClick={turnState.actions.cancelMeeple} danger style={{ flex: 1 }}>{t('game.undoBtn')}</Button>
                             )}
                             {turnState.actions.skipFairy && (
                                 <Button onClick={turnState.actions.skipFairy} style={{ flex: 1 }}>{t('game.skipFairy')}</Button>
@@ -536,7 +502,6 @@ export function PlayerCard({ player, isCurrentTurn, isBuilderBonusTurn = false, 
                     )}
                 </div>
             )}
-
         </div>
     );
 }

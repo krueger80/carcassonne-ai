@@ -39,7 +39,7 @@ describe('Traders & Builders C3.1 Edition', () => {
         const tileDef = state.staticTileMap['base2_U']
         const roadSegment = tileDef!.segments.find(s => s.type === 'ROAD')!.id
 
-        state = placeMeeple(state, roadSegment, 'NORMAL', 'BUILDER')
+        state = placeMeeple(state, { x: 1, y: 0 }, roadSegment, 'NORMAL', 'BUILDER')
 
         expect(state.players[0].meeples.available.NORMAL).toBe(6) // 7 - 1
         expect(state.players[0].meeples.available.BUILDER).toBe(0) // 1 - 1

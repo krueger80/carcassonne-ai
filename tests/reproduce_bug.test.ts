@@ -30,7 +30,7 @@ describe('Meeple Placement Bug Reproduction', () => {
         state = placeTile(state, { x: -1, y: 0 })
 
         // Alice places NORMAL + BUILDER on city0
-        state = placeMeeple(state, 'city0', 'NORMAL', 'BUILDER')
+        state = placeMeeple(state, { x: -1, y: 0 }, 'city0', 'NORMAL', 'BUILDER')
         state = endTurn(state)
 
         // Bob's turn
@@ -77,7 +77,7 @@ describe('Meeple Placement Bug Reproduction', () => {
             currentTile: { definitionId: 'tb31_O', rotation: 180 }
         }
         state = placeTile(state, { x: 0, y: -1 })
-        state = placeMeeple(state, 'city0', 'NORMAL', 'BUILDER')
+        state = placeMeeple(state, { x: 0, y: -1 }, 'city0', 'NORMAL', 'BUILDER')
         state = endTurn(state)
 
         // Bob's turn
@@ -99,7 +99,7 @@ describe('Meeple Placement Bug Reproduction', () => {
             state.featureUnionFind,
             state.staticTileMap,
             state.board,
-            { x: 1, y: -1 },
+            [{ x: 1, y: -1 }],
             bobPlayer
         )
 

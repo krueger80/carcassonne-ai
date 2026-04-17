@@ -1,7 +1,7 @@
 import { useTranslation } from 'react-i18next'
 import { useGameStore } from '../../store/gameStore.ts'
 import { useUIStore } from '../../store/uiStore.ts'
-import { getPotentialPlacementsForState, getValidMeepleTypes } from '../../core/engine/GameEngine.ts'
+import { getPotentialPlacementsForState, getValidMeepleTypes, getDragonHeldBy } from '../../core/engine/GameEngine.ts'
 import { getFallbackTileMap } from '../../services/tileRegistry.ts'
 import { motion, AnimatePresence } from 'framer-motion'
 import { useEffect, useState, useMemo } from 'react'
@@ -54,6 +54,12 @@ export function GameOverlay() {
         flipTile,
         validPlacements,
         retrieveAbbot: storeRetrieveAbbot,
+        tentativeFairyTarget,
+        confirmFairyMove,
+        cancelFairyTarget,
+        tentativeDragonPlaceTarget,
+        confirmDragonPlace,
+        cancelDragonPlaceTarget,
     } = useGameStore()
 
     const { selectedMeepleType, setSelectedMeepleType, tileButtonPos } = useUIStore()
@@ -65,7 +71,18 @@ export function GameOverlay() {
 
     // Reset meeple type selection when turn changes
     useEffect(() => {
-        setSelectedMeepleType('NORMAL')
+        if (!gameState) return
+        const validTypes = getValidMeepleTypes(gameState)
+        if (validTypes.length > 0) {
+            // Prefer NORMAL if it's valid, otherwise pick first available
+            if (validTypes.includes('NORMAL')) {
+                setSelectedMeepleType('NORMAL')
+            } else {
+                setSelectedMeepleType(validTypes[0])
+            }
+        } else {
+            setSelectedMeepleType('NORMAL')
+        }
     }, [gameState?.currentPlayerIndex, setSelectedMeepleType])
 
     useEffect(() => {
@@ -118,6 +135,7 @@ export function GameOverlay() {
     const isBuilderBonusTurn = tbData?.isBuilderBonusTurn ?? false
     const useModernRules = tbData?.useModernRules ?? false
     const dfData = gameState.expansionData?.['dragonFairy'] as any
+    const hasDragonHeldBy = getDragonHeldBy(gameState)
 
     const pendingFarmerReturns = tbData?.pendingFarmerReturns as any[]
     const activeFarmerPrompt = turnPhase === 'RETURN_FARMER' && pendingFarmerReturns && pendingFarmerReturns.length > 0 ? pendingFarmerReturns[0] : null
@@ -217,6 +235,36 @@ export function GameOverlay() {
 
     return (
         <div style={{ position: 'absolute', inset: 0, pointerEvents: 'none', overflow: 'hidden', userSelect: 'none', WebkitUserSelect: 'none' }}>
+            {/* ── Top Center Instruction Banner ── */}
+            <AnimatePresence>
+                {instructionText && !showScoreboard && !isMenuOpen && !showNewGameScreen && (
+                    <motion.div
+                        initial={{ opacity: 0, y: -20 }}
+                        animate={{ opacity: 1, y: 0 }}
+                        exit={{ opacity: 0, y: -20 }}
+                        style={{
+                            position: 'absolute',
+                            top: 20,
+                            left: '50%',
+                            transform: 'translateX(-50%)',
+                            background: 'rgba(20, 25, 35, 0.9)',
+                            border: `2px solid ${currentPlayer.color || '#555'}`,
+                            borderRadius: 12,
+                            padding: '8px 24px',
+                            color: '#fff',
+                            fontSize: 16,
+                            fontWeight: 'bold',
+                            zIndex: 60,
+                            pointerEvents: 'none',
+                            backdropFilter: 'blur(4px)',
+                            boxShadow: `0 4px 15px rgba(0,0,0,0.5), 0 0 10px ${currentPlayer.color}40`
+                        }}
+                    >
+                        {instructionText}
+                    </motion.div>
+                )}
+            </AnimatePresence>
+
             {/* ── Bonus Turn Banner ── */}
             <AnimatePresence>
                 {isBuilderBonusTurn && (
@@ -342,6 +390,7 @@ export function GameOverlay() {
                                     hasTradersBuilders={hasTradersBuilders} 
                                     hasInnsCathedrals={hasInnsCathedrals} 
                                     hasAbbot={hasAbbot} 
+                                    hasDragonHeldBy={hasDragonHeldBy}
                                     turnState={p.id === currentPlayer.id ? currentPlayerTurnState : undefined} 
                                 />
                             </motion.div>
@@ -354,10 +403,9 @@ export function GameOverlay() {
             {tileButtonPos && !currentPlayer?.isBot && (
                 <div style={{ 
                     position: 'absolute', 
-                    left: tileButtonPos.x, 
-                    top: tileButtonPos.y + 30, 
-                    transform: 'translateX(-50%)', 
-                    display: 'flex', 
+                    left: tileButtonPos.x,
+                    top: tileButtonPos.y + 40,
+                    transform: 'translateX(-50%)',                    display: 'flex', 
                     gap: 10, 
                     zIndex: 100, 
                     pointerEvents: 'auto',
@@ -367,12 +415,32 @@ export function GameOverlay() {
                     backdropFilter: 'blur(4px)',
                     border: '1px solid rgba(255, 255, 255, 0.1)'
                 }}>
-                    {(interactionState === 'TILE_PLACED_TENTATIVELY' || interactionState === 'MEEPLE_SELECTED_TENTATIVELY') ? (
+                    {(interactionState === 'TILE_PLACED_TENTATIVELY' || interactionState === 'MEEPLE_SELECTED_TENTATIVELY' || (turnPhase === 'FAIRY_MOVE' && tentativeFairyTarget) || (turnPhase === 'DRAGON_PLACE' && tentativeDragonPlaceTarget)) ? (
                         <>
-                            <button onClick={interactionState === 'TILE_PLACED_TENTATIVELY' ? confirmTilePlacement : confirmMeeplePlacement} style={floatingBtnStyle('#27ae60', '#1e8449')}>{t('game.confirmBtn')}</button>
-                            <button onClick={interactionState === 'TILE_PLACED_TENTATIVELY' ? cancelTilePlacement : cancelMeeplePlacement} style={floatingBtnStyle('#c0392b', '#922b21')}>{t('game.cancelActionBtn')}</button>
+                            <button 
+                                onClick={
+                                    interactionState === 'TILE_PLACED_TENTATIVELY' ? confirmTilePlacement : 
+                                    interactionState === 'MEEPLE_SELECTED_TENTATIVELY' ? confirmMeeplePlacement :
+                                    turnPhase === 'FAIRY_MOVE' ? confirmFairyMove :
+                                    confirmDragonPlace
+                                } 
+                                style={floatingBtnStyle('#27ae60', '#1e8449')}
+                            >
+                                {t('game.confirmBtn')}
+                            </button>
+                            <button 
+                                onClick={
+                                    interactionState === 'TILE_PLACED_TENTATIVELY' ? cancelTilePlacement : 
+                                    interactionState === 'MEEPLE_SELECTED_TENTATIVELY' ? cancelMeeplePlacement :
+                                    turnPhase === 'FAIRY_MOVE' ? cancelFairyTarget :
+                                    cancelDragonPlaceTarget
+                                } 
+                                style={floatingBtnStyle('#c0392b', '#922b21')}
+                            >
+                                {t('game.cancelActionBtn')}
+                            </button>
                         </>
-                    ) : turnPhase === 'PLACE_MEEPLE' && (
+                    ) : turnPhase === 'PLACE_MEEPLE' ? (
                         <>
                             <button onClick={undoTilePlacement} style={floatingBtnStyle('#c0392b', '#922b21')}>{t('game.undoBtn')}</button>
                             <button onClick={skipMeeple} style={floatingBtnStyle('#7f8c8d', '#606c6d')}>➜ {t('game.skip')}</button>
@@ -388,7 +456,30 @@ export function GameOverlay() {
                                 )
                             })()}
                         </>
-                    )}
+                    ) : turnPhase === 'DRAGON_ORIENT' && confirmDragonOrientation ? (
+                        <>
+                            <button onClick={cycleDragonFacing!} style={floatingBtnStyle('#3498db', '#2980b9')}>↻ {t('game.cycle')}</button>
+                            <button
+                                onClick={confirmDragonOrientation}
+                                style={{
+                                    ...floatingBtnStyle('#27ae60', '#1e8449'),
+                                    opacity: !tentativeDragonFacing ? 0.5 : 1,
+                                    cursor: !tentativeDragonFacing ? 'not-allowed' : 'pointer'
+                                }}
+                                disabled={!tentativeDragonFacing}
+                            >
+                                {dfData?.dragonMovement?.movesRemaining && dfData.dragonMovement.movesRemaining > 0 ? t('game.confirmAndMove') : t('game.confirm')}
+                            </button>
+                            {(turnPhase === 'DRAGON_ORIENT' && !dfData?.dragonMovement && !!gameState.lastPlacedCoord) && (
+                                <button
+                                    onClick={undoTilePlacement!}
+                                    style={floatingBtnStyle('#c0392b', '#922b21')}
+                                >
+                                    {t('game.undoTile')}
+                                </button>
+                            )}
+                        </>
+                    ) : null}
                 </div>
             )}
         </div>

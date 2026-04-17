@@ -34,6 +34,7 @@ export interface BotAction {
     rotation: Rotation
   }
   meeplePlacement?: {
+    coordinate: Coordinate
     segmentId: string
     meepleType: MeepleType
   } | null // null means skip
@@ -169,16 +170,19 @@ export function computeBestMove(state: GameState, difficulty: 'easy' | 'medium' 
     const availableSegments = getAvailableSegmentsForMeeple(simTileState)
     const availableTypes = getValidMeepleTypes(simTileState)
 
-    for (const seg of availableSegments) {
+    for (const nk of availableSegments) {
+      const [coordStr, segId] = nk.split(':')
+      const [x, y] = coordStr.split(',').map(Number)
+      const coord = { x, y }
       for (const type of availableTypes) {
-        meepleOptions.push({ segmentId: seg, meepleType: type })
+        meepleOptions.push({ coordinate: coord, segmentId: segId, meepleType: type })
       }
     }
 
     for (const meepleMove of meepleOptions) {
       let simFinalState = simTileState
       if (meepleMove) {
-        simFinalState = placeMeeple(simFinalState, meepleMove.segmentId, meepleMove.meepleType)
+        simFinalState = placeMeeple(simFinalState, meepleMove.coordinate, meepleMove.segmentId, meepleMove.meepleType)
       } else {
         simFinalState = skipMeeple(simFinalState)
       }

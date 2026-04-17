@@ -6,6 +6,8 @@ import type { UnionFindState } from './feature.ts'
 
 export type GamePhase = 'SETUP' | 'PLAYING' | 'END'
 
+export type TerritoryOverlayMode = 'off' | 'incomplete' | 'all'
+
 export type TurnPhase =
   | 'DRAW_TILE'
   | 'PLACE_TILE'

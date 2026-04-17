@@ -5,7 +5,9 @@
  * No side effects, no UI dependencies — fully unit-testable.
  */
 
-import type { GameState, ScoreEvent, PieceState, PieceLocation } from '../types/game.ts'
+import { getAllFeatures } from './FeatureDetector.ts'
+import { type TerritoryOverlayMode, type GameState, type ScoreEvent, type PieceState, type PieceLocation } from '../types/game.ts'
+import { type Feature, type UnionFindState } from '../types/feature.ts'
 import { type Coordinate, coordKey, emptyBoard, keyToCoord, type PlacedTile, type MeeplePlacement } from '../types/board.ts'
 import type { TileDefinition, TileInstance, Rotation, Direction } from '../types/tile.ts'
 import { type Player, type MeepleType, availableMeepleCount } from '../types/player.ts'
@@ -888,15 +890,12 @@ function applyMeeplePlacement(
 
 export function placeMeeple(
   state: GameState,
+  coord: Coordinate,
   segmentId: string,
   meepleType: MeepleType = 'NORMAL',
   secondaryMeepleType?: 'PIG' | 'BUILDER',
 ): GameState {
   if (state.turnPhase !== 'PLACE_MEEPLE' || !state.currentTile) return state
-
-  // Find the coordinate of the just-placed tile (last tile placed before meeple phase)
-  const lastCoord = state.lastPlacedCoord ?? findLastPlacedCoord(state)
-  if (!lastCoord) return state
 
   const player = state.players[state.currentPlayerIndex]
 
@@ -911,8 +910,8 @@ export function placeMeeple(
   }
 
   const isValid = isStandaloneSpecial
-    ? canPlaceBuilderOrPig(state.featureUnionFind, player, lastCoord, segmentId, meepleType as 'BUILDER' | 'PIG', getDragonPosition(state))
-    : canPlaceMeeple(state.featureUnionFind, player, lastCoord, segmentId, meepleType, getDragonPosition(state))
+    ? canPlaceBuilderOrPig(state.featureUnionFind, player, coord, segmentId, meepleType as 'BUILDER' | 'PIG', getDragonPosition(state))
+    : canPlaceMeeple(state.featureUnionFind, player, coord, segmentId, meepleType, getDragonPosition(state))
 
   if (!isValid) {
     return state  // invalid meeple placement
@@ -923,7 +922,10 @@ export function placeMeeple(
     if (meepleType !== 'NORMAL' && meepleType !== 'BIG') return state
     if (availableMeepleCount(player, secondaryMeepleType) <= 0) return state
 
-    const def = state.staticTileMap[state.currentTile.definitionId]
+    const tileKey = coordKey(coord)
+    const tile = state.board.tiles[tileKey]
+    if (!tile) return state
+    const def = state.staticTileMap[tile.definitionId]
     const segment = def?.segments.find(s => s.id === segmentId)
     if (!segment) return state
 
@@ -931,7 +933,7 @@ export function placeMeeple(
     if (secondaryMeepleType === 'BUILDER' && (segment.type !== 'CITY' && segment.type !== 'ROAD')) return state
   }
 
-  return applyMeeplePlacement(state, lastCoord, segmentId, meepleType, secondaryMeepleType)
+  return applyMeeplePlacement(state, coord, segmentId, meepleType, secondaryMeepleType)
 }
 
 /**
@@ -1871,7 +1873,44 @@ export function getAvailableSegmentsForMeeple(state: GameState): string[] {
   if (!lastCoord) return []
 
   const player = state.players[state.currentPlayerIndex]
-  return getPlaceableSegments(state.featureUnionFind, state.staticTileMap, state.board, lastCoord, player, getDragonPosition(state))
+  const tile = state.board.tiles[coordKey(lastCoord)]
+  if (!tile) return []
+  
+  const def = state.staticTileMap[tile.definitionId]
+  const footprintCoords = [lastCoord]
+  if (def && def.linkedTiles) {
+    for (const link of def.linkedTiles) {
+      const { dx, dy } = getRotatedOffset(link.dx, link.dy, tile.rotation)
+      footprintCoords.push({ x: lastCoord.x + dx, y: lastCoord.y + dy })
+    }
+  }
+
+  return getPlaceableSegments(state.featureUnionFind, state.staticTileMap, state.board, footprintCoords, player, getDragonPosition(state))
+}
+
+/**
+ * Check if the current player can perform ANY meeple placement action (normal, portal, fairy, abbot).
+ */
+export function hasValidMeepleActions(state: GameState): boolean {
+  if (state.turnPhase !== 'PLACE_MEEPLE') return false
+
+  const player = state.players[state.currentPlayerIndex]
+  if (!player) return false
+
+  // 1. Normal meeple placement
+  if (getAvailableSegmentsForMeeple(state).length > 0) return true
+
+  // 2. Magic portal placement (if any available meeples and portal targets)
+  if (isMagicPortalTile(state) && getMagicPortalPlacements(state).length > 0) return true
+
+  // 3. Fairy move (only if the player has at least one meeple on board to receive it)
+  const dfData = getDfState(state)
+  if (dfData?.canMoveFairy && getFairyMoveTargets(state).length > 0) return true
+
+  // 4. Abbot retrieval (if the player has an abbot on the board)
+  if (player.meeples.onBoard.some(nk => state.boardMeeples[nk]?.meepleType === 'ABBOT')) return true
+
+  return false
 }
 
 // ─── Private helpers ──────────────────────────────────────────────────────────
@@ -1901,7 +1940,7 @@ function findLastPlacedCoord(state: GameState): Coordinate | null {
 
 // ─── Dragon & Fairy functions ──────────────────────────────────────────────
 
-const DIRECTION_DELTAS: Record<Direction, { dx: number; dy: number }> = {
+const DRAGON_DIRECTION_DELTAS: Record<Direction, { dx: number; dy: number }> = {
   NORTH: { dx: 0, dy: -1 },
   EAST: { dx: 1, dy: 0 },
   SOUTH: { dx: 0, dy: 1 },
@@ -1926,7 +1965,7 @@ export function getValidDragonOrientations(state: GameState): Direction[] {
   // Step 1: directions with an adjacent tile
   const adjacentDirs: Direction[] = []
   for (const dir of ['NORTH', 'EAST', 'SOUTH', 'WEST'] as Direction[]) {
-    const { dx, dy } = DIRECTION_DELTAS[dir]
+    const { dx, dy } = DRAGON_DIRECTION_DELTAS[dir]
     if (state.board.tiles[coordKey({ x: pos.x + dx, y: pos.y + dy })]) {
       adjacentDirs.push(dir)
     }
@@ -1937,13 +1976,12 @@ export function getValidDragonOrientations(state: GameState): Direction[] {
   // Step 2: of those, which have a meeple in unbroken LoS?
   const dirsWithMeeple: Direction[] = []
   for (const dir of adjacentDirs) {
-    const { dx, dy } = DIRECTION_DELTAS[dir]
+    const { dx, dy } = DRAGON_DIRECTION_DELTAS[dir]
     let x = pos.x + dx
     let y = pos.y + dy
 
     while (state.board.tiles[coordKey({ x, y })]) {
-      const tileKey = coordKey({ x, y })
-      const hasMeeple = Object.keys(state.boardMeeples).some(k => k.startsWith(tileKey + ':'))
+      const hasMeeple = Object.values(state.boardMeeples).some(bm => bm.coordinate.x === x && bm.coordinate.y === y)
       if (hasMeeple) {
         dirsWithMeeple.push(dir)
         break
@@ -1993,11 +2031,16 @@ export function orientDragon(state: GameState, direction: Direction): GameState 
   }
 
   // Fallback for Dragon Hoard or other orientation triggers
-  return {
+  const nextState: GameState = {
     ...state,
-    turnPhase: 'SCORE',
+    turnPhase: 'PLACE_MEEPLE',
     expansionData: { ...state.expansionData, dragonFairy: updatedDf },
   }
+
+  if (!hasValidMeepleActions(nextState)) {
+    return skipMeeple(nextState)
+  }
+  return nextState
 }
 
 /**
@@ -2007,7 +2050,7 @@ export function getDragonHoardTilesOnBoard(state: GameState): Coordinate[] {
   const coords: Coordinate[] = []
   for (const [key, tile] of Object.entries(state.board.tiles)) {
     const def = state.staticTileMap[tile.definitionId]
-    if (def?.isDragonHoard) {
+    if (def?.isDragonHoard || (def as any)?.isVolcano) {
       coords.push(keyToCoord(key))
     }
   }
@@ -2056,7 +2099,7 @@ export function executeDragonTileStep(state: GameState): { state: GameState; eat
   const dragonPos = getDragonPosition(state)
   if (!dragonPos || !dfData?.dragonMovement || !dfData.dragonFacing) return null
 
-  const { dx, dy } = DIRECTION_DELTAS[dfData.dragonFacing]
+  const { dx, dy } = DRAGON_DIRECTION_DELTAS[dfData.dragonFacing]
   const nextX = dragonPos.x + dx
   const nextY = dragonPos.y + dy
   const nextKey = coordKey({ x: nextX, y: nextY })
@@ -2181,7 +2224,7 @@ export function executeDragonMovement(state: GameState): GameState {
   const fairyPos = getFairyPosition(state)
 
   // 1. Move straight forward tile by tile until no more tiles or fairy hit
-  const { dx, dy } = DIRECTION_DELTAS[dragonFacing]
+  const { dx, dy } = DRAGON_DIRECTION_DELTAS[dragonFacing]
   let x = dragonPos.x + dx
   let y = dragonPos.y + dy
 
@@ -2548,10 +2591,10 @@ export function getMagicPortalPlacements(state: GameState): { coordinate: Coordi
     const coord = keyToCoord(tileKey)
 
     // Reuse unified logic for segment availability
-    const segmentsOnTile = getPlaceableSegments(state.featureUnionFind, state.staticTileMap, state.board, coord, player, dragonPos)
+    const segmentsOnTile = getPlaceableSegments(state.featureUnionFind, state.staticTileMap, state.board, [coord], player, dragonPos)
 
-    for (const segmentId of segmentsOnTile) {
-      const nKey = nodeKey(coord, segmentId)
+    for (const nKey of segmentsOnTile) {
+      const segmentId = nKey.split(':')[1]
       const feature = getFeature(state.featureUnionFind, nKey)
 
       // Magic Portal specific rule: feature must not be completed.
@@ -2634,6 +2677,18 @@ export function getValidMeepleTypes(state: GameState): MeepleType[] {
   if (!lastCoord) return []
 
   const player = state.players[state.currentPlayerIndex]
+  const tile = state.board.tiles[coordKey(lastCoord)]
+  if (!tile) return []
+
+  const def = state.staticTileMap[tile.definitionId]
+  const footprintCoords = [lastCoord]
+  if (def && def.linkedTiles) {
+    for (const link of def.linkedTiles) {
+      const { dx, dy } = getRotatedOffset(link.dx, link.dy, tile.rotation)
+      footprintCoords.push({ x: lastCoord.x + dx, y: lastCoord.y + dy })
+    }
+  }
+
   const validTypes: MeepleType[] = []
   const dragonPos = getDragonPosition(state)
 
@@ -2641,99 +2696,137 @@ export function getValidMeepleTypes(state: GameState): MeepleType[] {
   const isPortal = isMagicPortalTile(state)
   const portalTargets = isPortal ? getMagicPortalPlacements(state) : []
 
-  // Cannot place anything if dragon is on this tile (standard placement only)
-  const dragonOnLastTile = dragonPos && lastCoord.x === dragonPos.x && lastCoord.y === dragonPos.y
-
-  // Get all segments from the tile definition
-  const def = state.staticTileMap[state.currentTile.definitionId]
-  if (!def) return []
-
-  // Distinct segment IDs on this tile
-  const segments = Array.from(new Set(def.segments.map(n => n.id)))
-
-  // Helper to check if a meeple type can be placed ANYWHERE (on this tile or via portal)
+  // Helper to check if a meeple type can be placed ANYWHERE (on footprint or via portal)
   const canPlaceMeepleAnywhere = (type: MeepleType) => {
     if (availableMeepleCount(player, type) <= 0) return false
-    // Option 1: Standard placement on the just-placed tile
-    if (!dragonOnLastTile && segments.some(segId => canPlaceMeeple(state.featureUnionFind, player, lastCoord, segId, type, dragonPos))) {
-      return true
+    
+    // Check footprint coordinates
+    for (const coord of footprintCoords) {
+      const fTile = state.board.tiles[coordKey(coord)]
+      if (!fTile) continue
+      const fDef = state.staticTileMap[fTile.definitionId]
+      if (!fDef) continue
+      
+      const dragonOnTile = dragonPos && coord.x === dragonPos.x && coord.y === dragonPos.y
+      if (dragonOnTile) continue
+
+      const segments = Array.from(new Set(fDef.segments.map(n => n.id)))
+      if (segments.some(segId => canPlaceMeeple(state.featureUnionFind, player, coord, segId, type, dragonPos))) {
+        return true
+      }
     }
+
     // Option 2: Magic Portal placement on another tile
     if (isPortal) {
       return portalTargets.some(target => {
-        // canPlaceMeeple already handles occupancy and expansion rules (like Abbot/Garden)
         return canPlaceMeeple(state.featureUnionFind, player, target.coordinate, target.segmentId, type, dragonPos)
       })
     }
     return false
   }
 
-  // Check NORMAL
+  // Check NORMAL, BIG, ABBOT
   if (canPlaceMeepleAnywhere('NORMAL')) validTypes.push('NORMAL')
-
-  // Check BIG
   if (canPlaceMeepleAnywhere('BIG')) validTypes.push('BIG')
+  if (canPlaceMeepleAnywhere('ABBOT')) validTypes.push('ABBOT')
 
-  // Check BUILDER
+  // Check BUILDER/PIG (Traders & Builders)
   const tbData = state.expansionData['tradersBuilders'] as { useModernRules?: boolean } | undefined
   const isModernRules = tbData?.useModernRules ?? false
 
   if ((player.meeples.available.BUILDER ?? 0) > 0) {
-    // Standalone placement (classic)
-    const canPlaceStandalone = !dragonOnLastTile && segments.some(segId => canPlaceBuilderOrPig(state.featureUnionFind, player, lastCoord, segId, 'BUILDER', dragonPos))
-
-    // Simultaneous placement (modern C3.1)
-    const canPlaceSimultaneous = isModernRules && (
-      // On the just-placed tile
-      (!dragonOnLastTile && segments.some(segId => {
-        const feature = getFeature(state.featureUnionFind, nodeKey(lastCoord, segId))
+    const canPlaceBuilder = (coord: Coordinate, segId: string) => {
+      // Standalone (classic)
+      if (canPlaceBuilderOrPig(state.featureUnionFind, player, coord, segId, 'BUILDER', dragonPos)) return true
+      // Simultaneous (modern)
+      if (isModernRules) {
+        const feature = getFeature(state.featureUnionFind, nodeKey(coord, segId))
         const isRoadOrCity = feature && (feature.type === 'CITY' || feature.type === 'ROAD')
         return isRoadOrCity && (
-          canPlaceMeeple(state.featureUnionFind, player, lastCoord, segId, 'NORMAL', dragonPos) ||
-          canPlaceMeeple(state.featureUnionFind, player, lastCoord, segId, 'BIG', dragonPos)
+          canPlaceMeeple(state.featureUnionFind, player, coord, segId, 'NORMAL', dragonPos) ||
+          canPlaceMeeple(state.featureUnionFind, player, coord, segId, 'BIG', dragonPos)
         )
-      })) ||
-      // Or via Magic Portal
-      (isPortal && portalTargets.some(target => {
-        const feature = getFeature(state.featureUnionFind, nodeKey(target.coordinate, target.segmentId))
-        const isRoadOrCity = feature && (feature.type === 'CITY' || feature.type === 'ROAD')
-        // Magic Portal already ensures feature is incomplete
-        return isRoadOrCity && (
-          canPlaceMeeple(state.featureUnionFind, player, target.coordinate, target.segmentId, 'NORMAL', dragonPos) ||
-          canPlaceMeeple(state.featureUnionFind, player, target.coordinate, target.segmentId, 'BIG', dragonPos)
-        )
-      }))
-    )
+      }
+      return false
+    }
 
-    if (canPlaceStandalone || canPlaceSimultaneous) validTypes.push('BUILDER')
+    let possible = false
+    for (const coord of footprintCoords) {
+      const fTile = state.board.tiles[coordKey(coord)]
+      const fDef = state.staticTileMap[fTile?.definitionId ?? '']
+      if (!fDef || (dragonPos && coord.x === dragonPos.x && coord.y === dragonPos.y)) continue
+      if (fDef.segments.some(s => canPlaceBuilder(coord, s.id))) { possible = true; break; }
+    }
+    if (!possible && isPortal) {
+      possible = portalTargets.some(t => canPlaceBuilder(t.coordinate, t.segmentId))
+    }
+    if (possible) validTypes.push('BUILDER')
   }
 
-  // Check PIG
   if ((player.meeples.available.PIG ?? 0) > 0) {
-    const canPlaceStandalone = !dragonOnLastTile && segments.some(segId => canPlaceBuilderOrPig(state.featureUnionFind, player, lastCoord, segId, 'PIG', dragonPos))
-
-    const canPlaceSimultaneous = isModernRules && (
-      (!dragonOnLastTile && segments.some(segId => {
-        const feature = getFeature(state.featureUnionFind, nodeKey(lastCoord, segId))
+    const canPlacePig = (coord: Coordinate, segId: string) => {
+      if (canPlaceBuilderOrPig(state.featureUnionFind, player, coord, segId, 'PIG', dragonPos)) return true
+      if (isModernRules) {
+        const feature = getFeature(state.featureUnionFind, nodeKey(coord, segId))
         return feature?.type === 'FIELD' && (
-          canPlaceMeeple(state.featureUnionFind, player, lastCoord, segId, 'NORMAL', dragonPos) ||
-          canPlaceMeeple(state.featureUnionFind, player, lastCoord, segId, 'BIG', dragonPos)
+          canPlaceMeeple(state.featureUnionFind, player, coord, segId, 'NORMAL', dragonPos) ||
+          canPlaceMeeple(state.featureUnionFind, player, coord, segId, 'BIG', dragonPos)
         )
-      })) ||
-      (isPortal && portalTargets.some(target => {
-        const feature = getFeature(state.featureUnionFind, nodeKey(target.coordinate, target.segmentId))
-        return feature?.type === 'FIELD' && (
-          canPlaceMeeple(state.featureUnionFind, player, target.coordinate, target.segmentId, 'NORMAL', dragonPos) ||
-          canPlaceMeeple(state.featureUnionFind, player, target.coordinate, target.segmentId, 'BIG', dragonPos)
-        )
-      }))
-    )
+      }
+      return false
+    }
 
-    if (canPlaceStandalone || canPlaceSimultaneous) validTypes.push('PIG')
+    let possible = false
+    for (const coord of footprintCoords) {
+      const fTile = state.board.tiles[coordKey(coord)]
+      const fDef = state.staticTileMap[fTile?.definitionId ?? '']
+      if (!fDef || (dragonPos && coord.x === dragonPos.x && coord.y === dragonPos.y)) continue
+      if (fDef.segments.some(s => canPlacePig(coord, s.id))) { possible = true; break; }
+    }
+    if (!possible && isPortal) {
+      possible = portalTargets.some(t => canPlacePig(t.coordinate, t.segmentId))
+    }
+    if (possible) validTypes.push('PIG')
   }
-
-  // Check ABBOT
-  if (canPlaceMeepleAnywhere('ABBOT')) validTypes.push('ABBOT')
 
   return validTypes
+}
+
+// ─── Territory Overlay Helpers ────────────────────────────────────────────────
+
+export function getControllingColors(feature: Feature, players: Player[]): string[] {
+  if (feature.meeples.length > 0) {
+    const strength: Record<string, number> = {}
+    for (const m of feature.meeples) {
+      strength[m.playerId] = (strength[m.playerId] ?? 0) + (m.meepleType === 'BIG' ? 2 : 1)
+    }
+    const maxStr = Math.max(...Object.values(strength))
+    const topPlayers = Object.keys(strength).filter(id => strength[id] === maxStr)
+    return topPlayers.map(id => players.find(p => p.id === id)?.color).filter(Boolean) as string[]
+  }
+  if (feature.lastOwnerIds?.length) {
+    return feature.lastOwnerIds.map(id => players.find(p => p.id === id)?.color).filter(Boolean) as string[]
+  }
+  return []
+}
+
+export function computeSegmentOwnerMap(
+  uf: UnionFindState,
+  players: Player[],
+  mode: TerritoryOverlayMode,
+): Record<string, Record<string, string[]>> {
+  if (mode === 'off') return {}
+  const result: Record<string, Record<string, string[]>> = {}
+  const features = getAllFeatures(uf)
+  for (const feature of features) {
+    if (mode === 'incomplete' && feature.isComplete) continue
+    const colors = getControllingColors(feature, players)
+    if (colors.length === 0) continue
+    for (const node of feature.nodes) {
+      const cKey = coordKey(node.coordinate)
+      if (!result[cKey]) result[cKey] = {}
+      result[cKey][node.segmentId] = colors
+    }
+  }
+  return result
 }

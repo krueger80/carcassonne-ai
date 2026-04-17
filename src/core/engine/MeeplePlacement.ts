@@ -46,47 +46,53 @@ export function canPlaceMeeple(
 }
 
 /**
- * Returns the segment IDs on the given tile that are eligible for meeple placement.
+ * Returns the node keys (coordKey|segmentId) on the given tile footprint that are eligible for meeple placement.
  * (Non-field segments where the feature has no current meeples.)
  */
 export function getPlaceableSegments(
   state: UnionFindState,
   tileMap: Record<string, TileDefinition>,
   board: Board,
-  coord: Coordinate,
+  footprintCoords: Coordinate[],
   player: Player,
   dragonPosition?: Coordinate | null,
 ): string[] {
-  const key = coordKey(coord)
-  const placedTile = board.tiles[key]
-  if (!placedTile) return []
-
-  // Cannot place on a tile occupied by the dragon
-  if (dragonPosition && coord.x === dragonPosition.x && coord.y === dragonPosition.y) {
-    return []
-  }
-
-  const def = tileMap[placedTile.definitionId]
-  if (!def) return []
+  const results: string[] = []
 
   const hasNormal = availableMeepleCount(player, 'NORMAL') > 0
   const hasBig = availableMeepleCount(player, 'BIG') > 0
   const hasAbbot = availableMeepleCount(player, 'ABBOT') > 0
   if (!hasNormal && !hasBig && !hasAbbot) return []
 
-  return def.segments
-    .filter(seg => {
+  for (const coord of footprintCoords) {
+    const key = coordKey(coord)
+    const placedTile = board.tiles[key]
+    if (!placedTile) continue
+
+    // Cannot place on a tile occupied by the dragon
+    if (dragonPosition && coord.x === dragonPosition.x && coord.y === dragonPosition.y) {
+      continue
+    }
+
+    const def = tileMap[placedTile.definitionId]
+    if (!def) continue
+
+    for (const seg of def.segments) {
       // Cannot place meeples on river segments
-      if (seg.type === 'RIVER') return false
+      if (seg.type === 'RIVER') continue
       // ABBOT-only segments (GARDEN) — only show if player has an abbot
-      // CLOISTER segments are placeable by normal/big meeples AND abbot
-      if (seg.type === 'GARDEN' && !hasAbbot) return false
+      if (seg.type === 'GARDEN' && !hasAbbot) continue
       // Non-cloister/garden segments need normal or big meeple
-      if (seg.type !== 'CLOISTER' && seg.type !== 'GARDEN' && !hasNormal && !hasBig) return false
+      if (seg.type !== 'CLOISTER' && seg.type !== 'GARDEN' && !hasNormal && !hasBig) continue
+      
       const nKey = nodeKey(coord, seg.id)
-      return !featureHasMeeples(state, nKey)
-    })
-    .map(seg => seg.id)
+      if (!featureHasMeeples(state, nKey)) {
+        results.push(nKey)
+      }
+    }
+  }
+
+  return results
 }
 
 /**

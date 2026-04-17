@@ -218,8 +218,8 @@ export const TileCell = memo(({
               left: `${x}%`,
               top: `${y}%`,
               transform: 'translate(-50%, -50%)',
-              width: 24, // Smaller touch target
-              height: 24,
+              width: 32, // Touch target
+              height: 32,
               borderRadius: '50%',
               // Hide visual overlay if selected (meeple shown instead), but keep hit area
               background: isSelected ? 'transparent' : 'rgba(255,255,100,0.4)',

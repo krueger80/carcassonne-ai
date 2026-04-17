@@ -1,5 +1,6 @@
 import { useState } from 'react'
 import { Html } from '@react-three/drei'
+import { useTranslation } from 'react-i18next'
 import { Meeple3D } from './Meeple3D.tsx'
 
 interface PlacementOverlay3DProps {
@@ -11,7 +12,9 @@ interface PlacementOverlay3DProps {
   onCancel: () => void
   showButtons?: boolean
   isTentative?: boolean
+  isFarmer?: boolean
   onCancelSecondary?: () => void
+  onCancelPrimary?: () => void
 }
 
 export function PlacementOverlay3D({ 
@@ -23,47 +26,98 @@ export function PlacementOverlay3D({
   onCancel,
   showButtons = false,
   isTentative = false,
-  onCancelSecondary
+  isFarmer = false,
+  onCancelSecondary,
+  onCancelPrimary
 }: PlacementOverlay3DProps) {
+  const { t } = useTranslation()
   const [isHovered, setIsHovered] = useState(false)
+  const spacing = 3.5
 
   return (
     <group position={position}>
-      {/* Clickable interaction sphere */}
+      {/* Clickable interaction cylinder base */}
       <mesh 
-        onPointerOver={() => setIsHovered(true)} 
-        onPointerOut={() => setIsHovered(false)}
-        onClick={(e) => { e.stopPropagation(); onConfirm(); }}
+        onPointerOver={(e) => { e.stopPropagation(); setIsHovered(true); document.body.style.cursor = 'pointer'; }} 
+        onPointerOut={(e) => { e.stopPropagation(); setIsHovered(false); document.body.style.cursor = ''; }}
+        onClick={(e) => { 
+          e.stopPropagation()
+          if (isTentative && onCancelPrimary) {
+            document.body.style.cursor = ''
+            onCancelPrimary()
+          } else {
+            onConfirm()
+          }
+        }}
       >
-        <sphereGeometry args={[0.8, 16, 16]} />
+        <cylinderGeometry args={[1.6, 1.6, 0.15, 32]} />
         <meshBasicMaterial 
           color={isHovered ? "yellow" : "orange"} 
           transparent 
-          opacity={isHovered ? 0.4 : 0.2} 
+          opacity={isHovered ? 0.7 : 0.5} 
         />
       </mesh>
 
       {/* Meeple Preview */}
       {(isHovered || isTentative) && (
         <group position={[0, 0, 0]}>
-          <Meeple3D 
-            type={type} 
-            color={color} 
-            isTentative={isHovered && !isTentative} 
-            position={[secondaryType ? -0.6 : 0, 0, 0]}
-          />
+          <group 
+            onClick={(e) => { 
+              e.stopPropagation(); 
+              if (isTentative && onCancelPrimary) {
+                document.body.style.cursor = ''
+                onCancelPrimary()
+              } else if (!isTentative) {
+                onConfirm()
+              }
+            }}
+            onPointerOver={(e) => { 
+              e.stopPropagation(); 
+              setIsHovered(true); 
+              document.body.style.cursor = 'pointer'; 
+            }}
+            onPointerOut={(e) => { 
+              e.stopPropagation(); 
+              setIsHovered(false); 
+              document.body.style.cursor = ''; 
+            }}
+          >
+            <Meeple3D 
+              type={type} 
+              color={color} 
+              isFarmer={isFarmer}
+              isTentative={isHovered && !isTentative} 
+              position={[secondaryType ? -spacing / 2 : 0, 0, 0]}
+            />
+          </group>
           {secondaryType && (
             <group 
+              onPointerOver={(e) => { 
+                e.stopPropagation(); 
+                setIsHovered(true); 
+                document.body.style.cursor = 'pointer'; 
+              }}
+              onPointerOut={(e) => { 
+                e.stopPropagation(); 
+                setIsHovered(false); 
+                document.body.style.cursor = ''; 
+              }}
               onClick={(e) => { 
                 e.stopPropagation(); 
-                if (isTentative && onCancelSecondary) onCancelSecondary();
+                if (isTentative && onCancelSecondary) {
+                  document.body.style.cursor = ''
+                  onCancelSecondary()
+                } else if (!isTentative) {
+                  onConfirm()
+                }
               }}
             >
               <Meeple3D 
                 type={secondaryType} 
                 color={color} 
+                isFarmer={secondaryType === 'PIG'} // Pig always behaves like a farmer
                 isTentative={isHovered && !isTentative} 
-                position={[0.6, 0, 0]}
+                position={[spacing / 2, 0, 0]}
               />
             </group>
           )}
@@ -101,7 +155,7 @@ export function PlacementOverlay3D({
                 gap: '6px'
               }}
             >
-              <span style={{ fontSize: '18px' }}>✓</span> Confirm
+              {t('game.confirmBtn')}
             </button>
             <button 
               onClick={(e) => { e.stopPropagation(); onCancel(); }}
@@ -119,7 +173,7 @@ export function PlacementOverlay3D({
                 gap: '6px'
               }}
             >
-              <span style={{ fontSize: '18px' }}>✕</span> Cancel
+              {t('game.undoBtn')}
             </button>
           </div>
         </Html>
