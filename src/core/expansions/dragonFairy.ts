@@ -15,14 +15,14 @@ import { DF_TILES } from '../data/dragonFairyTiles.ts'
 export interface DragonFairyState {
   /** Whether the dragon has entered play (first Dragon Hoard placed). */
   dragonInPlay: boolean
-  /** Whether the current player can move the fairy this turn. */
-  canMoveFairy: boolean
   /** Whether a dragon movement is pending after meeple placement. */
   pendingMovement?: boolean
   /** Dragon movement state during DRAGON_MOVEMENT phase. */
   dragonMovement: {
     movesRemaining: number  // 2, 1, or 0
     nextPhase: 'PLACE_TILE' | 'PLACE_MEEPLE' | 'SCORE' // Where to go after movement ends
+    /** Coords already visited this movement sequence (incl. start). Orientation must exclude them. */
+    visitedCoords: { x: number; y: number }[]
   } | null
   /** Whether the Double Lake tile is available to be played (if River is active) */
   doubleLakeAvailable?: boolean
@@ -33,7 +33,6 @@ export interface DragonFairyState {
 export function createInitialDragonFairyState(): DragonFairyState {
   return {
     dragonInPlay: false,
-    canMoveFairy: false,
     dragonMovement: null,
     doubleLakeAvailable: false,
     dragonFacing: null,

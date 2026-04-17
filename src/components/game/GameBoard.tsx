@@ -109,10 +109,15 @@ export function GameBoard() {
 
   const handleRotateTentativeTile = useCallback(() => rotateTentativeTile(), [rotateTentativeTile])
   const handleSelectTilePlacement = useCallback((coord: { x: number, y: number }) => {
-    if (gameState?.turnPhase === 'PLACE_MEEPLE') {
-      // If user clicks a DIFFERENT valid spot while in meeple phase, 
+    const phase = gameState?.turnPhase
+    const dfData = gameState?.expansionData?.['dragonFairy'] as { dragonMovement?: unknown } | undefined
+    const canSwitchHere =
+      phase === 'PLACE_MEEPLE' ||
+      (phase === 'DRAGON_ORIENT' && !dfData?.dragonMovement)
+    if (canSwitchHere) {
+      // If user clicks a DIFFERENT valid spot after the tile is already placed,
       // treat it as "change my mind about tile placement"
-      const last = gameState.lastPlacedCoord
+      const last = gameState?.lastPlacedCoord
       if (last && (last.x !== coord.x || last.y !== coord.y)) {
         undoTilePlacement()
       } else {
@@ -120,7 +125,7 @@ export function GameBoard() {
       }
     }
     selectTilePlacement(coord)
-  }, [gameState?.turnPhase, gameState?.lastPlacedCoord, undoTilePlacement, selectTilePlacement])
+  }, [gameState?.turnPhase, gameState?.lastPlacedCoord, gameState?.expansionData, undoTilePlacement, selectTilePlacement])
 
   const segmentOwnerMap = useMemo(() => {
     if (!gameState.featureUnionFind || territoryOverlay === 'off') return {}
@@ -156,8 +161,10 @@ export function GameBoard() {
           cycleDragonFacing={cycleDragonFacing}
           tentativeFairyTarget={tentativeFairyTarget}
           selectFairyTarget={selectFairyTarget}
+          cancelFairyTarget={cancelFairyTarget}
           tentativeDragonPlaceTarget={tentativeDragonPlaceTarget}
           selectDragonPlaceTarget={selectDragonPlaceTarget}
+          tentativeDragonFacing={tentativeDragonFacing}
           magicPortalTargets={magicPortalTargets}
           territoryMode={territoryOverlay}
           segmentOwnerMap={segmentOwnerMap}
@@ -202,7 +209,7 @@ export function GameBoard() {
           style={btnStyle}
           title={
             territoryOverlay === 'off' ? 'Territory: Off'
-              : territoryOverlay === 'incomplete' ? 'Territory: Incomplete'
+              : territoryOverlay === 'incomplete' ? 'Incomplete farm'
                 : 'Territory: All'
           }
         >

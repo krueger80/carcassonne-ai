@@ -80,7 +80,8 @@ function CastReceiver() {
           const incomingMap = gameState.staticTileMap ?? {}
           
           const mergedMap: Record<string, any> = { ...fallback }
-          for (const [id, incomingDef] of Object.entries(incomingMap)) {
+          for (const [id, incomingDefVal] of Object.entries(incomingMap)) {
+             const incomingDef = incomingDefVal as any
              const base = fallback[id]
              if (base) {
                 // Deep merge critical scoring fields

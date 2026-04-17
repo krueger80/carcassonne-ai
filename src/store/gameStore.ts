@@ -588,6 +588,11 @@ export const useGameStore = create<GameStore>()(
 
               if (fType) {
                 const isCorrectType = (type === 'BUILDER' && (fType === 'CITY' || fType === 'ROAD')) || (type === 'PIG' && fType === 'FIELD')
+                if (!isCorrectType) {
+                  const msg = i18next.t(type === 'BUILDER' ? 'meeple.builderNeedsRoadOrCity' : 'meeple.pigNeedsField')
+                  useUIStore.getState().showToast(msg)
+                  return // Preserve existing primary/secondary — don't wipe state on invalid secondary click.
+                }
                 if (isCorrectType && (player.meeples.available[type] ?? 0) > 0) {
                   // If it CANNOT be placed standalone, it can ONLY be placed if accompanied by a NORMAL/BIG meeple mapping to the same feature type.
                   const hasNormalOrBig = (player.meeples.available.NORMAL > 0) || ((player.meeples.available.BIG ?? 0) > 0)
@@ -895,7 +900,7 @@ export const useGameStore = create<GameStore>()(
       // ── Dragon & Fairy actions ───────────────────────────────────────────
 
       cycleDragonFacing: () => set((store) => {
-        if (!store.gameState || store.gameState.turnPhase !== 'DRAGON_ORIENT') return
+        if (!store.gameState || (store.gameState.turnPhase !== 'DRAGON_ORIENT' && store.gameState.turnPhase !== 'DRAGON_PLACE')) return
         if (store.dragonOrientations.length === 0) return
 
         const currentIdx = store.tentativeDragonFacing
@@ -943,13 +948,34 @@ export const useGameStore = create<GameStore>()(
       selectDragonPlaceTarget: (coord) => set((store) => {
         if (!store.gameState || store.gameState.turnPhase !== 'DRAGON_PLACE') return
         store.tentativeDragonPlaceTarget = coord
+
+        const base = store.gameState
+        const existingDragon = base.pieces?.['dragon']
+        const mockState: GameState = {
+          ...base,
+          pieces: {
+            ...base.pieces,
+            dragon: {
+              ...(existingDragon ?? { id: 'dragon', type: 'DRAGON', ownerId: null }),
+              location: { type: 'BOARD', coordinate: coord },
+            },
+          },
+        }
+        store.dragonOrientations = getValidDragonOrientations(mockState)
+        store.tentativeDragonFacing = store.dragonOrientations[0] ?? null
       }),
 
       confirmDragonPlace: () => {
-        const { tentativeDragonPlaceTarget } = get()
+        const { tentativeDragonPlaceTarget, tentativeDragonFacing } = get()
         if (!tentativeDragonPlaceTarget) return
         get().placeDragonOnHoard(tentativeDragonPlaceTarget)
         set((store) => { store.tentativeDragonPlaceTarget = null })
+        
+        const nextStore = get()
+        if (nextStore.gameState?.turnPhase === 'DRAGON_ORIENT' && tentativeDragonFacing !== null) {
+          set((store) => { store.tentativeDragonFacing = tentativeDragonFacing })
+          get().confirmDragonOrientation()
+        }
       },
 
       cancelDragonPlaceTarget: () => set((store) => {

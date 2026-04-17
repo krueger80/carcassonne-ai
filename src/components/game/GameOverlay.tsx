@@ -41,7 +41,6 @@ export function GameOverlay() {
         discardTile,
         skipFairyMove,
         startFairyMove,
-        cancelFairyMove,
         executeDragon,
         cycleDragonFacing,
         confirmDragonOrientation,
@@ -193,17 +192,33 @@ export function GameOverlay() {
             discardTile: discardTile,
             selectMeeple: (type: any) => {
                 if (useModernRules && (type === 'BUILDER' || type === 'PIG')) {
-                    const currentSecondary = useGameStore.getState().tentativeSecondaryMeepleType
+                    const store = useGameStore.getState()
+                    const currentSecondary = store.tentativeSecondaryMeepleType
                     if (currentSecondary === type) {
                         useGameStore.setState({ tentativeSecondaryMeepleType: null })
-                    } else {
-                        useGameStore.setState({ tentativeSecondaryMeepleType: type })
-                        const currentPrimary = useUIStore.getState().selectedMeepleType
-                        if (currentPrimary !== 'NORMAL' && currentPrimary !== 'BIG') {
-                            const fallback = (currentPlayer.meeples.available.NORMAL > 0) ? 'NORMAL' : 'BIG'
-                            setSelectedMeepleType(fallback)
-                            if (interactionState === 'MEEPLE_SELECTED_TENTATIVELY') setTentativeMeepleType(fallback)
+                        return
+                    }
+                    // If a tentative primary is already placed, validate the segment before touching state.
+                    if (interactionState === 'MEEPLE_SELECTED_TENTATIVELY' && store.tentativeMeepleSegment && gameState) {
+                        const coord = store.tentativeTileCoord ?? gameState.lastPlacedCoord
+                        if (coord) {
+                            const tile = gameState.board.tiles[`${coord.x},${coord.y}`]
+                            const def = gameState.staticTileMap[tile?.definitionId ?? '']
+                            const segType = def?.segments.find(s => s.id === store.tentativeMeepleSegment)?.type
+                            const ok = (type === 'BUILDER' && (segType === 'CITY' || segType === 'ROAD'))
+                                    || (type === 'PIG' && segType === 'FIELD')
+                            if (!ok) {
+                                useUIStore.getState().showToast(t(type === 'BUILDER' ? 'meeple.builderNeedsRoadOrCity' : 'meeple.pigNeedsField'))
+                                return
+                            }
                         }
+                    }
+                    useGameStore.setState({ tentativeSecondaryMeepleType: type })
+                    const currentPrimary = useUIStore.getState().selectedMeepleType
+                    if (currentPrimary !== 'NORMAL' && currentPrimary !== 'BIG') {
+                        const fallback = (currentPlayer.meeples.available.NORMAL > 0) ? 'NORMAL' : 'BIG'
+                        setSelectedMeepleType(fallback)
+                        if (interactionState === 'MEEPLE_SELECTED_TENTATIVELY') setTentativeMeepleType(fallback)
                     }
                 } else {
                     setSelectedMeepleType(type)
@@ -211,7 +226,7 @@ export function GameOverlay() {
                 }
             },
             confirmMeeple: confirmMeeplePlacement,
-            cancelMeeple: turnPhase === 'FAIRY_MOVE' ? cancelFairyMove : cancelMeeplePlacement,
+            cancelMeeple: turnPhase === 'FAIRY_MOVE' ? undoTilePlacement : cancelMeeplePlacement,
             skipFairy: skipFairyMove,
             startFairyMove: startFairyMove,
             executeDragon: executeDragon,
@@ -244,7 +259,7 @@ export function GameOverlay() {
                         exit={{ opacity: 0, y: -20 }}
                         style={{
                             position: 'absolute',
-                            top: 20,
+                            top: isBuilderBonusTurn ? 80 : 20,
                             left: '50%',
                             transform: 'translateX(-50%)',
                             background: 'rgba(20, 25, 35, 0.9)',
@@ -440,11 +455,11 @@ export function GameOverlay() {
                                 {t('game.cancelActionBtn')}
                             </button>
                         </>
-                    ) : turnPhase === 'PLACE_MEEPLE' ? (
+                    ) : (turnPhase === 'PLACE_MEEPLE' || (turnPhase === 'DRAGON_PLACE' && !tentativeDragonPlaceTarget)) ? (
                         <>
                             <button onClick={undoTilePlacement} style={floatingBtnStyle('#c0392b', '#922b21')}>{t('game.undoBtn')}</button>
-                            <button onClick={skipMeeple} style={floatingBtnStyle('#7f8c8d', '#606c6d')}>➜ {t('game.skip')}</button>
-                            {hasAbbot && (currentPlayer.meeples.available.ABBOT ?? 0) === 0 && (() => {
+                            {turnPhase === 'PLACE_MEEPLE' && <button onClick={skipMeeple} style={floatingBtnStyle('#7f8c8d', '#606c6d')}>➜ {t('game.skip')}</button>}
+                            {turnPhase === 'PLACE_MEEPLE' && hasAbbot && (currentPlayer.meeples.available.ABBOT ?? 0) === 0 && (() => {
                                 const abbotOnBoard = currentPlayer.meeples.onBoard.find(nk => {
                                     const bm = gameState?.boardMeeples[nk]
                                     return bm && bm.meepleType === 'ABBOT' && bm.playerId === currentPlayer.id
@@ -458,7 +473,6 @@ export function GameOverlay() {
                         </>
                     ) : turnPhase === 'DRAGON_ORIENT' && confirmDragonOrientation ? (
                         <>
-                            <button onClick={cycleDragonFacing!} style={floatingBtnStyle('#3498db', '#2980b9')}>↻ {t('game.cycle')}</button>
                             <button
                                 onClick={confirmDragonOrientation}
                                 style={{
@@ -478,6 +492,11 @@ export function GameOverlay() {
                                     {t('game.undoTile')}
                                 </button>
                             )}
+                        </>
+                    ) : (turnPhase === 'FAIRY_MOVE' && !tentativeFairyTarget) ? (
+                        <>
+                            <button onClick={undoTilePlacement!} style={floatingBtnStyle('#c0392b', '#922b21')}>{t('game.undoTile')}</button>
+                            <button onClick={skipFairyMove} style={floatingBtnStyle('#7f8c8d', '#606c6d')}>➜ {t('game.skip')}</button>
                         </>
                     ) : null}
                 </div>

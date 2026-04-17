@@ -271,4 +271,81 @@ describe('Traders & Builders C3.1 Edition', () => {
         // Despite the key mismatch, pig trigger should resolve through UF
         expect(state.turnPhase).toBe('RETURN_FARMER')
     })
+
+    it('scores pigs from BOTH players when the completed pennanted city touches both fields', () => {
+        // Regression: when a coat-of-arms city completes and multiple players
+        // each have a pig on a field touching that city, BOTH pigs must score
+        // and BOTH must be prompted to return their farmer.
+        const p1Id = state.players[0].id
+        const p2Id = state.players[1].id
+
+        // Use the starting tile's single field (field0) as "field A" — owned by P1
+        const fieldA_Id = Object.keys(state.featureUnionFind.featureData).find(
+            key => state.featureUnionFind.featureData[key]?.type === 'FIELD'
+        )!
+        const cityId = Object.keys(state.featureUnionFind.featureData).find(
+            key => state.featureUnionFind.featureData[key]?.type === 'CITY'
+        )!
+
+        // P1 pig on field A
+        state.featureUnionFind.featureData[fieldA_Id]!.meeples.push(
+            { playerId: p1Id, meepleType: 'NORMAL', segmentId: 'field0', coordinate: { x: 0, y: 0 } },
+            { playerId: p1Id, meepleType: 'PIG', segmentId: 'field0', coordinate: { x: 0, y: 0 } },
+        )
+        state.players[0].meeples.available.NORMAL -= 1
+        state.players[0].meeples.available.PIG -= 1
+        state.players[0].meeples.onBoard.push('0,0:field0', '0,0:field0_PIG')
+        state.boardMeeples['0,0:field0'] = { playerId: p1Id, meepleType: 'NORMAL', segmentId: 'field0', coordinate: { x: 0, y: 0 } }
+        state.boardMeeples['0,0:field0_PIG'] = { playerId: p1Id, meepleType: 'PIG', segmentId: 'field0', coordinate: { x: 0, y: 0 } }
+
+        // Simulate a SECOND field "B" (at a synthetic coordinate) with P2's pig
+        // and make it also touch the same city.
+        const fieldB_Id = '10,10:fieldB'
+        state.featureUnionFind.parent[fieldB_Id] = fieldB_Id
+        state.featureUnionFind.featureData[fieldB_Id] = {
+            id: fieldB_Id,
+            type: 'FIELD',
+            nodes: [{ coordinate: { x: 10, y: 10 }, segmentId: 'fieldB' }],
+            meeples: [
+                { playerId: p2Id, meepleType: 'NORMAL', segmentId: 'fieldB', coordinate: { x: 10, y: 10 } },
+                { playerId: p2Id, meepleType: 'PIG', segmentId: 'fieldB', coordinate: { x: 10, y: 10 } },
+            ],
+            isComplete: false,
+            tileCount: 1,
+            pennantCount: 0,
+            openEdgeCount: 0,
+            touchingCityIds: [cityId],
+            metadata: {},
+        }
+        state.players[1].meeples.available.NORMAL -= 1
+        state.players[1].meeples.available.PIG -= 1
+        state.players[1].meeples.onBoard.push('10,10:fieldB', '10,10:fieldB_PIG')
+        state.boardMeeples['10,10:fieldB'] = { playerId: p2Id, meepleType: 'NORMAL', segmentId: 'fieldB', coordinate: { x: 10, y: 10 } }
+        state.boardMeeples['10,10:fieldB_PIG'] = { playerId: p2Id, meepleType: 'PIG', segmentId: 'fieldB', coordinate: { x: 10, y: 10 } }
+
+        // Complete the pennanted city, touched by both fields
+        const city = state.featureUnionFind.featureData[cityId]!
+        city.isComplete = true
+        city.pennantCount = 1
+        state.featureUnionFind.featureData[fieldA_Id]!.touchingCityIds.push(cityId)
+        state.completedFeatureIds = [cityId]
+        state.turnPhase = 'SCORE'
+
+        state = endTurn(state)
+
+        expect(state.turnPhase).toBe('RETURN_FARMER')
+        const tbData = state.expansionData['tradersBuilders'] as any
+        expect(tbData.pendingFarmerReturns).toHaveLength(2)
+
+        const promptedPlayers = new Set((tbData.pendingFarmerReturns as any[]).map(r => r.playerId))
+        expect(promptedPlayers.has(p1Id)).toBe(true)
+        expect(promptedPlayers.has(p2Id)).toBe(true)
+
+        // Both pigs should have been returned already (pig scoring returns the pig, not the farmer)
+        expect(state.players[0].meeples.available.PIG).toBe(1)
+        expect(state.players[1].meeples.available.PIG).toBe(1)
+        // Both players should have scored points (3 per completed city = 3)
+        expect(state.players[0].score).toBeGreaterThan(0)
+        expect(state.players[1].score).toBeGreaterThan(0)
+    })
 })

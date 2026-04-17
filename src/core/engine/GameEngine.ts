@@ -587,7 +587,8 @@ export function drawTile(state: GameState): GameState {
   // ── Dragon & Fairy: Dragon tile movement (C3.1: moves BEFORE placement) ──
   const dfData = getDfState(newState)
   const tileDef = newState.staticTileMap[result.tile.definitionId]
-  if (dfData && dfData.dragonInPlay && getDragonPosition(newState) && tileDef?.hasDragon) {
+  const dragonStartPos = getDragonPosition(newState)
+  if (dfData && dfData.dragonInPlay && dragonStartPos && tileDef?.hasDragon) {
     return {
       ...newState,
       turnPhase: 'DRAGON_MOVEMENT',
@@ -595,7 +596,7 @@ export function drawTile(state: GameState): GameState {
         ...newState.expansionData,
         dragonFairy: {
           ...dfData,
-          dragonMovement: { movesRemaining: 2, nextPhase: 'PLACE_TILE' }
+          dragonMovement: { movesRemaining: 2, nextPhase: 'PLACE_TILE', visitedCoords: [{ x: dragonStartPos.x, y: dragonStartPos.y }] }
         }
       }
     }
@@ -1145,7 +1146,6 @@ export function scoreFeatureCompletion(state: GameState, featureId: string): { s
   let updatedBoardMeeples = { ...state.boardMeeples }
   let updatedUfState = { ...state.featureUnionFind }
   let updatedBoardTiles = { ...state.board.tiles }
-  let currentState = state
 
   if (feature) {
     for (const meeple of feature.meeples) {
@@ -1301,18 +1301,15 @@ export function endTurn(state: GameState, preScoredFeatureIds?: string[]): GameS
       })
 
     if (pennantedCityFeatureIds.length > 0) {
-      // 2. Find all fields touching these cities
-      //    touchingCityIds stores original node keys which may differ from the
-      //    root keys in featureIds after union-find merges — resolve through UF.
-      const pennantedCitySet = new Set(pennantedCityFeatureIds)
+      // 2. Trigger scoring for EVERY field with at least one pig anywhere on the board.
+      //    House rule: a pennanted-city completion scores all pigs, not just those
+      //    whose field physically touches the completed city.
       const triggeredFieldIds = new Set<string>()
       for (const [fId, f] of Object.entries(currentState.featureUnionFind.featureData)) {
         if (f.type !== 'FIELD') continue
-        const touches = f.touchingCityIds.some(touchKey => {
-          const root = findRoot(currentState.featureUnionFind, touchKey)
-          return pennantedCitySet.has(root)
-        })
-        if (touches) triggeredFieldIds.add(fId)
+        if (f.meeples.some(m => m.meepleType === 'PIG')) {
+          triggeredFieldIds.add(fId)
+        }
       }
 
       // 3. For every triggered field, score Pigs and return them
@@ -1402,6 +1399,13 @@ export function endTurn(state: GameState, preScoredFeatureIds?: string[]): GameS
             currentState = { ...currentState, board: { ...currentState.board, tiles: { ...currentState.board.tiles, [tileKey]: { ...existingTile, meeples: newTileMeeples } } } }
           }
 
+          const baseNodeKey = nodeKey(meeple.coordinate, meeple.segmentId)
+          const hasMeeplesLeftOnSegment = Object.keys(currentState.boardMeeples).some(k => k === baseNodeKey || k.startsWith(`${baseNodeKey}_`))
+          const fairyPos = getFairyPosition(currentState)
+          if (!hasMeeplesLeftOnSegment && fairyPos && fairyPos.coordinate.x === meeple.coordinate.x && fairyPos.coordinate.y === meeple.coordinate.y && fairyPos.segmentId === meeple.segmentId) {
+            currentState = moveFairyToLocation(currentState, { type: 'OUT_OF_PLAY' })
+          }
+
           // Record a scoring event for the UI
           allEvents.push({
             featureId: fId,
@@ -1442,7 +1446,34 @@ export function endTurn(state: GameState, preScoredFeatureIds?: string[]): GameS
 /**
  * Executes the final portion of turn-ending operations: Builder Return, Double Turn logic, and Fairy Movement.
  */
-export function completeTurnTransition(currentState: GameState, allEvents: ScoreEvent[], featureIds: string[] = []): GameState {
+export function completeTurnTransition(currentState: GameState, allEvents: ScoreEvent[], featureIds: string[] = [], skipFairyCheck = false): GameState {
+  if (!skipFairyCheck) {
+    const dfData = getDfState(currentState)
+    if (dfData && getFairyMoveTargets(currentState).length > 0) {
+      const currentPlayerId = currentState.players[currentState.currentPlayerIndex].id
+      let eligible = false
+      for (const fId of featureIds) {
+        const feature = currentState.featureUnionFind.featureData[fId]
+        if (feature && (feature.type === 'ROAD' || feature.type === 'CITY')) {
+          const event = allEvents.find(e => e.featureId === fId && !e.isEndGame)
+          const points = event ? (event.scores[currentPlayerId] || 0) : 0
+          if (points === 0) {
+            eligible = true
+            break
+          }
+        }
+      }
+      if (eligible) {
+        return {
+          ...currentState,
+          turnPhase: 'FAIRY_MOVE',
+          lastScoreEvents: allEvents,
+          completedFeatureIds: featureIds
+        }
+      }
+    }
+  }
+
   // ── Builder bonus turn logic (T&B) ───────────────────────────────────────
   const tbData = currentState.expansionData['tradersBuilders'] as
     { isBuilderBonusTurn: boolean; pendingBuilderBonus: boolean; useModernRules?: boolean; usesC31Tiles?: boolean } | undefined
@@ -1523,30 +1554,6 @@ export function completeTurnTransition(currentState: GameState, allEvents: Score
   }
 
 
-  // ── Dragon & Fairy: Fairy move opportunity ──────────────
-  const dfData = currentState.expansionData['dragonFairy'] as DragonFairyState | undefined
-  let dfUpdated: DragonFairyState | undefined
-
-  if (dfData) {
-    let currentDf = { ...dfData }
-    const currentPlayer = stateAfterBuilderReturn.players[stateAfterBuilderReturn.currentPlayerIndex]
-    
-    // Check if the current player scored 0 points for feature completions in their turn
-    // (excluding Fairy bonus itself).
-    const playerFeaturePoints = allEvents.reduce((sum, event) => 
-      sum + (event.scores[currentPlayer.id] ?? 0), 0
-    )
-
-    if (playerFeaturePoints === 0 && !currentDf.canMoveFairy) {
-      currentDf.canMoveFairy = true
-    }
-    dfUpdated = currentDf
-    stateAfterBuilderReturn = { 
-      ...stateAfterBuilderReturn, 
-      expansionData: { ...stateAfterBuilderReturn.expansionData, dragonFairy: dfUpdated } 
-    }
-  }
-
   const nextExpansionData: Record<string, unknown> = {
     ...stateAfterBuilderReturn.expansionData,
     ...(tbData !== undefined ? { tradersBuilders: nextTbData } : {}),
@@ -1556,28 +1563,6 @@ export function completeTurnTransition(currentState: GameState, allEvents: Score
   const updatedPlayers = stateAfterBuilderReturn.players
   const updatedUfState = stateAfterBuilderReturn.featureUnionFind
   const updatedBoardMeeples = stateAfterBuilderReturn.boardMeeples
-
-  if (dfUpdated?.canMoveFairy) {
-    const targets = getFairyMoveTargets(stateAfterBuilderReturn);
-    if (targets.length > 0) {
-      return {
-        ...stateAfterBuilderReturn,
-        board: { ...currentState.board, tiles: updatedBoardTiles },
-        players: updatedPlayers,
-        currentPlayerIndex: stateAfterBuilderReturn.currentPlayerIndex,
-        featureUnionFind: updatedUfState,
-        boardMeeples: updatedBoardMeeples,
-        currentTile: stateAfterBuilderReturn.currentTile,
-        lastPlacedCoord: null,
-        completedFeatureIds: [],
-        lastScoreEvents: allEvents,
-        turnPhase: 'FAIRY_MOVE',
-        expansionData: { ...nextExpansionData, dragonFairy: dfUpdated },
-      }
-    } else {
-      dfUpdated.canMoveFairy = false;
-    }
-  }
 
   const nextPlayer = updatedPlayers[nextPlayerIndex]
   let nextTurnPhase: GameState['turnPhase'] = 'DRAW_TILE'
@@ -1597,7 +1582,7 @@ export function completeTurnTransition(currentState: GameState, allEvents: Score
     completedFeatureIds: [],
     lastScoreEvents: allEvents,
     turnPhase: nextTurnPhase,
-    expansionData: { ...nextExpansionData, ...(dfUpdated ? { dragonFairy: dfUpdated } : {}) },
+    expansionData: nextExpansionData,
   }
 }
 
@@ -1663,6 +1648,13 @@ export function resolveFarmerReturn(state: GameState, returnFarmer: boolean): Ga
         const newTileMeeples = { ...existingTile.meeples }
         delete newTileMeeples[farmer.segmentId]
         currentState = { ...currentState, board: { ...currentState.board, tiles: { ...currentState.board.tiles, [tileKey]: { ...existingTile, meeples: newTileMeeples } } } }
+      }
+
+      const baseNodeKey = nodeKey(farmer.coordinate, farmer.segmentId)
+      const hasMeeplesLeftOnSegment = Object.keys(currentState.boardMeeples).some(k => k === baseNodeKey || k.startsWith(`${baseNodeKey}_`))
+      const fairyPos = getFairyPosition(currentState)
+      if (!hasMeeplesLeftOnSegment && fairyPos && fairyPos.coordinate.x === farmer.coordinate.x && fairyPos.coordinate.y === farmer.coordinate.y && fairyPos.segmentId === farmer.segmentId) {
+        currentState = moveFairyToLocation(currentState, { type: 'OUT_OF_PLAY' })
       }
     }
   }
@@ -1894,8 +1886,7 @@ export function hasValidMeepleActions(state: GameState): boolean {
   if (isMagicPortalTile(state) && getMagicPortalPlacements(state).length > 0) return true
 
   // 3. Fairy move (only if the player has at least one meeple on board to receive it)
-  const dfData = getDfState(state)
-  if (dfData?.canMoveFairy && getFairyMoveTargets(state).length > 0) return true
+  if (getDfState(state) && getFairyMoveTargets(state).length > 0) return true
 
   // 4. Abbot retrieval (if the player has an abbot on the board)
   if (player.meeples.onBoard.some(nk => state.boardMeeples[nk]?.meepleType === 'ABBOT')) return true
@@ -1952,18 +1943,28 @@ export function getValidDragonOrientations(state: GameState): Direction[] {
   if (!dragonPos) return []
   const pos = dragonPos
 
-  // Step 1: directions with an adjacent tile
+  // Tiles already visited this movement sequence are off-limits (includes start tile and
+  // the "came-from" tile — so re-entering / going backwards is automatically excluded).
+  const dfData = state.expansionData['dragonFairy'] as DragonFairyState | undefined
+  const visited = dfData?.dragonMovement?.visitedCoords ?? []
+  const visitedSet = new Set(visited.map(c => coordKey(c)))
+  // Fairy tile is also off-limits to the dragon.
+  const fairyPos = getFairyPosition(state)
+  if (fairyPos) visitedSet.add(coordKey(fairyPos.coordinate))
+
+  // Step 1: directions with an adjacent tile that isn't already visited / blocked.
   const adjacentDirs: Direction[] = []
   for (const dir of ['NORTH', 'EAST', 'SOUTH', 'WEST'] as Direction[]) {
     const { dx, dy } = DRAGON_DIRECTION_DELTAS[dir]
-    if (state.board.tiles[coordKey({ x: pos.x + dx, y: pos.y + dy })]) {
+    const nextKey = coordKey({ x: pos.x + dx, y: pos.y + dy })
+    if (state.board.tiles[nextKey] && !visitedSet.has(nextKey)) {
       adjacentDirs.push(dir)
     }
   }
 
   if (adjacentDirs.length === 0) return []
 
-  // Step 2: of those, which have a meeple in unbroken LoS?
+  // Step 2: of those, which have a meeple in unbroken LoS (ignoring visited/fairy tiles as stoppers)?
   const dirsWithMeeple: Direction[] = []
   for (const dir of adjacentDirs) {
     const { dx, dy } = DRAGON_DIRECTION_DELTAS[dir]
@@ -1971,6 +1972,8 @@ export function getValidDragonOrientations(state: GameState): Direction[] {
     let y = pos.y + dy
 
     while (state.board.tiles[coordKey({ x, y })]) {
+      // Visited tiles and fairy tiles halt the sight line.
+      if (visitedSet.has(coordKey({ x, y }))) break
       const hasMeeple = Object.values(state.boardMeeples).some(bm => bm.coordinate.x === x && bm.coordinate.y === y)
       if (hasMeeple) {
         dirsWithMeeple.push(dir)
@@ -2020,14 +2023,20 @@ export function orientDragon(state: GameState, direction: Direction): GameState 
     }
   }
 
-  // Fallback for Dragon Hoard or other orientation triggers
+  // Fallback for Dragon Hoard or other orientation triggers.
+  // If a tile was just placed this turn (hoard tile in-flight), continue to PLACE_MEEPLE.
+  // Otherwise (held-dragon placed on a hoard at start of turn), no tile has been drawn yet —
+  // go to DRAW_TILE so the player can now draw and place normally.
+  const tileInPlay = !!state.currentTile && !!state.lastPlacedCoord
+  const nextPhase: GameState['turnPhase'] = tileInPlay ? 'PLACE_MEEPLE' : 'DRAW_TILE'
+
   const nextState: GameState = {
     ...state,
-    turnPhase: 'PLACE_MEEPLE',
+    turnPhase: nextPhase,
     expansionData: { ...state.expansionData, dragonFairy: updatedDf },
   }
 
-  if (!hasValidMeepleActions(nextState)) {
+  if (nextPhase === 'PLACE_MEEPLE' && !hasValidMeepleActions(nextState)) {
     return skipMeeple(nextState)
   }
   return nextState
@@ -2097,6 +2106,10 @@ export function executeDragonTileStep(state: GameState): { state: GameState; eat
 
   if (!nextTile) return null // Edge of board
 
+  // Already-visited tile: stop stroke (dragon can't re-enter this sequence)
+  const existingVisited = dfData.dragonMovement.visitedCoords ?? [{ x: dragonPos.x, y: dragonPos.y }]
+  if (existingVisited.some(c => c.x === nextX && c.y === nextY)) return null
+
   const fairyPos = getFairyPosition(state)
 
   // Fairy contact
@@ -2126,7 +2139,20 @@ export function executeDragonTileStep(state: GameState): { state: GameState; eat
   // Move to next tile and eat meeples
   const { state: newStateAfterEating, eatenMeeples } = eatMeeplesOnTile(state, { x: nextX, y: nextY })
 
-  const newState = moveDragon(newStateAfterEating, { type: 'BOARD', coordinate: { x: nextX, y: nextY } })
+  const afterMoveState = moveDragon(newStateAfterEating, { type: 'BOARD', coordinate: { x: nextX, y: nextY } })
+  const afterMoveDf = getDfState(afterMoveState)!
+  const newState: GameState = {
+    ...afterMoveState,
+    expansionData: {
+      ...afterMoveState.expansionData,
+      dragonFairy: {
+        ...afterMoveDf,
+        dragonMovement: afterMoveDf.dragonMovement
+          ? { ...afterMoveDf.dragonMovement, visitedCoords: [...existingVisited, { x: nextX, y: nextY }] }
+          : afterMoveDf.dragonMovement,
+      }
+    }
+  }
 
   return {
     state: newState,
@@ -2212,8 +2238,11 @@ export function executeDragonMovement(state: GameState): GameState {
   }
 
   const fairyPos = getFairyPosition(state)
+  const existingVisited = dfData.dragonMovement.visitedCoords ?? [{ x: dragonStartPos.x, y: dragonStartPos.y }]
+  const visitedSet = new Set(existingVisited.map(c => coordKey(c)))
+  const newlyVisited: Coordinate[] = []
 
-  // 1. Move straight forward tile by tile until no more tiles or fairy hit
+  // 1. Move straight forward tile by tile until no more tiles, already-visited tile, or fairy hit
   const { dx, dy } = DRAGON_DIRECTION_DELTAS[dragonFacing]
   let x = dragonPos.x + dx
   let y = dragonPos.y + dy
@@ -2229,8 +2258,13 @@ export function executeDragonMovement(state: GameState): GameState {
       break
     }
 
+    // Already-visited tile halts movement (dragon can't re-enter the same tile this sequence)
+    if (visitedSet.has(nextKey)) break
+
     // Enter tile and eat meeples
     dragonPos = { x, y }
+    visitedSet.add(nextKey)
+    newlyVisited.push({ x, y })
     const { state: newStateAfterEating } = eatMeeplesOnTile(
       { ...current, players: updatedPlayers, boardMeeples: updatedBoardMeeples, featureUnionFind: updatedUfState, board: { ...current.board, tiles: updatedBoardTiles } },
       dragonPos,
@@ -2246,7 +2280,8 @@ export function executeDragonMovement(state: GameState): GameState {
 
   // 2. Post-movement logic
   const remaining = dfData.dragonMovement.movesRemaining - 1
-  
+  const nextVisited = [...existingVisited, ...newlyVisited]
+
   // Fairy hit logic
   let dragonHeldBy: string | null = getDragonHeldBy(state)
   if (dragonRemoved && fairyPos) {
@@ -2258,7 +2293,7 @@ export function executeDragonMovement(state: GameState): GameState {
   const baseNextDf: DragonFairyState = {
     ...dfData,
     dragonFacing: dragonRemoved ? null : dragonFacing,
-    dragonMovement: dragonRemoved || remaining <= 0 ? null : { ...dfData.dragonMovement!, movesRemaining: remaining },
+    dragonMovement: dragonRemoved || remaining <= 0 ? null : { ...dfData.dragonMovement!, movesRemaining: remaining, visitedCoords: nextVisited },
   }
 
   let nextState: GameState = {
@@ -2507,19 +2542,7 @@ export function moveFairy(state: GameState, coord: Coordinate, segmentId: string
 
   const newState = moveFairyToLocation(state, { type: 'BOARD', coordinate: coord, segmentId })
 
-  const updatedDf: DragonFairyState = {
-    ...dfData,
-    canMoveFairy: false,
-  }
-
-  return {
-    ...newState,
-    turnPhase: 'SCORE',
-    expansionData: {
-      ...newState.expansionData,
-      dragonFairy: updatedDf,
-    },
-  }
+  return completeTurnTransition(newState, newState.lastScoreEvents, newState.completedFeatureIds, true)
 }
 
 /**
@@ -2528,17 +2551,7 @@ export function moveFairy(state: GameState, coord: Coordinate, segmentId: string
 export function skipFairyMove(state: GameState): GameState {
   if (state.turnPhase !== 'FAIRY_MOVE') return state
 
-  const dfData = getDfState(state)
-  if (!dfData) return { ...state, turnPhase: 'SCORE' }
-
-  return {
-    ...state,
-    turnPhase: 'SCORE',
-    expansionData: {
-      ...state.expansionData,
-      dragonFairy: { ...dfData, canMoveFairy: false },
-    },
-  }
+  return completeTurnTransition(state, state.lastScoreEvents, state.completedFeatureIds, true)
 }
 
 /**
@@ -2577,8 +2590,12 @@ export function getMagicPortalPlacements(state: GameState): { coordinate: Coordi
   const results: { coordinate: Coordinate; segmentId: string }[] = []
   const dragonPos = getDragonPosition(state)
 
-  for (const [tileKey] of Object.entries(state.board.tiles)) {
+  for (const [tileKey, tile] of Object.entries(state.board.tiles)) {
     const coord = keyToCoord(tileKey)
+
+    // Magic Portal rule (this implementation): the target tile must be entirely
+    // unoccupied — no meeple of any kind on any of its segments.
+    if (tile.meeples && Object.keys(tile.meeples).length > 0) continue
 
     // Reuse unified logic for segment availability
     const segmentsOnTile = getPlaceableSegments(state.featureUnionFind, state.staticTileMap, state.board, [coord], player, dragonPos)
@@ -2611,6 +2628,10 @@ export function placeMeepleViaPortal(
 
   const player = state.players[state.currentPlayerIndex]
   const dragonPos = getDragonPosition(state)
+
+  // Magic Portal rule (this implementation): target tile must be entirely unoccupied.
+  const targetTile = state.board.tiles[coordKey(coord)]
+  if (!targetTile || (targetTile.meeples && Object.keys(targetTile.meeples).length > 0)) return state
 
   // Centralized validation for primary meeple (availability, occupancy, expansion rules)
   if (!canPlaceMeeple(state.featureUnionFind, player, coord, segmentId, meepleType, dragonPos)) {
@@ -2809,7 +2830,7 @@ export function computeSegmentOwnerMap(
   const result: Record<string, Record<string, string[]>> = {}
   const features = getAllFeatures(uf)
   for (const feature of features) {
-    if (mode === 'incomplete' && feature.isComplete) continue
+    if (mode === 'incomplete' && (feature.isComplete || feature.type !== 'FIELD')) continue
     const colors = getControllingColors(feature, players)
     if (colors.length === 0) continue
     for (const node of feature.nodes) {

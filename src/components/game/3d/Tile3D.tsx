@@ -20,99 +20,127 @@ interface Tile3DProps {
   segmentOwnerColors?: Record<string, string[]>
 }
 
-function SegmentOwnership3D({ colors, segment, rotation }: { colors: string[], segment: any, rotation: number }) {
+function SegmentOwnership3D({ colors, segment, tile }: { colors: string[], segment: any, tile: any }) {
+  const rotation = tile.rotation || 0
+  const rx = rotation * (Math.PI / 180)
+
   const texture = useMemo(() => {
     const canvas = document.createElement('canvas')
-    canvas.width = 128
-    canvas.height = 128
+    canvas.width = 64
+    canvas.height = 64
     const ctx = canvas.getContext('2d')
     if (!ctx) return null
 
-    // Background
-    ctx.fillStyle = colors[0]
-    ctx.fillRect(0, 0, 128, 128)
+    // Clear with transparency
+    ctx.clearRect(0, 0, 64, 64)
 
-    // Draw diagonal stripes
-    const stripeWidth = 128 / 8
-    ctx.save()
-    ctx.translate(64, 64)
-    // Counter-rotate stripes to keep them diagonal relative to the board
-    ctx.rotate((45 - rotation) * (Math.PI / 180))
-    ctx.translate(-128, -128)
-
-    for (let i = 0; i < 32; i++) {
-      ctx.fillStyle = colors[i % colors.length]
-      ctx.fillRect(i * stripeWidth * 2, 0, stripeWidth, 256)
-    }
-    ctx.restore()
+    // Draw simple vertical stripes
+    // The diagonal effect comes from the world-space UV projection math
+    const stripeWidth = 64 / colors.length
+    colors.forEach((color, i) => {
+      ctx.fillStyle = color
+      ctx.fillRect(i * stripeWidth, 0, stripeWidth / 2, 64)
+    })
 
     const t = new THREE.CanvasTexture(canvas)
     t.colorSpace = THREE.SRGBColorSpace
     t.wrapS = t.wrapT = THREE.RepeatWrapping
     t.anisotropy = 4
     return t
-  }, [colors, rotation])
+  }, [colors])
 
   const geometry = useMemo(() => {
     if (!segment.svgPath) return null
-    const loader = new SVGLoader()
-    const result = loader.parse(`<svg><path d="${segment.svgPath}" /></svg>`)
-    const path = result.paths[0]
-    
-    const isClosed = segment.svgPath.toLowerCase().includes('z')
-    let finalGeometry: THREE.BufferGeometry | null = null
-
-    if (isClosed) {
-      const shapes = SVGLoader.createShapes(path)
-      finalGeometry = new THREE.ShapeGeometry(shapes)
-    } else {
-      // For open paths (Roads/Rivers), we create a "ribbon"
-      // We can use the subPaths to get points and then create a shape from them
-      const points = path.subPaths[0].getPoints()
-      if (points.length < 2) return null
-
-      // Create a ribbon shape by offsetting the path
-      const ribbonWidth = 8 // Matches 2D strokeWidth
-      const ribbonShape = new THREE.Shape()
+    try {
+      const loader = new SVGLoader()
+      const result = loader.parse(`<svg xmlns="http://www.w3.org/2000/svg"><path d="${segment.svgPath}" /></svg>`)
+      const path = result.paths[0]
+      if (!path) return null
       
-      const leftPoints: THREE.Vector2[] = []
-      const rightPoints: THREE.Vector2[] = []
+      const isClosed = segment.svgPath.toLowerCase().includes('z')
+      let finalGeometry: THREE.BufferGeometry | null = null
 
-      for (let i = 0; i < points.length; i++) {
-        const p = points[i]
-        const next = points[i + 1] || points[i]
-        const prev = points[i - 1] || points[i]
+      if (isClosed) {
+        const shapes = SVGLoader.createShapes(path)
+        finalGeometry = new THREE.ShapeGeometry(shapes)
+      } else {
+        // For open paths (Roads), we create a "ribbon"
+        const points = path.subPaths[0].getPoints()
+        if (points.length < 2) return null
+
+        const ribbonWidth = 8 
+        const ribbonShape = new THREE.Shape()
         
-        const dir = new THREE.Vector2().subVectors(next, prev).normalize()
-        const normal = new THREE.Vector2(-dir.y, dir.x)
-        
-        leftPoints.push(new THREE.Vector2().addVectors(p, normal.clone().multiplyScalar(ribbonWidth / 2)))
-        rightPoints.push(new THREE.Vector2().addVectors(p, normal.clone().multiplyScalar(-ribbonWidth / 2)))
+        const leftPoints: THREE.Vector2[] = []
+        const rightPoints: THREE.Vector2[] = []
+
+        for (let i = 0; i < points.length; i++) {
+          const p = points[i]
+          const next = points[i + 1] || points[i]
+          const prev = points[i - 1] || points[i]
+          
+          const dir = new THREE.Vector2().subVectors(next, prev).normalize()
+          const normal = new THREE.Vector2(-dir.y, dir.x)
+          
+          leftPoints.push(new THREE.Vector2().addVectors(p, normal.clone().multiplyScalar(ribbonWidth / 2)))
+          rightPoints.push(new THREE.Vector2().addVectors(p, normal.clone().multiplyScalar(-ribbonWidth / 2)))
+        }
+
+        ribbonShape.moveTo(leftPoints[0].x, leftPoints[0].y)
+        for (let i = 1; i < leftPoints.length; i++) ribbonShape.lineTo(leftPoints[i].x, leftPoints[i].y)
+        for (let i = rightPoints.length - 1; i >= 0; i--) ribbonShape.lineTo(rightPoints[i].x, rightPoints[i].y)
+        ribbonShape.closePath()
+
+        finalGeometry = new THREE.ShapeGeometry(ribbonShape)
       }
 
-      ribbonShape.moveTo(leftPoints[0].x, leftPoints[0].y)
-      for (let i = 1; i < leftPoints.length; i++) ribbonShape.lineTo(leftPoints[i].x, leftPoints[i].y)
-      for (let i = rightPoints.length - 1; i >= 0; i--) ribbonShape.lineTo(rightPoints[i].x, rightPoints[i].y)
-      ribbonShape.closePath()
+      if (finalGeometry) {
+        // 1. Manually set World-Space UVs for Global Continuity
+        const posAttr = finalGeometry.getAttribute('position')
+        const uvAttr = new THREE.BufferAttribute(new Float32Array(posAttr.count * 2), 2)
+        
+        // Period = 1.5 world units per stripe cycle (chunky and clear)
+        const stripePeriod = 1.5 
+        const cosR = Math.cos(-rx), sinR = Math.sin(-rx)
 
-      finalGeometry = new THREE.ShapeGeometry(ribbonShape)
+        for (let i = 0; i < posAttr.count; i++) {
+          const lx = posAttr.getX(i), ly = posAttr.getY(i)
+          
+          // Tile-centered world-scale coords (unrotated)
+          const ux = (lx - 50) / 100 * TILE_SIZE
+          const uy = (ly - 50) / 100 * TILE_SIZE
+          
+          // Apply tile rotation to get world-relative offset
+          const rux = ux * cosR - uy * sinR
+          const ruy = ux * sinR + uy * cosR
+          
+          // Final world position on XZ plane
+          const wx = (tile.coordinate.x * TILE_SIZE) + rux
+          const wz = (tile.coordinate.y * TILE_SIZE) + ruy
+          
+          // Diagonal projection: anchor pattern to board origin (wx + wz)
+          uvAttr.setXY(i, (wx + wz) / stripePeriod, 0)
+        }
+        finalGeometry.setAttribute('uv', uvAttr)
+
+        // 2. Coordinate Mapping: SVG (0-100) -> World (-4.4 to 4.4) with Y inversion
+        const scale = TILE_SIZE / 100
+        finalGeometry.scale(scale, -scale, 1)
+        finalGeometry.translate(-TILE_SIZE / 2, TILE_SIZE / 2, 0)
+      }
+
+      return finalGeometry
+    } catch (e) {
+      console.error('Error parsing SVG path for segment:', segment.id, e)
+      return null
     }
-
-    if (finalGeometry) {
-      // Coordinate Mapping: SVG (0-100) -> World (-4.4 to 4.4) with Y inversion
-      const scale = TILE_SIZE / 100
-      finalGeometry.scale(scale, -scale, 1)
-      finalGeometry.translate(-TILE_SIZE / 2, TILE_SIZE / 2, 0)
-    }
-
-    return finalGeometry
-  }, [segment.svgPath])
+  }, [segment.svgPath, rx, tile.coordinate.x, tile.coordinate.y])
 
   if (!texture || !geometry) return null
 
   return (
     <mesh geometry={geometry} position={[0, 0.02, 0]} rotation={[-Math.PI / 2, 0, 0]}>
-      <meshBasicMaterial map={texture} transparent opacity={0.6} depthWrite={false} />
+      <meshBasicMaterial map={texture} transparent opacity={0.7} depthWrite={false} side={THREE.DoubleSide} />
     </mesh>
   )
 }
@@ -223,7 +251,7 @@ export function Tile3D({
                 key={segId} 
                 colors={colors} 
                 segment={seg} 
-                rotation={tile.rotation || 0}
+                tile={tile}
               />
             )
           })}

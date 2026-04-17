@@ -40,8 +40,10 @@ interface GameScene3DProps {
   cycleDragonFacing?: () => void
   tentativeFairyTarget?: { coordinate: Coordinate, segmentId: string } | null
   selectFairyTarget?: (coord: Coordinate, segmentId: string) => void
+  cancelFairyTarget?: () => void
   tentativeDragonPlaceTarget?: Coordinate | null
   selectDragonPlaceTarget?: (coord: Coordinate) => void
+  tentativeDragonFacing?: any
   magicPortalTargets?: { coordinate: Coordinate, segmentId: string }[]
   territoryMode?: 'off' | 'incomplete' | 'all'
   segmentOwnerMap?: Record<string, Record<string, string[]>>
@@ -150,8 +152,10 @@ export const GameScene3D = memo(({
   cycleDragonFacing,
   tentativeFairyTarget,
   selectFairyTarget,
+  cancelFairyTarget,
   tentativeDragonPlaceTarget,
   selectDragonPlaceTarget,
+  tentativeDragonFacing,
   magicPortalTargets = [],
   segmentOwnerMap = {},
 }: GameScene3DProps) => {
@@ -267,13 +271,50 @@ export const GameScene3D = memo(({
             return null
           }
           
+          const isHoardTarget = gameState.turnPhase === 'DRAGON_PLACE' &&
+            dragonPlaceTargets.some(c => c.x === tile.coordinate.x && c.y === tile.coordinate.y)
+          const isTentativeHoard = isHoardTarget &&
+            tentativeDragonPlaceTarget?.x === tile.coordinate.x &&
+            tentativeDragonPlaceTarget?.y === tile.coordinate.y
+          const isDragonTile = gameState.turnPhase === 'DRAGON_ORIENT' && dragonPos &&
+            dragonPos.x === tile.coordinate.x && dragonPos.y === tile.coordinate.y
+
+          let tileOnClick: ((e: ThreeEvent<MouseEvent>) => void) | undefined
+          let tileOnPointerOver: ((e: ThreeEvent<PointerEvent>) => void) | undefined
+          let tileOnPointerOut: ((e: ThreeEvent<PointerEvent>) => void) | undefined
+
+          if (isHoardTarget) {
+            tileOnClick = (e: ThreeEvent<MouseEvent>) => {
+              e.stopPropagation()
+              document.body.style.cursor = ''
+              if (isTentativeHoard) {
+                if (cycleDragonFacing) cycleDragonFacing()
+              } else if (selectDragonPlaceTarget) {
+                selectDragonPlaceTarget(tile.coordinate)
+              }
+            }
+            tileOnPointerOver = (e: ThreeEvent<PointerEvent>) => { e.stopPropagation(); document.body.style.cursor = 'pointer' }
+            tileOnPointerOut = (e: ThreeEvent<PointerEvent>) => { e.stopPropagation(); document.body.style.cursor = '' }
+          } else if (isDragonTile) {
+            tileOnClick = (e: ThreeEvent<MouseEvent>) => {
+              e.stopPropagation()
+              document.body.style.cursor = ''
+              if (cycleDragonFacing) cycleDragonFacing()
+            }
+            tileOnPointerOver = (e: ThreeEvent<PointerEvent>) => { e.stopPropagation(); document.body.style.cursor = 'pointer' }
+            tileOnPointerOut = (e: ThreeEvent<PointerEvent>) => { e.stopPropagation(); document.body.style.cursor = '' }
+          }
+
           return (
             <group key={key}>
-              <Tile3D 
-                tile={tile} 
+              <Tile3D
+                tile={tile}
                 definition={def}
                 staticTileMap={gameState.staticTileMap}
                 segmentOwnerColors={segmentOwnerMap[key]}
+                onClick={tileOnClick}
+                onPointerOver={tileOnPointerOver}
+                onPointerOut={tileOnPointerOut}
               />
               {/* Render items per segment to avoid collisions */}
               {def.segments.map((segment: any) => {
@@ -283,11 +324,23 @@ export const GameScene3D = memo(({
                 
                 const items = []
                 
-                // 1. Placed Meeple
-                const placedMeeple = tile.meeples[segId]
-                if (placedMeeple) {
-                  const player = gameState.players.find((p: any) => p.id === placedMeeple.playerId)
-                  items.push({ type: 'MEEPLE', meeple: placedMeeple, player, isFarmer })
+                // 1. Placed Meeples (Primary, Pig, Builder)
+                const placedPrimary = tile.meeples[segId]
+                if (placedPrimary) {
+                  const player = gameState.players.find((p: any) => p.id === placedPrimary.playerId)
+                  items.push({ type: 'MEEPLE', meeple: placedPrimary, player, isFarmer })
+                }
+                
+                const placedPig = tile.meeples[`${segId}_PIG`]
+                if (placedPig) {
+                  const player = gameState.players.find((p: any) => p.id === placedPig.playerId)
+                  items.push({ type: 'MEEPLE', meeple: placedPig, player, isFarmer: true })
+                }
+                
+                const placedBuilder = tile.meeples[`${segId}_BUILDER`]
+                if (placedBuilder) {
+                  const player = gameState.players.find((p: any) => p.id === placedBuilder.playerId)
+                  items.push({ type: 'MEEPLE', meeple: placedBuilder, player, isFarmer: false })
                 }
                 
                 // 2. Fairy
@@ -321,7 +374,7 @@ export const GameScene3D = memo(({
                         <group key={`${item.type}_${i}`} rotation={[0, hash + (i * 0.2), 0]}>
                           <group position={[offsetX, 0, 0]}>
                             {item.type === 'MEEPLE' && (
-                              <Meeple3D 
+                              <Meeple3D
                                 type={item.meeple.meepleType}
                                 color={item.player?.color || '#ffffff'}
                                 isFarmer={item.isFarmer}
@@ -330,7 +383,15 @@ export const GameScene3D = memo(({
                                 onClick={isFairyTarget ? (e: ThreeEvent<MouseEvent>) => {
                                   e.stopPropagation()
                                   document.body.style.cursor = ''
-                                  if (selectFairyTarget) selectFairyTarget(tile.coordinate, segId)
+                                  const isTentativeSame =
+                                    tentativeFairyTarget?.coordinate.x === tile.coordinate.x &&
+                                    tentativeFairyTarget?.coordinate.y === tile.coordinate.y &&
+                                    tentativeFairyTarget?.segmentId === segId
+                                  if (isTentativeSame) {
+                                    if (cancelFairyTarget) cancelFairyTarget()
+                                  } else if (selectFairyTarget) {
+                                    selectFairyTarget(tile.coordinate, segId)
+                                  }
                                 } : undefined}
                                 onPointerOver={isFairyTarget ? (e: ThreeEvent<PointerEvent>) => {
                                   e.stopPropagation()
@@ -366,25 +427,44 @@ export const GameScene3D = memo(({
                                 />
                               </group>
                             )}
-                            {item.type === 'FAIRY_TARGET' && (
-                              <group rotation={[0, -(hash + (i * 0.2)), 0]}>
-                                <mesh 
-                                  onPointerOver={() => { document.body.style.cursor = 'pointer' }}
-                                  onPointerOut={() => { document.body.style.cursor = '' }}
-                                  onClick={(e) => { e.stopPropagation(); document.body.style.cursor = ''; if (selectFairyTarget) selectFairyTarget(tile.coordinate, segId) }}
-                                >
-                                  <cylinderGeometry args={[0.9, 0.9, 0.1, 32]} />
-                                  <meshBasicMaterial color="#f1c40f" transparent opacity={0.6} />
-                                </mesh>
-                                {/* Tentative Fairy Preview */}
-                                {gameState.turnPhase === 'FAIRY_MOVE' && 
-                                 tentativeFairyTarget?.coordinate.x === tile.coordinate.x && 
-                                 tentativeFairyTarget?.coordinate.y === tile.coordinate.y && 
-                                 tentativeFairyTarget?.segmentId === segId && (
-                                   <Fairy3D position={[0, 0.1, 0]} />
-                                 )}
-                              </group>
-                            )}
+                            {item.type === 'FAIRY_TARGET' && (() => {
+                              const isTentativeHereFairy =
+                                gameState.turnPhase === 'FAIRY_MOVE' &&
+                                tentativeFairyTarget?.coordinate.x === tile.coordinate.x &&
+                                tentativeFairyTarget?.coordinate.y === tile.coordinate.y &&
+                                tentativeFairyTarget?.segmentId === segId
+                              const handleFairyClick = (e: ThreeEvent<MouseEvent>) => {
+                                e.stopPropagation()
+                                document.body.style.cursor = ''
+                                if (isTentativeHereFairy) {
+                                  if (cancelFairyTarget) cancelFairyTarget()
+                                } else if (selectFairyTarget) {
+                                  selectFairyTarget(tile.coordinate, segId)
+                                }
+                              }
+                              return (
+                                <group rotation={[0, -(hash + (i * 0.2)), 0]}>
+                                  <mesh
+                                    onPointerOver={() => { document.body.style.cursor = 'pointer' }}
+                                    onPointerOut={() => { document.body.style.cursor = '' }}
+                                    onClick={handleFairyClick}
+                                  >
+                                    <cylinderGeometry args={[0.9, 0.9, 0.1, 32]} />
+                                    <meshBasicMaterial color="#f1c40f" transparent opacity={0.6} />
+                                  </mesh>
+                                  {/* Tentative Fairy Preview — click to cancel */}
+                                  {isTentativeHereFairy && (
+                                    <group
+                                      onPointerOver={(e: ThreeEvent<PointerEvent>) => { e.stopPropagation(); document.body.style.cursor = 'pointer' }}
+                                      onPointerOut={(e: ThreeEvent<PointerEvent>) => { e.stopPropagation(); document.body.style.cursor = '' }}
+                                      onClick={handleFairyClick}
+                                    >
+                                      <Fairy3D position={[0, 0.1, 0]} />
+                                    </group>
+                                  )}
+                                </group>
+                              )
+                            })()}
                           </group>
                         </group>
                       )
@@ -396,55 +476,72 @@ export const GameScene3D = memo(({
           )
         })}
 
-        {/* Render Dragon Place Targets */}
-        {gameState.turnPhase === 'DRAGON_PLACE' && dragonPlaceTargets.map((coord, idx) => (
+        {/* Render Dragon Place Targets — visual indicators only; the underlying tile handles clicks (see Tile3D onClick above) */}
+        {gameState.turnPhase === 'DRAGON_PLACE' && dragonPlaceTargets.map((coord, idx) => {
+          const isTentative = tentativeDragonPlaceTarget?.x === coord.x && tentativeDragonPlaceTarget?.y === coord.y
+          const handleDragonClick = (e: ThreeEvent<MouseEvent>) => {
+            e.stopPropagation()
+            document.body.style.cursor = ''
+            if (cycleDragonFacing) cycleDragonFacing()
+          }
+          return (
           <group key={`dragon_place_${idx}`} position={[coord.x * TILE_SIZE, 0, coord.y * TILE_SIZE]}>
-            <mesh 
-              rotation={[-Math.PI / 2, 0, 0]}
-              position={[0, 0.2, 0]} // Slightly higher
-              onPointerOver={(e) => { e.stopPropagation(); document.body.style.cursor = 'pointer' }}
-              onPointerOut={(e) => { e.stopPropagation(); document.body.style.cursor = '' }}
-              onPointerDown={(e) => { 
-                e.stopPropagation(); 
-                document.body.style.cursor = ''; 
-                if (selectDragonPlaceTarget) selectDragonPlaceTarget(coord) 
-              }}
-            >
-              <circleGeometry args={[3.5]} /> {/* Slightly larger */}
-              <meshBasicMaterial color="#e74c3c" transparent opacity={0.5} />
-            </mesh>
-            {/* Pulsing indicator ring */}
-            <mesh rotation={[-Math.PI / 2, 0, 0]} position={[0, 0.21, 0]}>
+            {/* Ghost ring indicator — purely informational; tile body handles clicks */}
+            <mesh rotation={[-Math.PI / 2, 0, 0]} position={[0, 0.21, 0]} raycast={() => null}>
               <ringGeometry args={[3.2, 3.5, 32]} />
               <meshBasicMaterial color="#ffffff" transparent opacity={0.8} />
             </mesh>
-            {/* Tentative Dragon Preview */}
-            {tentativeDragonPlaceTarget?.x === coord.x && tentativeDragonPlaceTarget?.y === coord.y && (
-              <Dragon3D position={[0, 0.02, 0]} facing={0} />
+            {/* Tentative Dragon Preview — clickable to cycle facing (user also gets this on the tile body) */}
+            {isTentative && (
+              <group position={[0, 0.3, 0]}>
+                <Dragon3D
+                  position={[0, 0, 0]}
+                  facing={getDragonAngle(tentativeDragonFacing)}
+                  onPointerOver={(e: ThreeEvent<PointerEvent>) => { e.stopPropagation(); document.body.style.cursor = 'pointer' }}
+                  onPointerOut={(e: ThreeEvent<PointerEvent>) => { e.stopPropagation(); document.body.style.cursor = '' }}
+                  onClick={handleDragonClick}
+                />
+              </group>
             )}
           </group>
-        ))}
+          )
+        })}
 
-        {/* Render Dragon Orient Click Area */}
+        {/* Render Dragon Orient Arrow (Visual only) */}
         {gameState.turnPhase === 'DRAGON_ORIENT' && dragonPos && (
           <group position={[dragonPos.x * TILE_SIZE, 0, dragonPos.y * TILE_SIZE]}>
-            <mesh 
-              rotation={[-Math.PI / 2, 0, 0]}
-              position={[0, 0.2, 0]}
-              onPointerOver={() => { document.body.style.cursor = 'pointer' }}
-              onPointerOut={() => { document.body.style.cursor = '' }}
-              onClick={(e) => { e.stopPropagation(); if (cycleDragonFacing) cycleDragonFacing() }}
+            <group 
+              position={[0, 5.5, 0]} 
+              rotation={[-Math.PI / 2, 0, 0]} 
             >
-              <planeGeometry args={[TILE_SIZE, TILE_SIZE]} />
-              <meshBasicMaterial color="#e74c3c" transparent opacity={0.1} />
-            </mesh>
+              <mesh castShadow raycast={() => null}>
+                <torusGeometry args={[1.5, 0.15, 16, 32, Math.PI * 1.6]} />
+                <meshStandardMaterial color="#e74c3c" emissive="#e74c3c" emissiveIntensity={0.5} />
+              </mesh>
+              <mesh position={[1.5, 0, 0]} rotation={[0, 0, -Math.PI / 2]} castShadow raycast={() => null}>
+                <coneGeometry args={[0.4, 0.8, 4]} />
+                <meshStandardMaterial color="#e74c3c" emissive="#e74c3c" emissiveIntensity={0.5} />
+              </mesh>
+            </group>
           </group>
         )}
 
-        {/* Render Valid Placement Markers (Only in PLACE_TILE or PLACE_MEEPLE phase) */}
-        {(gameState.turnPhase === 'PLACE_TILE' || gameState.turnPhase === 'PLACE_MEEPLE') && Array.from(validSet)
+        {/* Render Valid Placement Markers — tile-switch is allowed in PLACE_TILE, PLACE_MEEPLE,
+            and DRAGON_ORIENT (when a hoard tile was just placed and the dragon hasn't started moving) */}
+        {(() => {
+          const dfData = gameState.expansionData?.['dragonFairy'] as { dragonMovement?: unknown } | undefined
+          const canSwitchDuringOrient =
+            gameState.turnPhase === 'DRAGON_ORIENT' && !dfData?.dragonMovement && !!lastPlacedCoord
+          const showMarkers =
+            gameState.turnPhase === 'PLACE_TILE' ||
+            gameState.turnPhase === 'PLACE_MEEPLE' ||
+            canSwitchDuringOrient
+          if (!showMarkers) return null
+          const excludeLastPlaced =
+            gameState.turnPhase === 'PLACE_MEEPLE' || canSwitchDuringOrient
+          return Array.from(validSet)
           .filter(key => {
-            if (gameState.turnPhase === 'PLACE_MEEPLE' && lastPlacedCoord) {
+            if (excludeLastPlaced && lastPlacedCoord) {
               return key !== `${lastPlacedCoord.x},${lastPlacedCoord.y}`
             }
             if (interactionState === 'TILE_PLACED_TENTATIVELY' && tentativeTileCoord && key === `${tentativeTileCoord.x},${tentativeTileCoord.y}`) {
@@ -490,7 +587,7 @@ export const GameScene3D = memo(({
                 </group>
                 
                 {isHovered && gameState.currentTile && (
-                  <Tile3D 
+                  <Tile3D
                     tile={{
                       coordinate: { x: 0, y: 0 },
                       rotation: gameState.currentTile.rotation,
@@ -503,7 +600,8 @@ export const GameScene3D = memo(({
                 )}
               </group>
             )
-          })}
+          })
+        })()}
 
         {/* Render Tentative Tile (already selected but not confirmed) */}
         {tentativeTileCoord && gameState.currentTile && 
@@ -539,26 +637,29 @@ export const GameScene3D = memo(({
         )}
       </Suspense>
 
-      {/* Dragon & Fairy */}
+      {/* Dragon */}
       {dragonPos && (
-        <Dragon3D 
-          position={[dragonPos.x * TILE_SIZE, 0.02, dragonPos.y * TILE_SIZE]} 
-          facing={getDragonAngle(dragonFacing)} 
+        <Dragon3D
+          position={[dragonPos.x * TILE_SIZE, 0.02, dragonPos.y * TILE_SIZE]}
+          facing={getDragonAngle(dragonFacing)}
+          onClick={(e) => {
+            if (gameState.turnPhase === 'DRAGON_ORIENT' && cycleDragonFacing) {
+              e.stopPropagation()
+              cycleDragonFacing()
+            }
+          }}
+          onPointerOver={() => {
+            if (gameState.turnPhase === 'DRAGON_ORIENT') {
+              document.body.style.cursor = 'pointer'
+            }
+          }}
+          onPointerOut={() => {
+            if (gameState.turnPhase === 'DRAGON_ORIENT') {
+              document.body.style.cursor = ''
+            }
+          }}
         />
       )}
-      {fairyPos && (() => {
-        const tile = gameState.board.tiles[`${fairyPos.coordinate.x},${fairyPos.coordinate.y}`]
-        const def = tile ? gameState.staticTileMap[tile.definitionId] : null
-        if (!tile || !def) return null
-
-        const segCenter = getSegmentCenter(fairyPos.coordinate, tile.rotation || 0, fairyPos.segmentId, def)
-        // Offset beside the meeple (which is at the center)
-        const offset: [number, number, number] = [segCenter[0] + 0.8, segCenter[1], segCenter[2] + 0.8]
-
-        return (
-          <Fairy3D position={offset} />
-        )
-      })()}
 
       {/* Background Plane */}
       <mesh rotation={[-Math.PI / 2, 0, 0]} position={[0, -0.6, 0]} receiveShadow raycast={() => null}>
