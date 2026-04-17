@@ -886,6 +886,7 @@ export function GameBoard() {
           }}
           style={btnStyle}
           title="Zoom in"
+          aria-label="Zoom in"
         >+</button>
         <button
           onClick={() => {
@@ -894,6 +895,7 @@ export function GameBoard() {
           }}
           style={btnStyle}
           title="Reset view"
+          aria-label="Reset view"
         >⌖</button>
         <button
           onClick={() => {
@@ -902,6 +904,7 @@ export function GameBoard() {
           }}
           style={btnStyle}
           title="Zoom out"
+          aria-label="Zoom out"
         >−</button>
         <div style={{ height: 8 }} />
         <button
@@ -918,6 +921,11 @@ export function GameBoard() {
                 : 'rgba(200,140,60,0.7)',
           }}
           title={
+            territoryOverlay === 'off' ? 'Territory: Off'
+              : territoryOverlay === 'incomplete' ? 'Territory: Incomplete'
+                : 'Territory: All'
+          }
+          aria-label={
             territoryOverlay === 'off' ? 'Territory: Off'
               : territoryOverlay === 'incomplete' ? 'Territory: Incomplete'
                 : 'Territory: All'

@@ -1,0 +1,1 @@
+## 2024-03-28 - Icon-only buttons accessibility\n**Learning:** Icon-only map control buttons lacked ARIA labels, making them inaccessible to screen readers.\n**Action:** Always verify icon-only buttons have dynamic or static `aria-label` attributes that reflect their function or state.
