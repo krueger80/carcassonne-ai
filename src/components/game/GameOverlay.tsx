@@ -305,13 +305,18 @@ export function GameOverlay() {
                             position: 'absolute',
                             top: isBuilderBonusTurn ? 80 : 20,
                             left: '50%',
+                            maxWidth: 'min(calc(100vw - 120px), 520px)',
                             background: 'rgba(20, 25, 35, 0.9)',
                             border: `2px solid ${currentPlayer.color || '#555'}`,
                             borderRadius: 12,
-                            padding: '8px 24px',
+                            padding: '8px 20px',
                             color: '#fff',
                             fontSize: 16,
                             fontWeight: 'bold',
+                            textAlign: 'center',
+                            whiteSpace: 'normal',
+                            wordBreak: 'break-word',
+                            lineHeight: 1.3,
                             zIndex: 60,
                             pointerEvents: 'none',
                             backdropFilter: 'blur(4px)',
@@ -398,12 +403,12 @@ export function GameOverlay() {
                 )}
             </AnimatePresence>
 
-            {/* ── Top-right Controls ── */}
-            <div style={{ position: 'absolute', top: 20, right: 20, display: 'flex', alignItems: 'center', zIndex: 60, pointerEvents: 'auto', background: 'rgba(0,0,0,0.65)', border: '1px solid #444', borderRadius: 24, overflow: 'hidden' }}>
-                {sdkReady && <div style={{ padding: '7px 10px', borderRight: '1px solid #444', display: 'flex', alignItems: 'center' }}><google-cast-launcher style={{ width: 20, height: 20, cursor: 'pointer' } as any} /></div>}
-                <button onClick={() => setShowScoreboard(v => !v)} style={{ background: showScoreboard ? 'rgba(232,216,160,0.18)' : 'transparent', border: 'none', borderRight: '1px solid #444', color: '#e8d8a0', padding: '7px 12px', fontSize: 15, cursor: 'pointer' }}>🏆</button>
-                <div style={{ color: '#ddd', padding: '7px 14px', fontSize: 13, fontFamily: 'monospace' }}>{t('game.tilesCount', { count: tileBag.length })}</div>
-            </div>
+            {/* ── Top-right Controls (cast only — trophy/tile-count moved into hamburger menu) ── */}
+            {sdkReady && (
+                <div style={{ position: 'absolute', top: 20, right: 20, display: 'flex', alignItems: 'center', zIndex: 60, pointerEvents: 'auto', background: 'rgba(0,0,0,0.65)', border: '1px solid #444', borderRadius: 24, overflow: 'hidden' }}>
+                    <div style={{ padding: '7px 10px', display: 'flex', alignItems: 'center' }}><google-cast-launcher style={{ width: 20, height: 20, cursor: 'pointer' } as any} /></div>
+                </div>
+            )}
 
             {/* ── Scoreboard ── */}
             {showScoreboard && (
@@ -430,9 +435,11 @@ export function GameOverlay() {
                     </button>
                     <AnimatePresence>
                         {isMenuOpen && (
-                            <motion.div initial={{ opacity: 0, y: -10 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -10 }} style={{ position: 'absolute', top: '100%', left: 0, background: 'rgba(30, 30, 40, 0.95)', border: '1px solid #555', borderRadius: 12, padding: 12, display: 'flex', flexDirection: 'column', gap: 8, minWidth: 200, pointerEvents: 'auto' }}>
-                                <button onClick={() => { setShowNewGameScreen(true); setIsMenuOpen(false); }} style={{ background: '#3a3a4a', border: 'none', color: '#fff', padding: '8px', borderRadius: 4, cursor: 'pointer' }}>🔄 {t('menu.newGame')}</button>
-                                <button onClick={() => { i18n.changeLanguage(i18n.language === 'fr' ? 'en' : 'fr'); }} style={{ background: '#3a3a4a', border: 'none', color: '#fff', padding: '8px', borderRadius: 4, cursor: 'pointer' }}>🌐 {i18n.language === 'fr' ? 'English' : 'Français'}</button>
+                            <motion.div initial={{ opacity: 0, y: -10 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -10 }} style={{ position: 'absolute', top: '100%', left: 0, background: 'rgba(30, 30, 40, 0.95)', border: '1px solid #555', borderRadius: 12, padding: 12, display: 'flex', flexDirection: 'column', gap: 8, minWidth: 220, pointerEvents: 'auto' }}>
+                                <div style={{ color: '#ddd', fontSize: 13, fontFamily: 'monospace', padding: '4px 8px', borderBottom: '1px solid #444' }}>{t('game.tilesCount', { count: tileBag.length })}</div>
+                                <button onClick={() => { setShowScoreboard(v => !v); setIsMenuOpen(false); }} style={{ background: '#3a3a4a', border: 'none', color: '#e8d8a0', padding: '8px', borderRadius: 4, cursor: 'pointer', textAlign: 'left' }}>🏆 {t('menu.scoreboard')}</button>
+                                <button onClick={() => { setShowNewGameScreen(true); setIsMenuOpen(false); }} style={{ background: '#3a3a4a', border: 'none', color: '#fff', padding: '8px', borderRadius: 4, cursor: 'pointer', textAlign: 'left' }}>🔄 {t('menu.newGame')}</button>
+                                <button onClick={() => { i18n.changeLanguage(i18n.language === 'fr' ? 'en' : 'fr'); }} style={{ background: '#3a3a4a', border: 'none', color: '#fff', padding: '8px', borderRadius: 4, cursor: 'pointer', textAlign: 'left' }}>🌐 {i18n.language === 'fr' ? 'English' : 'Français'}</button>
                             </motion.div>
                         )}
                     </AnimatePresence>
