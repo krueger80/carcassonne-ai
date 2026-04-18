@@ -174,7 +174,7 @@ export function GameBoard() {
   }, [gameState.featureUnionFind, gameState.players, territoryOverlay])
 
   return (
-    <div className="w-full h-full bg-[#0a0a0a]" style={{ width: '100vw', height: '100vh', position: 'relative', overflow: 'hidden' }}>
+    <div className="w-full h-full bg-[#0a0a0a]" style={{ width: '100vw', height: '100dvh', position: 'relative', overflow: 'hidden' }}>
       <div style={{ position: 'absolute', inset: 0 }}>
         <GameScene3D 
           gameState={gameState}
