@@ -1,4 +1,5 @@
 import { useTranslation } from 'react-i18next'
+import { useShallow } from 'zustand/react/shallow'
 import { useGameStore } from '../../store/gameStore.ts'
 import { useUIStore } from '../../store/uiStore.ts'
 import { getPotentialPlacementsForState, getValidMeepleTypes, getDragonHeldBy } from '../../core/engine/GameEngine.ts'
@@ -29,6 +30,26 @@ export function GameOverlay() {
         interactionState,
         tentativeMeepleType,
         tentativeSecondaryMeepleType,
+        tentativeDragonFacing,
+        dragonOrientations,
+        dragonPlaceTargets,
+        validPlacements,
+        tentativeFairyTarget,
+        tentativeDragonPlaceTarget,
+    } = useGameStore(useShallow(s => ({
+        gameState: s.gameState,
+        interactionState: s.interactionState,
+        tentativeMeepleType: s.tentativeMeepleType,
+        tentativeSecondaryMeepleType: s.tentativeSecondaryMeepleType,
+        tentativeDragonFacing: s.tentativeDragonFacing,
+        dragonOrientations: s.dragonOrientations,
+        dragonPlaceTargets: s.dragonPlaceTargets,
+        validPlacements: s.validPlacements,
+        tentativeFairyTarget: s.tentativeFairyTarget,
+        tentativeDragonPlaceTarget: s.tentativeDragonPlaceTarget,
+    })))
+
+    const {
         rotateTentativeTile,
         confirmTilePlacement,
         cancelTilePlacement,
@@ -44,24 +65,47 @@ export function GameOverlay() {
         executeDragon,
         cycleDragonFacing,
         confirmDragonOrientation,
-        tentativeDragonFacing,
-        dragonOrientations,
-        dragonPlaceTargets,
         placeDragonOnHoard,
         resolveFarmerReturn,
         playDoubleLake,
         flipTile,
-        validPlacements,
         retrieveAbbot: storeRetrieveAbbot,
-        tentativeFairyTarget,
         confirmFairyMove,
         cancelFairyTarget,
-        tentativeDragonPlaceTarget,
         confirmDragonPlace,
         cancelDragonPlaceTarget,
-    } = useGameStore()
+    } = useGameStore(useShallow(s => ({
+        rotateTentativeTile: s.rotateTentativeTile,
+        confirmTilePlacement: s.confirmTilePlacement,
+        cancelTilePlacement: s.cancelTilePlacement,
+        confirmMeeplePlacement: s.confirmMeeplePlacement,
+        cancelMeeplePlacement: s.cancelMeeplePlacement,
+        skipMeeple: s.skipMeeple,
+        setTentativeMeepleType: s.setTentativeMeepleType,
+        undoTilePlacement: s.undoTilePlacement,
+        drawTile: s.drawTile,
+        discardTile: s.discardTile,
+        skipFairyMove: s.skipFairyMove,
+        startFairyMove: s.startFairyMove,
+        executeDragon: s.executeDragon,
+        cycleDragonFacing: s.cycleDragonFacing,
+        confirmDragonOrientation: s.confirmDragonOrientation,
+        placeDragonOnHoard: s.placeDragonOnHoard,
+        resolveFarmerReturn: s.resolveFarmerReturn,
+        playDoubleLake: s.playDoubleLake,
+        flipTile: s.flipTile,
+        retrieveAbbot: s.retrieveAbbot,
+        confirmFairyMove: s.confirmFairyMove,
+        cancelFairyTarget: s.cancelFairyTarget,
+        confirmDragonPlace: s.confirmDragonPlace,
+        cancelDragonPlaceTarget: s.cancelDragonPlaceTarget,
+    })))
 
-    const { selectedMeepleType, setSelectedMeepleType, tileButtonPos } = useUIStore()
+    const { selectedMeepleType, setSelectedMeepleType, tileButtonPos } = useUIStore(useShallow(s => ({
+        selectedMeepleType: s.selectedMeepleType,
+        setSelectedMeepleType: s.setSelectedMeepleType,
+        tileButtonPos: s.tileButtonPos,
+    })))
     const { sdkReady } = useCastSender()
 
     const [isMenuOpen, setIsMenuOpen] = useState(false)
@@ -254,14 +298,13 @@ export function GameOverlay() {
             <AnimatePresence>
                 {instructionText && !showScoreboard && !isMenuOpen && !showNewGameScreen && (
                     <motion.div
-                        initial={{ opacity: 0, y: -20 }}
-                        animate={{ opacity: 1, y: 0 }}
-                        exit={{ opacity: 0, y: -20 }}
+                        initial={{ opacity: 0, y: -20, x: '-50%' }}
+                        animate={{ opacity: 1, y: 0, x: '-50%' }}
+                        exit={{ opacity: 0, y: -20, x: '-50%' }}
                         style={{
                             position: 'absolute',
                             top: isBuilderBonusTurn ? 80 : 20,
                             left: '50%',
-                            transform: 'translateX(-50%)',
                             background: 'rgba(20, 25, 35, 0.9)',
                             border: `2px solid ${currentPlayer.color || '#555'}`,
                             borderRadius: 12,

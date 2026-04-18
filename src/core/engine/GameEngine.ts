@@ -1933,38 +1933,36 @@ function getDfState(state: GameState): DragonFairyState | undefined {
 }
 
 /**
- * Get valid dragon orientations (C3.1 rules).
+ * Get valid dragon orientations (modern rules).
  * 1. Must face a direction with a directly adjacent tile.
+ *    Revisiting previously-entered tiles IS permitted (the dragon may turn around).
+ *    The only hard block is the fairy tile.
  * 2. If any such direction has a meeple in unbroken line of sight,
- *    restrict to only those directions (gaps interrupt LoS).
+ *    restrict to only those directions (fairy tile interrupts LoS).
  */
 export function getValidDragonOrientations(state: GameState): Direction[] {
   const dragonPos = getDragonPosition(state)
   if (!dragonPos) return []
   const pos = dragonPos
 
-  // Tiles already visited this movement sequence are off-limits (includes start tile and
-  // the "came-from" tile — so re-entering / going backwards is automatically excluded).
-  const dfData = state.expansionData['dragonFairy'] as DragonFairyState | undefined
-  const visited = dfData?.dragonMovement?.visitedCoords ?? []
-  const visitedSet = new Set(visited.map(c => coordKey(c)))
-  // Fairy tile is also off-limits to the dragon.
+  // Only the fairy tile is off-limits to the dragon.
   const fairyPos = getFairyPosition(state)
-  if (fairyPos) visitedSet.add(coordKey(fairyPos.coordinate))
+  const blockedSet = new Set<string>()
+  if (fairyPos) blockedSet.add(coordKey(fairyPos.coordinate))
 
-  // Step 1: directions with an adjacent tile that isn't already visited / blocked.
+  // Step 1: directions with an adjacent tile that isn't blocked by the fairy.
   const adjacentDirs: Direction[] = []
   for (const dir of ['NORTH', 'EAST', 'SOUTH', 'WEST'] as Direction[]) {
     const { dx, dy } = DRAGON_DIRECTION_DELTAS[dir]
     const nextKey = coordKey({ x: pos.x + dx, y: pos.y + dy })
-    if (state.board.tiles[nextKey] && !visitedSet.has(nextKey)) {
+    if (state.board.tiles[nextKey] && !blockedSet.has(nextKey)) {
       adjacentDirs.push(dir)
     }
   }
 
   if (adjacentDirs.length === 0) return []
 
-  // Step 2: of those, which have a meeple in unbroken LoS (ignoring visited/fairy tiles as stoppers)?
+  // Step 2: of those, which have a meeple in unbroken LoS (fairy tile halts the line).
   const dirsWithMeeple: Direction[] = []
   for (const dir of adjacentDirs) {
     const { dx, dy } = DRAGON_DIRECTION_DELTAS[dir]
@@ -1972,8 +1970,7 @@ export function getValidDragonOrientations(state: GameState): Direction[] {
     let y = pos.y + dy
 
     while (state.board.tiles[coordKey({ x, y })]) {
-      // Visited tiles and fairy tiles halt the sight line.
-      if (visitedSet.has(coordKey({ x, y }))) break
+      if (blockedSet.has(coordKey({ x, y }))) break
       const hasMeeple = Object.values(state.boardMeeples).some(bm => bm.coordinate.x === x && bm.coordinate.y === y)
       if (hasMeeple) {
         dirsWithMeeple.push(dir)
@@ -2106,9 +2103,8 @@ export function executeDragonTileStep(state: GameState): { state: GameState; eat
 
   if (!nextTile) return null // Edge of board
 
-  // Already-visited tile: stop stroke (dragon can't re-enter this sequence)
+  // Modern rules: revisiting a previously-entered tile is allowed. Fairy tile still blocks.
   const existingVisited = dfData.dragonMovement.visitedCoords ?? [{ x: dragonPos.x, y: dragonPos.y }]
-  if (existingVisited.some(c => c.x === nextX && c.y === nextY)) return null
 
   const fairyPos = getFairyPosition(state)
 
@@ -2258,13 +2254,15 @@ export function executeDragonMovement(state: GameState): GameState {
       break
     }
 
-    // Already-visited tile halts movement (dragon can't re-enter the same tile this sequence)
-    if (visitedSet.has(nextKey)) break
+    // Modern rules: revisiting a previously-entered tile is allowed — the dragon glides through.
+    // Straight-line movement cannot cycle, so termination is still guaranteed by board edge or fairy.
 
     // Enter tile and eat meeples
     dragonPos = { x, y }
-    visitedSet.add(nextKey)
-    newlyVisited.push({ x, y })
+    if (!visitedSet.has(nextKey)) {
+      visitedSet.add(nextKey)
+      newlyVisited.push({ x, y })
+    }
     const { state: newStateAfterEating } = eatMeeplesOnTile(
       { ...current, players: updatedPlayers, boardMeeples: updatedBoardMeeples, featureUnionFind: updatedUfState, board: { ...current.board, tiles: updatedBoardTiles } },
       dragonPos,

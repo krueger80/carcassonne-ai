@@ -1,13 +1,13 @@
-import { useMemo } from 'react'
-import { 
-  SCALE_FACTOR, 
+import { memo, useMemo } from 'react'
+import {
+  SCALE_FACTOR,
   MEEPLE_DIMENSIONS,
-  createRegularMeepleShape, 
-  createBigMeepleShape, 
-  createBuilderShape, 
+  createRegularMeepleShape,
+  createBigMeepleShape,
+  createBuilderShape,
   createPigShape,
   createCountShape,
-  createAbbotShape 
+  createAbbotShape
 } from './MeepleShapes'
 
 interface Meeple3DProps {
@@ -22,10 +22,10 @@ interface Meeple3DProps {
   onPointerOut?: (e: any) => void
 }
 
-export function Meeple3D({ 
-  type, color, isFarmer = false, 
-  position = [0, 0, 0], 
-  rotation = [0, 0, 0], 
+function Meeple3DImpl({
+  type, color, isFarmer = false,
+  position = [0, 0, 0],
+  rotation = [0, 0, 0],
   isTentative = false,
   onClick,
   onPointerOver,
@@ -101,3 +101,5 @@ export function Meeple3D({
     </group>
   )
 }
+
+export const Meeple3D = memo(Meeple3DImpl)

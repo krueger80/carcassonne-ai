@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { memo, useState } from 'react'
 import { Html } from '@react-three/drei'
 import { useTranslation } from 'react-i18next'
 import { Meeple3D } from './Meeple3D.tsx'
@@ -17,12 +17,12 @@ interface PlacementOverlay3DProps {
   onCancelPrimary?: () => void
 }
 
-export function PlacementOverlay3D({ 
-  position, 
-  type, 
-  secondaryType, 
-  color, 
-  onConfirm, 
+function PlacementOverlay3DImpl({
+  position,
+  type,
+  secondaryType,
+  color,
+  onConfirm,
   onCancel,
   showButtons = false,
   isTentative = false,
@@ -37,10 +37,11 @@ export function PlacementOverlay3D({
   return (
     <group position={position}>
       {/* Clickable interaction cylinder base */}
-      <mesh 
-        onPointerOver={(e) => { e.stopPropagation(); setIsHovered(true); document.body.style.cursor = 'pointer'; }} 
+      <mesh
+        position={[0, 0.15, 0]}
+        onPointerOver={(e) => { e.stopPropagation(); setIsHovered(true); document.body.style.cursor = 'pointer'; }}
         onPointerOut={(e) => { e.stopPropagation(); setIsHovered(false); document.body.style.cursor = ''; }}
-        onClick={(e) => { 
+        onClick={(e) => {
           e.stopPropagation()
           if (isTentative && onCancelPrimary) {
             document.body.style.cursor = ''
@@ -49,12 +50,16 @@ export function PlacementOverlay3D({
             onConfirm()
           }
         }}
+        renderOrder={2}
       >
         <cylinderGeometry args={[1.6, 1.6, 0.15, 32]} />
-        <meshBasicMaterial 
-          color={isHovered ? "yellow" : "orange"} 
-          transparent 
-          opacity={isHovered ? 0.7 : 0.5} 
+        <meshBasicMaterial
+          color={isHovered ? "yellow" : "orange"}
+          transparent
+          opacity={isHovered ? 0.7 : 0.5}
+          polygonOffset
+          polygonOffsetFactor={-4}
+          polygonOffsetUnits={-4}
         />
       </mesh>
 
@@ -181,3 +186,5 @@ export function PlacementOverlay3D({
     </group>
   )
 }
+
+export const PlacementOverlay3D = memo(PlacementOverlay3DImpl)

@@ -47,7 +47,7 @@ export interface BotAction {
  * Heuristic-based bot that evaluates moves by immediate score delta and long-term potential.
  */
 export function computeBestMove(state: GameState, difficulty: 'easy' | 'medium' | 'hard' = 'medium'): BotAction {
-  const validPhases = ['PLACE_TILE', 'DRAGON_PLACE', 'DRAGON_ORIENT', 'FAIRY_MOVE']
+  const validPhases = ['PLACE_TILE', 'PLACE_MEEPLE', 'DRAGON_PLACE', 'DRAGON_ORIENT', 'FAIRY_MOVE']
   if (!validPhases.includes(state.turnPhase)) {
     return {}
   }
@@ -115,6 +115,41 @@ export function computeBestMove(state: GameState, difficulty: 'easy' | 'medium' 
           stateAfterTurn: simMove,
           score: evaluateState(state, simMove, myPlayerId, difficulty, {}),
           breakdown: {}
+        })
+      }
+    } else if (state.turnPhase === 'PLACE_MEEPLE') {
+      const meepleOptions: (BotAction['meeplePlacement'])[] = [null]
+      const availableSegments = getAvailableSegmentsForMeeple(state)
+      const availableTypes = getValidMeepleTypes(state)
+
+      for (const nk of availableSegments) {
+        const [coordStr, segId] = nk.split(':')
+        const [x, y] = coordStr.split(',').map(Number)
+        const coord = { x, y }
+        for (const type of availableTypes) {
+          meepleOptions.push({ coordinate: coord, segmentId: segId, meepleType: type })
+        }
+      }
+
+      for (const meepleMove of meepleOptions) {
+        let simFinalState = state
+        if (meepleMove) {
+          simFinalState = placeMeeple(simFinalState, meepleMove.coordinate, meepleMove.segmentId, meepleMove.meepleType)
+        } else {
+          simFinalState = skipMeeple(simFinalState)
+        }
+        
+        if (simFinalState.turnPhase === 'PLACE_MEEPLE') continue
+
+        // Finalize turn to get score delta (this includes feature completions)
+        simFinalState = endTurn(simFinalState)
+        const breakdown: Record<string, any> = {}
+        const utility = evaluateState(state, simFinalState, myPlayerId, difficulty, breakdown)
+        candidateMoves.push({
+           action: { meeplePlacement: meepleMove },
+           stateAfterTurn: simFinalState,
+           score: utility,
+           breakdown
         })
       }
     } else if (state.turnPhase === 'PLACE_TILE') {

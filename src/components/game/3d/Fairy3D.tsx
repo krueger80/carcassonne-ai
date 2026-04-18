@@ -1,15 +1,15 @@
-import { useMemo, useRef } from 'react'
+import { memo, useMemo, useRef } from 'react'
 import * as THREE from 'three'
-import { 
-  SCALE_FACTOR, 
-  MEEPLE_DIMENSIONS, 
-  createFairyShape 
+import {
+  SCALE_FACTOR,
+  MEEPLE_DIMENSIONS,
+  createFairyShape
 } from './MeepleShapes'
 
-export function Fairy3D({ 
-  position = [0, 0, 0] 
-}: { 
-  position?: [number, number, number] 
+function Fairy3DImpl({
+  position = [0, 0, 0]
+}: {
+  position?: [number, number, number]
 }) {
   const meshRef = useRef<THREE.Mesh>(null)
   
@@ -52,3 +52,5 @@ export function Fairy3D({
     </group>
   )
 }
+
+export const Fairy3D = memo(Fairy3DImpl)

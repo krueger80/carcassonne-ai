@@ -14,6 +14,7 @@ import {
   orientDragon,
   placeDragonOnHoard,
   getDragonHoardTilesOnBoard,
+  endTurn,
   getPotentialPlacementsForState,
   getValidDragonOrientations,
 } from '../../src/core/engine/GameEngine.ts'
@@ -674,11 +675,11 @@ describe('orientDragon phase transition', () => {
 // has to override that path for `getValidDragonOrientations` to return non-empty
 // results while the dragon is still held by the player (PLAYER_FRONT).
 
-// Regression: after the dragon has moved, getValidDragonOrientations was returning
-// directions that led back into tiles the dragon had already visited this sequence
-// (including the tile it just came from). Visited coords must be excluded.
-describe('getValidDragonOrientations respects visitedCoords after movement', () => {
-  it('excludes directions pointing at a tile already visited this movement', () => {
+// Modern rules: the dragon may turn around and re-enter a previously-visited tile on a
+// subsequent movement step. getValidDragonOrientations should therefore NOT exclude the
+// came-from tile — only the fairy tile is off-limits.
+describe('getValidDragonOrientations allows revisiting previously-entered tiles', () => {
+  it('includes the direction pointing back at the tile it just came from', () => {
     let state = createDfGame()
 
     // Build a 3x1 line of tiles at y=0: x=-1, x=0, x=1
@@ -692,8 +693,8 @@ describe('getValidDragonOrientations respects visitedCoords after movement', () 
       { x: 0, y: -1, defId: 'df31_1' },
     ])
 
-    // Dragon is at (0,0) after moving SOUTH from (0,-1). visitedCoords contains (0,-1)
-    // and (0,0) — so NORTH (dy=-1) would re-enter (0,-1) and must be excluded.
+    // Dragon is at (0,0) after moving SOUTH from (0,-1). Per modern rules, NORTH is a
+    // legal reorientation (revisit the starting tile) and should be offered to the player.
     const dfData = getDfState(state)
     state = {
       ...state,
@@ -713,9 +714,8 @@ describe('getValidDragonOrientations respects visitedCoords after movement', () 
     }
 
     const orientations = getValidDragonOrientations(state)
-    // NORTH (dy=-1) would re-enter (0,-1) which is visited — must be excluded.
-    expect(orientations).not.toContain('NORTH')
-    // EAST, SOUTH, WEST have unvisited adjacent tiles and should remain available.
+    // All four cardinals have adjacent tiles; with revisit permitted, NORTH must now be allowed.
+    expect(orientations).toContain('NORTH')
     expect(orientations).toContain('EAST')
     expect(orientations).toContain('WEST')
     expect(orientations).toContain('SOUTH')
@@ -792,14 +792,9 @@ describe('Fairy Move Loop Regression', () => {
       }
     }
 
-    // Skip fairy move -> should go to SCORE
+    // Skip fairy move -> should go to next player / DRAW_TILE
     currentState = skipFairyMove(currentState)
-    expect(currentState.turnPhase).toEqual('SCORE')
-
-    // endTurn -> should go to P2 / DRAW_TILE
-    const nextState = endTurn(currentState)
-    
-    expect(nextState.currentPlayerIndex, 'Should transition to P2').toBe(1)
-    expect(nextState.turnPhase, 'Should transition to DRAW_TILE phase').toBe('DRAW_TILE')
+    expect(currentState.turnPhase).toEqual('DRAW_TILE')
+    expect(currentState.currentPlayerIndex, 'Should transition to P2').toBe(1)
   })
 })

@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest'
-import { initGame, placeTile, isValidPlacement, getDragonPosition } from '../../src/core/engine/GameEngine.ts'
+import { initGame, placeTile, getDragonPosition, getPotentialPlacementsForState, isValidPlacementForState } from '../../src/core/engine/GameEngine.ts'
 import { getRotatedOffset } from '../../src/core/engine/TilePlacement.ts'
 import type { GameState } from '../../src/core/types/game.ts'
 import { coordKey } from '../../src/core/types/board.ts'
@@ -42,10 +42,12 @@ describe('Dragon & Fairy River integration', () => {
         }
 
         let placement: { coordinate: any, rotation: any } | null = null
-        for (const dir of [{ x: 1, y: 0 }, { x: -1, y: 0 }, { x: 0, y: 1 }, { x: 0, y: -1 }]) {
-            for (let r = 0; r < 360; r += 90) {
-                if (isValidPlacement(stateWithTile.board, stateWithTile.staticTileMap, { ...stateWithTile.currentTile!, rotation: r as any }, dir)) {
-                    placement = { coordinate: dir, rotation: r }
+        
+        const coords = getPotentialPlacementsForState(stateWithTile)
+        for (const c of coords) {
+            for (const r of [0, 90, 180, 270] as any[]) {
+                if (isValidPlacementForState(stateWithTile, { ...stateWithTile.currentTile!, rotation: r }, c)) {
+                    placement = { coordinate: c, rotation: r }
                     break
                 }
             }
@@ -86,16 +88,19 @@ describe('Dragon & Fairy River integration', () => {
         }
 
         let placement: { coordinate: any, rotation: any } | null = null
-        for (const dir of [{ x: 1, y: 0 }, { x: -1, y: 0 }, { x: 0, y: 1 }, { x: 0, y: -1 }]) {
-            for (let r = 0; r < 360; r += 90) {
-                if (isValidPlacement(stateWithTile.board, stateWithTile.staticTileMap, { ...stateWithTile.currentTile!, rotation: r as any }, dir)) {
-                    placement = { coordinate: dir, rotation: r }
+        
+        const coords = getPotentialPlacementsForState(stateWithTile)
+        for (const c of coords) {
+            for (const r of [0, 90, 180, 270] as any[]) {
+                if (isValidPlacementForState(stateWithTile, { ...stateWithTile.currentTile!, rotation: r }, c)) {
+                    placement = { coordinate: c, rotation: r }
                     break
                 }
             }
             if (placement) break
         }
 
+        expect(placement).toBeDefined()
         const stateWithTileRotated: GameState = {
             ...stateWithTile,
             currentTile: { ...stateWithTile.currentTile!, rotation: placement!.rotation }

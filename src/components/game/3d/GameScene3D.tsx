@@ -88,14 +88,34 @@ function getDragonAngle(facing: any): number {
  */
 function ScreenSpaceProjector({ worldPos, radius }: { worldPos: [number, number, number] | null, radius: number }) {
   const { camera, size } = useThree()
-  
+  const lastCam = useRef({ px: NaN, py: NaN, pz: NaN, qx: NaN, qy: NaN, qz: NaN, qw: NaN, w: 0, h: 0, rx: NaN, ry: NaN, rz: NaN, r: NaN })
+
   useFrame(() => {
     if (!worldPos) {
-      if (useUIStore.getState().tileButtonPos) {
+      if (useUIStore.getState().tileButtonPos !== null) {
         useUIStore.setState({ tileButtonPos: null })
       }
+      lastCam.current.rx = NaN
       return
     }
+
+    // Only project when something affecting screen position changed:
+    // camera moved/rotated, world anchor changed, or canvas resized.
+    const p = camera.position
+    const q = camera.quaternion
+    const cur = lastCam.current
+    if (
+      cur.px === p.x && cur.py === p.y && cur.pz === p.z &&
+      cur.qx === q.x && cur.qy === q.y && cur.qz === q.z && cur.qw === q.w &&
+      cur.rx === worldPos[0] && cur.ry === worldPos[1] && cur.rz === worldPos[2] && cur.r === radius &&
+      cur.w === size.width && cur.h === size.height
+    ) {
+      return
+    }
+    cur.px = p.x; cur.py = p.y; cur.pz = p.z
+    cur.qx = q.x; cur.qy = q.y; cur.qz = q.z; cur.qw = q.w
+    cur.rx = worldPos[0]; cur.ry = worldPos[1]; cur.rz = worldPos[2]; cur.r = radius
+    cur.w = size.width; cur.h = size.height
 
     // Get the camera's global forward direction on the XZ plane
     const forward = new THREE.Vector3();
@@ -111,11 +131,11 @@ function ScreenSpaceProjector({ worldPos, radius }: { worldPos: [number, number,
       worldPos[2] - forward.z * (radius + 2.0)
     );
     buttonAnchor.project(camera)
-    
+
     // Convert to pixel coordinates
     const x = (buttonAnchor.x + 1) * size.width / 2
     const y = (-buttonAnchor.y + 1) * size.height / 2
-    
+
     const current = useUIStore.getState().tileButtonPos
     if (!current || Math.abs(current.x - x) > 0.5 || Math.abs(current.y - y) > 0.5) {
       useUIStore.setState({ tileButtonPos: { x, y } })
@@ -160,7 +180,7 @@ export const GameScene3D = memo(({
   segmentOwnerMap = {},
 }: GameScene3DProps) => {
   const controlsRef = useRef<any>(null)
-  const boardTiles = Object.entries(gameState.board.tiles)
+  const boardTiles = useMemo(() => Object.entries(gameState.board.tiles), [gameState.board.tiles])
   const [hoveredTileCoord, setHoveredTileCoord] = useState<string | null>(null)
 
   const isMeeplePhase = gameState.turnPhase === 'PLACE_MEEPLE'
@@ -235,20 +255,23 @@ export const GameScene3D = memo(({
 
   return (
     <Canvas
-      gl={{ 
-        toneMapping: THREE.ACESFilmicToneMapping, 
+      dpr={[1, 1.5]}
+      gl={{
+        toneMapping: THREE.ACESFilmicToneMapping,
         toneMappingExposure: 0.7,
-        outputColorSpace: THREE.SRGBColorSpace 
+        outputColorSpace: THREE.SRGBColorSpace,
+        antialias: false,
+        powerPreference: 'high-performance',
       }}
       camera={{ position: [0, 25, 20], fov: 45 }}
       shadows={{ type: THREE.PCFShadowMap }}
     >
       <ambientLight intensity={0.6} />
-      <directionalLight 
-        position={[20, 50, 30]} 
-        intensity={1.2} 
-        castShadow 
-        shadow-mapSize={[2048, 2048]}
+      <directionalLight
+        position={[20, 50, 30]}
+        intensity={1.2}
+        castShadow
+        shadow-mapSize={[1024, 1024]}
       />
       
       <CameraController 
@@ -445,12 +468,21 @@ export const GameScene3D = memo(({
                               return (
                                 <group rotation={[0, -(hash + (i * 0.2)), 0]}>
                                   <mesh
+                                    position={[0, 0.15, 0]}
                                     onPointerOver={() => { document.body.style.cursor = 'pointer' }}
                                     onPointerOut={() => { document.body.style.cursor = '' }}
                                     onClick={handleFairyClick}
+                                    renderOrder={2}
                                   >
                                     <cylinderGeometry args={[0.9, 0.9, 0.1, 32]} />
-                                    <meshBasicMaterial color="#f1c40f" transparent opacity={0.6} />
+                                    <meshBasicMaterial
+                                      color="#f1c40f"
+                                      transparent
+                                      opacity={0.6}
+                                      polygonOffset
+                                      polygonOffsetFactor={-4}
+                                      polygonOffsetUnits={-4}
+                                    />
                                   </mesh>
                                   {/* Tentative Fairy Preview — click to cancel */}
                                   {isTentativeHereFairy && (
@@ -489,7 +521,14 @@ export const GameScene3D = memo(({
             {/* Ghost ring indicator — purely informational; tile body handles clicks */}
             <mesh rotation={[-Math.PI / 2, 0, 0]} position={[0, 0.21, 0]} raycast={() => null}>
               <ringGeometry args={[3.2, 3.5, 32]} />
-              <meshBasicMaterial color="#ffffff" transparent opacity={0.8} />
+              <meshBasicMaterial
+                color="#ffffff"
+                transparent
+                opacity={0.8}
+                polygonOffset
+                polygonOffsetFactor={-4}
+                polygonOffsetUnits={-4}
+              />
             </mesh>
             {/* Tentative Dragon Preview — clickable to cycle facing (user also gets this on the tile body) */}
             {isTentative && (
@@ -559,19 +598,26 @@ export const GameScene3D = memo(({
                 <group rotation={[0, -rx, 0]}>
                   {placementFootprints.map((fp, idx) => (
                     <group key={idx} position={[fp.dx * TILE_SIZE, 0, fp.dy * TILE_SIZE]}>
-                      <mesh 
+                      <mesh
                         rotation={[-Math.PI / 2, 0, 0]}
-                        position={[0, 0.05, 0]}
+                        position={[0, 0.15, 0]}
                         onPointerOver={(e) => { e.stopPropagation(); setHoveredTileCoord(key); document.body.style.cursor = 'pointer' }}
                         onPointerOut={(e) => { e.stopPropagation(); setHoveredTileCoord(null); document.body.style.cursor = '' }}
                         onClick={(e) => { e.stopPropagation(); document.body.style.cursor = ''; selectTilePlacement({ x, y }) }}
                       >
                         <planeGeometry args={[TILE_SIZE - 0.2, TILE_SIZE - 0.2]} />
-                        <meshBasicMaterial color="yellow" transparent opacity={isHovered ? 0.3 : 0.05} />
+                        <meshBasicMaterial
+                          color="yellow"
+                          transparent
+                          opacity={isHovered ? 0.3 : 0.05}
+                          polygonOffset
+                          polygonOffsetFactor={-4}
+                          polygonOffsetUnits={-4}
+                        />
                       </mesh>
-                      
-                      <lineSegments 
-                        position={[0, 0.06, 0]} 
+
+                      <lineSegments
+                        position={[0, 0.16, 0]}
                         rotation={[-Math.PI / 2, 0, 0]}
                         onUpdate={(line: any) => {
                           if (line.geometry?.attributes?.position) {
@@ -580,7 +626,13 @@ export const GameScene3D = memo(({
                         }}
                       >
                         <edgesGeometry args={[markerGeom]} />
-                        <lineDashedMaterial color="yellow" dashSize={0.4} gapSize={0.2} transparent opacity={isHovered ? 1.0 : 0.5} />
+                        <lineDashedMaterial
+                          color="yellow"
+                          dashSize={0.4}
+                          gapSize={0.2}
+                          transparent
+                          opacity={isHovered ? 1.0 : 0.5}
+                        />
                       </lineSegments>
                     </group>
                   ))}

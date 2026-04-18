@@ -13,6 +13,7 @@ export function BotOrchestrator() {
     const validPhases = [
       'DRAW_TILE', 
       'PLACE_TILE', 
+      'PLACE_MEEPLE',
       'FAIRY_MOVE', 
       'RETURN_FARMER', 
       'DRAGON_ORIENT', 
@@ -161,6 +162,26 @@ export function BotOrchestrator() {
           return
         }
 
+        if (latestState.turnPhase === 'PLACE_MEEPLE') {
+          if (action.meeplePlacement) {
+            console.log('[Bot] Executing standalone meeple placement:', action.meeplePlacement)
+            store.selectMeeplePlacement(action.meeplePlacement.segmentId, action.meeplePlacement.meepleType)
+            store.confirmMeeplePlacement()
+          } else {
+            console.log('[Bot] Skipping standalone meeple')
+            store.skipMeeple()
+          }
+          
+          // Safety check: if the phase didn't advance, force skip
+          const postMeepleState = useGameStore.getState().gameState
+          if (postMeepleState?.turnPhase === 'PLACE_MEEPLE') {
+            console.warn('[Bot] ⚠ Meeple placement did not advance phase — forcing skip')
+            store.skipMeeple()
+          }
+
+          isThinking.current = false
+          return
+        }
 
         if (latestState.turnPhase !== 'PLACE_TILE' || !action.tilePlacement) {
           console.warn(`[Bot] Unhandled state ${latestState.turnPhase} or no tile placement found`)

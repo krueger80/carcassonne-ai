@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useMemo } from 'react'
+import { useShallow } from 'zustand/react/shallow'
 import { motion, AnimatePresence } from 'framer-motion'
 import { GameScene3D } from './3d/GameScene3D.tsx'
 import { useGameStore } from '../../store/gameStore.ts'
@@ -13,9 +14,36 @@ export function GameBoard() {
     validPlacements,
     tentativeTileCoord,
     interactionState,
+    tentativeDragonFacing,
+    placeableSegments,
+    tentativeMeepleSegment,
+    tentativeMeepleType,
+    tentativeSecondaryMeepleType,
+    fairyMoveTargets,
+    dragonPlaceTargets,
+    tentativeFairyTarget,
+    tentativeDragonPlaceTarget,
+    magicPortalTargets,
+  } = useGameStore(useShallow(s => ({
+    gameState: s.gameState,
+    validPlacements: s.validPlacements,
+    tentativeTileCoord: s.tentativeTileCoord,
+    interactionState: s.interactionState,
+    tentativeDragonFacing: s.tentativeDragonFacing,
+    placeableSegments: s.placeableSegments,
+    tentativeMeepleSegment: s.tentativeMeepleSegment,
+    tentativeMeepleType: s.tentativeMeepleType,
+    tentativeSecondaryMeepleType: s.tentativeSecondaryMeepleType,
+    fairyMoveTargets: s.fairyMoveTargets,
+    dragonPlaceTargets: s.dragonPlaceTargets,
+    tentativeFairyTarget: s.tentativeFairyTarget,
+    tentativeDragonPlaceTarget: s.tentativeDragonPlaceTarget,
+    magicPortalTargets: s.magicPortalTargets,
+  })))
+
+  const {
     selectTilePlacement,
     rotateTentativeTile,
-    tentativeDragonFacing,
     undoTilePlacement,
     cancelTilePlacement,
     cancelMeeplePlacement,
@@ -23,23 +51,36 @@ export function GameBoard() {
     cancelFairyTarget,
     rotateTile,
     cycleDragonFacing,
-    placeableSegments,
-    tentativeMeepleSegment,
-    tentativeMeepleType,
-    tentativeSecondaryMeepleType,
     selectMeeplePlacement,
-    fairyMoveTargets,
     moveFairy,
-    dragonPlaceTargets,
     placeDragonOnHoard,
-    tentativeFairyTarget,
-    tentativeDragonPlaceTarget,
     selectFairyTarget,
     selectDragonPlaceTarget,
-    magicPortalTargets,
-  } = useGameStore()
+  } = useGameStore(useShallow(s => ({
+    selectTilePlacement: s.selectTilePlacement,
+    rotateTentativeTile: s.rotateTentativeTile,
+    undoTilePlacement: s.undoTilePlacement,
+    cancelTilePlacement: s.cancelTilePlacement,
+    cancelMeeplePlacement: s.cancelMeeplePlacement,
+    cancelDragonPlaceTarget: s.cancelDragonPlaceTarget,
+    cancelFairyTarget: s.cancelFairyTarget,
+    rotateTile: s.rotateTile,
+    cycleDragonFacing: s.cycleDragonFacing,
+    selectMeeplePlacement: s.selectMeeplePlacement,
+    moveFairy: s.moveFairy,
+    placeDragonOnHoard: s.placeDragonOnHoard,
+    selectFairyTarget: s.selectFairyTarget,
+    selectDragonPlaceTarget: s.selectDragonPlaceTarget,
+  })))
 
-  const { hoveredCoord, territoryOverlay, selectedMeepleType, cameraZoomIn, cameraZoomOut, cameraReset } = useUIStore()
+  const { hoveredCoord, territoryOverlay, selectedMeepleType, cameraZoomIn, cameraZoomOut, cameraReset } = useUIStore(useShallow(s => ({
+    hoveredCoord: s.hoveredCoord,
+    territoryOverlay: s.territoryOverlay,
+    selectedMeepleType: s.selectedMeepleType,
+    cameraZoomIn: s.cameraZoomIn,
+    cameraZoomOut: s.cameraZoomOut,
+    cameraReset: s.cameraReset,
+  })))
 
   // ── Keyboard shortcuts ──────────────────────────────────────────────────────
   useEffect(() => {
@@ -99,8 +140,8 @@ export function GameBoard() {
     }
   }, [gameState?.turnPhase, gameState])
 
-  const fairyPos = getFairyPosition(gameState)
-  const dragonPos = getDragonPosition(gameState)
+  const fairyPos = useMemo(() => getFairyPosition(gameState), [gameState])
+  const dragonPos = useMemo(() => getDragonPosition(gameState), [gameState])
 
   const isDragonOrientPhase = gameState.turnPhase === 'DRAGON_ORIENT'
   const dragonFacing = isDragonOrientPhase 
