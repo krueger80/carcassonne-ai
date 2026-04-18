@@ -61,6 +61,54 @@ function getStripeTexture(colors: string[]): THREE.CanvasTexture | null {
   return t
 }
 
+// Shared ShaderMaterial per color signature. Uses modelMatrix in the vertex shader
+// to sample the stripe texture at world-space position → stripes stay aligned
+// across tiles regardless of rotation.
+const stripeMaterialCache = new Map<string, THREE.ShaderMaterial>()
+
+function getStripeMaterial(colors: string[]): THREE.ShaderMaterial | null {
+  const key = colors.join('|')
+  const cached = stripeMaterialCache.get(key)
+  if (cached) return cached
+  const texture = getStripeTexture(colors)
+  if (!texture) return null
+  const material = new THREE.ShaderMaterial({
+    uniforms: {
+      map: { value: texture },
+      stripePeriod: { value: 1.5 },
+      opacity: { value: 0.7 },
+    },
+    vertexShader: `
+      varying vec3 vWorldPos;
+      void main() {
+        vec4 wp = modelMatrix * vec4(position, 1.0);
+        vWorldPos = wp.xyz;
+        gl_Position = projectionMatrix * viewMatrix * wp;
+      }
+    `,
+    fragmentShader: `
+      uniform sampler2D map;
+      uniform float stripePeriod;
+      uniform float opacity;
+      varying vec3 vWorldPos;
+      void main() {
+        float u = (vWorldPos.x + vWorldPos.z) / stripePeriod;
+        vec4 c = texture2D(map, vec2(u, 0.5));
+        if (c.a < 0.01) discard;
+        gl_FragColor = vec4(c.rgb, c.a * opacity);
+      }
+    `,
+    transparent: true,
+    depthWrite: false,
+    side: THREE.DoubleSide,
+    polygonOffset: true,
+    polygonOffsetFactor: -2,
+    polygonOffsetUnits: -2,
+  })
+  stripeMaterialCache.set(key, material)
+  return material
+}
+
 interface Tile3DProps {
   tile: any
   definition: any
@@ -73,11 +121,8 @@ interface Tile3DProps {
   segmentOwnerColors?: Record<string, string[]>
 }
 
-const SegmentOwnership3D = memo(function SegmentOwnership3D({ colors, segment, tile }: { colors: string[], segment: any, tile: any }) {
-  const rotation = tile.rotation || 0
-  const rx = rotation * (Math.PI / 180)
-
-  const texture = useMemo(() => getStripeTexture(colors), [colors.join('|')])
+const SegmentOwnership3D = memo(function SegmentOwnership3D({ colors, segment }: { colors: string[], segment: any }) {
+  const material = useMemo(() => getStripeMaterial(colors), [colors.join('|')])
 
   const geometry = useMemo(() => {
     if (!segment.svgPath) return null
@@ -119,38 +164,21 @@ const SegmentOwnership3D = memo(function SegmentOwnership3D({ colors, segment, t
     }
 
     if (finalGeometry) {
-      // World-Space UVs for Global Continuity (stripe pattern anchored to board origin)
-      const posAttr = finalGeometry.getAttribute('position')
-      const uvAttr = new THREE.BufferAttribute(new Float32Array(posAttr.count * 2), 2)
-
-      const stripePeriod = 1.5
-      const cosR = Math.cos(-rx), sinR = Math.sin(-rx)
-
-      for (let i = 0; i < posAttr.count; i++) {
-        const lx = posAttr.getX(i), ly = posAttr.getY(i)
-        const ux = (lx - 50) / 100 * TILE_SIZE
-        const uy = (ly - 50) / 100 * TILE_SIZE
-        const rux = ux * cosR - uy * sinR
-        const ruy = ux * sinR + uy * cosR
-        const wx = (tile.coordinate.x * TILE_SIZE) + rux
-        const wz = (tile.coordinate.y * TILE_SIZE) + ruy
-        uvAttr.setXY(i, (wx + wz) / stripePeriod, 0)
-      }
-      finalGeometry.setAttribute('uv', uvAttr)
-
+      // Shader derives UV from world-space modelMatrix → no manual rotation math needed.
+      // Geometry stays in its natural SVG-local orientation; parent group handles rotation.
       const scale = TILE_SIZE / 100
       finalGeometry.scale(scale, -scale, 1)
       finalGeometry.translate(-TILE_SIZE / 2, TILE_SIZE / 2, 0)
     }
 
     return finalGeometry
-  }, [segment.svgPath, rx, tile.coordinate.x, tile.coordinate.y])
+  }, [segment.svgPath])
 
-  if (!texture || !geometry) return null
+  if (!material || !geometry) return null
 
   return (
     <mesh geometry={geometry} position={[0, 0.1, 0]} rotation={[-Math.PI / 2, 0, 0]}>
-      <meshBasicMaterial map={texture} transparent opacity={0.7} depthWrite={false} side={THREE.DoubleSide} polygonOffset polygonOffsetFactor={-2} polygonOffsetUnits={-2} />
+      <primitive object={material} attach="material" />
     </mesh>
   )
 })
@@ -258,13 +286,13 @@ function Tile3DImpl({
 
           {/* Tile ID label */}
           <Text
-            position={[0, 0.08, TILE_SIZE / 2 - 0.7]}
+            position={[TILE_SIZE / 2 - 0.3, 0.08, TILE_SIZE / 2 - 0.7]}
             rotation={[-Math.PI / 2, 0, 0]}
             fontSize={0.6}
             color="#ffffff"
             outlineWidth={0.05}
             outlineColor="#000000"
-            anchorX="center"
+            anchorX="right"
             anchorY="middle"
           >
             {fp.def.id}
@@ -279,7 +307,6 @@ function Tile3DImpl({
                 key={segId}
                 colors={colors}
                 segment={seg}
-                tile={tile}
               />
             )
           })}

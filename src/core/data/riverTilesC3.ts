@@ -574,7 +574,7 @@ export const RIVER_C3_TILES: TileDefinition[] = [
       {
         "id": "cloister0",
         "type": "CLOISTER",
-        "svgPath": "M25,15 L48,15 L48,40 L25,40 Z",
+        "svgPath": "M39,4 L47,23 L64,32 L70,41 L69,55 L57,60 L39,52 L26,50 L26,36 L32,17 Z",
         "meepleCentroid": {
           "x": 49,
           "y": 43
@@ -583,7 +583,7 @@ export const RIVER_C3_TILES: TileDefinition[] = [
       {
         "id": "road0",
         "type": "ROAD",
-        "svgPath": "M100,50 L0,50",
+        "svgPath": "M64,54 L63,65 L56,66 L39,79 L46,86 L50,100",
         "meepleCentroid": {
           "x": 48,
           "y": 87
@@ -601,10 +601,10 @@ export const RIVER_C3_TILES: TileDefinition[] = [
       {
         "id": "field0",
         "type": "FIELD",
-        "svgPath": "M0,0 L100,0 L100,41 L86,40 L85,47 L76,51 L0,38 Z",
+        "svgPath": "M0,0 L100,0 L100,41 L76,40 L49,22 L38,3 L21,43 L0,38 Z",
         "meepleCentroid": {
-          "x": 15,
-          "y": 15
+          "x": 16,
+          "y": 13
         }
       },
       {
@@ -778,10 +778,10 @@ export const RIVER_C3_TILES: TileDefinition[] = [
       {
         "id": "field0",
         "type": "FIELD",
-        "svgPath": "M0,0 L100,0 L100,36 L69,39 L44,53 L36,71 L40,100 L0,100 Z",
+        "svgPath": "M0,0 L100,0 L100,42 L69,38 L42,57 L37,42 L57,31 L28,15 L8,27 L40,44 L38,100 L0,100 Z",
         "meepleCentroid": {
-          "x": 25,
-          "y": 30
+          "x": 18,
+          "y": 60
         }
       },
       {
@@ -791,6 +791,15 @@ export const RIVER_C3_TILES: TileDefinition[] = [
         "meepleCentroid": {
           "x": 86,
           "y": 79
+        }
+      },
+      {
+        "id": "garden0",
+        "type": "GARDEN",
+        "svgPath": "M29,15 L56,30 L35,42 L7,27 Z",
+        "meepleCentroid": {
+          "x": 32,
+          "y": 30
         }
       }
     ],
@@ -816,6 +825,10 @@ export const RIVER_C3_TILES: TileDefinition[] = [
       [
         "river0",
         "field1"
+      ],
+      [
+        "field0",
+        "garden0"
       ]
     ]
   },
@@ -855,7 +868,7 @@ export const RIVER_C3_TILES: TileDefinition[] = [
       {
         "id": "field1",
         "type": "FIELD",
-        "svgPath": "M54,0 L100,0 L100,46 Z",
+        "svgPath": "M62,0 L100,0 L100,46 L54,25 Z",
         "meepleCentroid": {
           "x": 80,
           "y": 15
@@ -938,7 +951,7 @@ export const RIVER_C3_TILES: TileDefinition[] = [
       {
         "id": "cloister0",
         "type": "CLOISTER",
-        "svgPath": "M15,55 L45,55 L45,85 L15,85 Z",
+        "svgPath": "M69,31 L77,43 L83,61 L80,75 L54,84 L40,76 L44,59 L61,49 Z",
         "meepleCentroid": {
           "x": 62,
           "y": 67
@@ -956,7 +969,7 @@ export const RIVER_C3_TILES: TileDefinition[] = [
       {
         "id": "field0",
         "type": "FIELD",
-        "svgPath": "M0,0 L39,0 L43,12 L55,19 L44,25 L18,23 L17,30 L24,32 L14,44 L28,50 L8,61 L16,70 L17,83 L35,82 L34,74 L28,69 L36,66 L34,61 L53,56 L55,43 L62,47 L82,51 L88,35 L69,31 L64,24 L68,12 L57,7 L58,0 L100,0 L100,100 L0,100 Z",
+        "svgPath": "M0,0 L39,0 L43,12 L55,19 L44,25 L18,23 L17,30 L24,32 L14,44 L28,50 L8,61 L16,70 L17,83 L54,85 L81,74 L88,35 L66,25 L67,12 L59,6 L58,0 L100,0 L100,100 L0,100 Z",
         "meepleCentroid": {
           "x": 15,
           "y": 17

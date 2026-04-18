@@ -16,26 +16,26 @@ export const IC_C31_TILES: TileDefinition[] = [
       {
         "id": "field0",
         "type": "FIELD",
-        "svgPath": "M0,0 L100,0 L100,100 L0,100 Z",
+        "svgPath": "M0,57 L45,55 L42,100 L0,100 Z",
         "meepleCentroid": {
-          "x": 38,
-          "y": 22
+          "x": 28,
+          "y": 71
         }
       },
       {
         "id": "field1",
         "type": "FIELD",
-        "svgPath": "M0,0 L100,0 L100,100 L0,100 Z",
+        "svgPath": "M0,0 L100,0 L100,100 L56,100 L71,59 L37,40 L0,45 Z",
         "meepleCentroid": {
-          "x": 26,
-          "y": 72
+          "x": 53,
+          "y": 18
         }
       },
       {
         "id": "road0",
         "type": "ROAD",
         "hasInn": true,
-        "svgPath": "M0,50 L33,50 L67,50 L100,50",
+        "svgPath": "M0,50 L37,44 L67,64 L53,80 L50,100",
         "meepleCentroid": {
           "x": 59,
           "y": 55
@@ -77,7 +77,7 @@ export const IC_C31_TILES: TileDefinition[] = [
       {
         "id": "field0",
         "type": "FIELD",
-        "svgPath": "M0,0 L100,0 L100,100 L0,100 Z",
+        "svgPath": "M0,0 L100,0 L100,42 L0,44 Z",
         "meepleCentroid": {
           "x": 34,
           "y": 28
@@ -86,20 +86,29 @@ export const IC_C31_TILES: TileDefinition[] = [
       {
         "id": "field1",
         "type": "FIELD",
-        "svgPath": "M0,0 L100,0 L100,100 L0,100 Z",
+        "svgPath": "M0,58 L65,87 L100,69 L100,100 L0,100 Z",
         "meepleCentroid": {
-          "x": 51,
-          "y": 77
+          "x": 25,
+          "y": 79
         }
       },
       {
         "id": "road0",
         "type": "ROAD",
         "hasInn": true,
-        "svgPath": "M0,50 L33,50 L67,50 L100,50",
+        "svgPath": "M0,50 L45,59 L65,54 L80,59 L100,49",
         "meepleCentroid": {
-          "x": 52,
-          "y": 57
+          "x": 53,
+          "y": 55
+        }
+      },
+      {
+        "id": "garden0",
+        "type": "GARDEN",
+        "svgPath": "M42,73 L69,60 L92,72 L63,86 Z",
+        "meepleCentroid": {
+          "x": 67,
+          "y": 71
         }
       }
     ],
@@ -125,6 +134,10 @@ export const IC_C31_TILES: TileDefinition[] = [
       [
         "road0",
         "field1"
+      ],
+      [
+        "garden0",
+        "field1"
       ]
     ]
   },
@@ -138,7 +151,7 @@ export const IC_C31_TILES: TileDefinition[] = [
       {
         "id": "field0",
         "type": "FIELD",
-        "svgPath": "M0,0 L100,0 L100,100 L0,100 Z",
+        "svgPath": "M0,0 L100,0 L100,43 L54,14 L0,42 Z",
         "meepleCentroid": {
           "x": 50,
           "y": 28
@@ -147,7 +160,7 @@ export const IC_C31_TILES: TileDefinition[] = [
       {
         "id": "field1",
         "type": "FIELD",
-        "svgPath": "M0,0 L100,0 L100,100 L0,100 Z",
+        "svgPath": "M56,86 L100,58 L100,100 L56,100 Z",
         "meepleCentroid": {
           "x": 79,
           "y": 76
@@ -156,7 +169,7 @@ export const IC_C31_TILES: TileDefinition[] = [
       {
         "id": "field2",
         "type": "FIELD",
-        "svgPath": "M0,0 L100,0 L100,100 L0,100 Z",
+        "svgPath": "M0,57 L42,81 L43,100 L0,100 Z",
         "meepleCentroid": {
           "x": 25,
           "y": 75
@@ -166,7 +179,7 @@ export const IC_C31_TILES: TileDefinition[] = [
         "id": "road0",
         "type": "ROAD",
         "hasInn": true,
-        "svgPath": "M0,50 L33,50 L67,50 L100,50",
+        "svgPath": "M83,52 L92,50 L100,50",
         "meepleCentroid": {
           "x": 80,
           "y": 52
@@ -175,7 +188,7 @@ export const IC_C31_TILES: TileDefinition[] = [
       {
         "id": "road1",
         "type": "ROAD",
-        "svgPath": "M0,50 L33,50 L67,50 L100,50",
+        "svgPath": "M50,100 L49,84 L51,74 L55,66",
         "meepleCentroid": {
           "x": 51,
           "y": 80
@@ -185,7 +198,7 @@ export const IC_C31_TILES: TileDefinition[] = [
         "id": "road2",
         "type": "ROAD",
         "hasInn": true,
-        "svgPath": "M0,50 L33,50 L67,50 L100,50",
+        "svgPath": "M0,50 L11,50 L23,42 L39,44",
         "meepleCentroid": {
           "x": 27,
           "y": 43
@@ -243,16 +256,16 @@ export const IC_C31_TILES: TileDefinition[] = [
       {
         "id": "field0",
         "type": "FIELD",
-        "svgPath": "M0,0 L100,0 L100,100 L0,100 Z",
+        "svgPath": "M0,0 L100,0 L100,46 L73,38 L51,36 L43,21 L32,47 L0,43 Z",
         "meepleCentroid": {
-          "x": 54,
-          "y": 24
+          "x": 55,
+          "y": 23
         }
       },
       {
         "id": "field1",
         "type": "FIELD",
-        "svgPath": "M0,0 L100,0 L100,100 L0,100 Z",
+        "svgPath": "M0,57 L10,58 L14,83 L80,74 L77,61 L100,56 L100,100 L0,100 Z",
         "meepleCentroid": {
           "x": 50,
           "y": 84
@@ -261,7 +274,7 @@ export const IC_C31_TILES: TileDefinition[] = [
       {
         "id": "road0",
         "type": "ROAD",
-        "svgPath": "M0,50 L33,50 L67,50 L100,50",
+        "svgPath": "M76,55 L91,51 L100,50",
         "meepleCentroid": {
           "x": 84,
           "y": 52
@@ -270,16 +283,16 @@ export const IC_C31_TILES: TileDefinition[] = [
       {
         "id": "road1",
         "type": "ROAD",
-        "svgPath": "M0,50 L33,50 L67,50 L100,50",
+        "svgPath": "M0,50 L18,54 L20,77 L37,77",
         "meepleCentroid": {
-          "x": 20,
+          "x": 16,
           "y": 52
         }
       },
       {
         "id": "cloister0",
         "type": "CLOISTER",
-        "svgPath": "M40,40 L60,40 L60,60 L40,60 Z",
+        "svgPath": "M41,21 L53,40 L71,43 L77,68 L58,78 L30,70 Z",
         "meepleCentroid": {
           "x": 51,
           "y": 52
@@ -345,16 +358,16 @@ export const IC_C31_TILES: TileDefinition[] = [
       {
         "id": "field0",
         "type": "FIELD",
-        "svgPath": "M0,0 L100,0 L100,100 L0,100 Z",
+        "svgPath": "M0,0 L46,0 L28,23 L0,45 Z",
         "meepleCentroid": {
-          "x": 20,
-          "y": 21
+          "x": 21,
+          "y": 20
         }
       },
       {
         "id": "field1",
         "type": "FIELD",
-        "svgPath": "M0,0 L100,0 L100,100 L0,100 Z",
+        "svgPath": "M75,75 L100,55 L100,100 L55,100 Z",
         "meepleCentroid": {
           "x": 85,
           "y": 85
@@ -363,7 +376,7 @@ export const IC_C31_TILES: TileDefinition[] = [
       {
         "id": "field2",
         "type": "FIELD",
-        "svgPath": "M0,0 L100,0 L100,100 L0,100 Z",
+        "svgPath": "M0,58 L57,19 L57,0 L100,0 L100,41 L77,51 L44,85 L45,100 L0,100 Z",
         "meepleCentroid": {
           "x": 56,
           "y": 49
@@ -372,7 +385,7 @@ export const IC_C31_TILES: TileDefinition[] = [
       {
         "id": "road0",
         "type": "ROAD",
-        "svgPath": "M0,50 L33,50 L67,50 L100,50",
+        "svgPath": "M0,50 L13,49 L18,39 L28,33 L36,23 L50,22 L52,0",
         "meepleCentroid": {
           "x": 30,
           "y": 29
@@ -381,7 +394,7 @@ export const IC_C31_TILES: TileDefinition[] = [
       {
         "id": "road1",
         "type": "ROAD",
-        "svgPath": "M0,50 L33,50 L67,50 L100,50",
+        "svgPath": "M49,100 L50,84 L60,74 L74,69 L82,52 L100,50",
         "meepleCentroid": {
           "x": 73,
           "y": 70
@@ -431,16 +444,16 @@ export const IC_C31_TILES: TileDefinition[] = [
       {
         "id": "field0",
         "type": "FIELD",
-        "svgPath": "M0,0 L100,0 L100,100 L0,100 Z",
+        "svgPath": "M84,32 L100,0 L100,43 L51,55 Z",
         "meepleCentroid": {
-          "x": 78,
+          "x": 87,
           "y": 36
         }
       },
       {
         "id": "field1",
         "type": "FIELD",
-        "svgPath": "M0,0 L100,0 L100,100 L0,100 Z",
+        "svgPath": "M26,70 L100,62 L100,100 L17,100 Z",
         "meepleCentroid": {
           "x": 54,
           "y": 81
@@ -449,7 +462,7 @@ export const IC_C31_TILES: TileDefinition[] = [
       {
         "id": "road0",
         "type": "ROAD",
-        "svgPath": "M0,50 L33,50 L67,50 L100,50",
+        "svgPath": "M39,59 L60,65 L82,54 L100,50",
         "meepleCentroid": {
           "x": 69,
           "y": 59
@@ -458,7 +471,7 @@ export const IC_C31_TILES: TileDefinition[] = [
       {
         "id": "city0",
         "type": "CITY",
-        "svgPath": "M40,20 L60,20 L80,40 L80,60 L60,80 L40,80 L20,60 L20,40 Z",
+        "svgPath": "M100,0 L86,16 L85,26 L59,49 L20,69 L23,87 L0,100 L0,0 Z",
         "meepleCentroid": {
           "x": 30,
           "y": 29
@@ -608,10 +621,19 @@ export const IC_C31_TILES: TileDefinition[] = [
       {
         "id": "field0",
         "type": "FIELD",
-        "svgPath": "M30,27 L78,25 L79,71 L30,69 Z",
+        "svgPath": "M27,25 L78,25 L77,53 L52,38 L30,52 L58,66 L78,53 L80,68 L34,71 L21,85 L30,51 Z",
         "meepleCentroid": {
-          "x": 52,
-          "y": 45
+          "x": 42,
+          "y": 37
+        }
+      },
+      {
+        "id": "garden0",
+        "type": "GARDEN",
+        "svgPath": "M29,51 L53,38 L79,53 L58,66 Z",
+        "meepleCentroid": {
+          "x": 56,
+          "y": 52
         }
       }
     ],
@@ -645,6 +667,10 @@ export const IC_C31_TILES: TileDefinition[] = [
       [
         "field0",
         "city1"
+      ],
+      [
+        "garden0",
+        "field0"
       ]
     ]
   },
@@ -687,8 +713,8 @@ export const IC_C31_TILES: TileDefinition[] = [
         "type": "FIELD",
         "svgPath": "M0,0 L24,25 L43,32 L33,42 L31,50 L0,46 Z",
         "meepleCentroid": {
-          "x": 13,
-          "y": 33
+          "x": 15,
+          "y": 32
         }
       },
       {
@@ -787,7 +813,7 @@ export const IC_C31_TILES: TileDefinition[] = [
       {
         "id": "field0",
         "type": "FIELD",
-        "svgPath": "M0,0 L100,0 L100,100 L0,100 Z",
+        "svgPath": "M51,42 L100,5 L100,100 L55,100 L62,65 Z",
         "meepleCentroid": {
           "x": 77,
           "y": 55
@@ -796,7 +822,7 @@ export const IC_C31_TILES: TileDefinition[] = [
       {
         "id": "field1",
         "type": "FIELD",
-        "svgPath": "M0,0 L100,0 L100,100 L0,100 Z",
+        "svgPath": "M0,0 L16,23 L43,29 L34,47 L49,63 L39,80 L45,100 L0,100 Z",
         "meepleCentroid": {
           "x": 24,
           "y": 57
@@ -934,7 +960,7 @@ export const IC_C31_TILES: TileDefinition[] = [
       {
         "id": "field0",
         "type": "FIELD",
-        "svgPath": "M0,0 L100,0 L100,100 L0,100 Z",
+        "svgPath": "M38,73 L37,63 L88,32 L100,0 L100,42 L77,43 L49,59 L37,82 L44,100 L0,100 Z",
         "meepleCentroid": {
           "x": 26,
           "y": 80
@@ -943,7 +969,7 @@ export const IC_C31_TILES: TileDefinition[] = [
       {
         "id": "field1",
         "type": "FIELD",
-        "svgPath": "M0,0 L100,0 L100,100 L0,100 Z",
+        "svgPath": "M76,56 L100,57 L100,100 L55,100 L57,70 Z",
         "meepleCentroid": {
           "x": 77,
           "y": 75
@@ -962,7 +988,7 @@ export const IC_C31_TILES: TileDefinition[] = [
       {
         "id": "city0",
         "type": "CITY",
-        "svgPath": "M40,20 L60,20 L80,40 L80,60 L60,80 L40,80 L20,60 L20,40 Z",
+        "svgPath": "M0,0 L100,0 L86,30 L72,41 L35,62 L37,72 L18,80 L0,100 Z",
         "hasPennant": true,
         "meepleCentroid": {
           "x": 32,
@@ -1037,7 +1063,7 @@ export const IC_C31_TILES: TileDefinition[] = [
       {
         "id": "city0",
         "type": "CITY",
-        "svgPath": "M40,20 L60,20 L80,40 L80,60 L60,80 L40,80 L20,60 L20,40 Z",
+        "svgPath": "M0,0 L100,0 L78,37 L50,39 L32,29 Z",
         "meepleCentroid": {
           "x": 51,
           "y": 22

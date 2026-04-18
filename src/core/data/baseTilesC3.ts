@@ -80,7 +80,7 @@ export const BASE3_TILES: TileDefinition[] = [
       {
         "id": "field0",
         "type": "FIELD",
-        "svgPath": "M0,0 L100,0 L100,100 L0,100 Z",
+        "svgPath": "M0,0 L47,0 L18,64 L54,80 L82,66 L42,11 L48,0 L100,0 L100,100 L0,100 Z",
         "meepleCentroid": {
           "x": 75,
           "y": 25
@@ -289,7 +289,7 @@ export const BASE3_TILES: TileDefinition[] = [
       {
         "id": "field0",
         "type": "FIELD",
-        "svgPath": "M48,39 L73,40 L100,0 L100,100 L0,100 L0,0 L30,32 Z",
+        "svgPath": "M8,57 L36,70 L70,48 L100,0 L100,100 L0,100 L0,0 L36,39 Z",
         "meepleCentroid": {
           "x": 76,
           "y": 75
@@ -542,7 +542,7 @@ export const BASE3_TILES: TileDefinition[] = [
       {
         "id": "field0",
         "type": "FIELD",
-        "svgPath": "M0,0 L0,100 L19,77 L44,74 L67,72 L100,100 L100,0 L93,13 L92,24 L77,34 L58,37 L36,36 L18,26 Z",
+        "svgPath": "M0,0 L0,100 L19,77 L44,74 L67,72 L100,100 L100,15 L80,35 L33,40 L63,54 L36,68 L6,51 L29,42 Z",
         "meepleCentroid": {
           "x": 79,
           "y": 51
@@ -674,7 +674,7 @@ export const BASE3_TILES: TileDefinition[] = [
       {
         "id": "field0",
         "type": "FIELD",
-        "svgPath": "M77,52 L75,75 L100,100 L0,100 L0,0 L18,19 L39,27 L59,29 L72,26 Z",
+        "svgPath": "M64,69 L35,57 L71,33 L75,75 L100,100 L0,100 L0,0 L18,23 L67,36 L9,71 L39,83 Z",
         "meepleCentroid": {
           "x": 52,
           "y": 48
@@ -1048,7 +1048,7 @@ export const BASE3_TILES: TileDefinition[] = [
       {
         "id": "field0",
         "type": "FIELD",
-        "svgPath": "M20,38 L61,58 L61,72 L80,77 L100,100 L0,100 L0,0 Z",
+        "svgPath": "M45,56 L11,74 L39,88 L63,72 L100,100 L0,100 L0,18 Z",
         "meepleCentroid": {
           "x": 14,
           "y": 52
@@ -1154,7 +1154,7 @@ export const BASE3_TILES: TileDefinition[] = [
       {
         "id": "field0",
         "type": "FIELD",
-        "svgPath": "M18,36 L62,60 L60,71 L81,78 L100,100 L0,100 L0,0 Z",
+        "svgPath": "M48,54 L8,77 L36,90 L67,74 L100,100 L0,100 L0,22 Z",
         "meepleCentroid": {
           "x": 16,
           "y": 51
@@ -1306,10 +1306,10 @@ export const BASE3_TILES: TileDefinition[] = [
       {
         "id": "field1",
         "type": "FIELD",
-        "svgPath": "M22,72 L79,28 L100,0 L100,45 L79,41 L64,65 L47,69 L37,78 L44,92 L46,100 L0,100 Z",
+        "svgPath": "M22,72 L77,43 L100,0 L100,45 L74,48 L64,65 L47,69 L37,78 L44,92 L46,100 L0,100 Z",
         "meepleCentroid": {
-          "x": 57,
-          "y": 62
+          "x": 26,
+          "y": 79
         }
       }
     ],
@@ -1455,7 +1455,7 @@ export const BASE3_TILES: TileDefinition[] = [
       {
         "id": "field0",
         "type": "FIELD",
-        "svgPath": "M30,72 L52,65 L68,71 L100,100 L0,100 Z",
+        "svgPath": "M25,77 L56,91 L77,80 L100,100 L0,100 Z",
         "meepleCentroid": {
           "x": 29,
           "y": 86
@@ -1746,10 +1746,10 @@ export const BASE3_TILES: TileDefinition[] = [
       {
         "id": "field1",
         "type": "FIELD",
-        "svgPath": "M0,0 L43,0 L44,9 L29,29 L36,48 L51,57 L59,66 L44,87 L46,100 L0,100 Z",
+        "svgPath": "M0,0 L43,0 L44,9 L29,29 L36,48 L11,65 L38,78 L57,67 L44,100 L0,100 Z",
         "meepleCentroid": {
-          "x": 16,
-          "y": 35
+          "x": 17,
+          "y": 33
         }
       },
       {
@@ -1869,7 +1869,7 @@ export const BASE3_TILES: TileDefinition[] = [
       {
         "id": "field0",
         "type": "FIELD",
-        "svgPath": "M0,0 L100,0 L100,100 L54,100 L56,93 L67,81 L63,69 L43,63 L39,55 L43,38 L23,30 L0,42 Z",
+        "svgPath": "M0,0 L100,0 L100,23 L64,7 L43,21 L72,35 L100,18 L100,100 L54,100 L56,93 L67,81 L63,69 L43,63 L39,55 L43,38 L23,30 L0,42 Z",
         "meepleCentroid": {
           "x": 80,
           "y": 58
