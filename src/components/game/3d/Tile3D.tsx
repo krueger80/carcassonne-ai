@@ -263,10 +263,10 @@ function Tile3DImpl({
           >
             <boxGeometry args={[TILE_SIZE - 0.05, TILE_THICKNESS, TILE_SIZE - 0.05]} />
             <meshStandardMaterial 
-              color={isTentative ? "#aaddff" : "#ffffff"} 
+              color={isTentative ? "#aaddff" : "#8b857a"} 
               transparent={isTentative}
               opacity={isTentative ? 0.7 : 1}
-              roughness={0.8}
+              roughness={0.9}
             />
           </mesh>
           
