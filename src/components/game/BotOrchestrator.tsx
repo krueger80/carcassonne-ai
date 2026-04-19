@@ -1,6 +1,14 @@
 import { useEffect, useRef } from 'react'
 import { useGameStore } from '../../store/gameStore.ts'
 import type { BotAction } from '../../core/ai/mcts.ts'
+import { isBusy } from './3d/animation/animationStore.ts'
+
+async function waitForIdle(timeoutMs = 5000): Promise<void> {
+  const start = performance.now()
+  while (isBusy() && performance.now() - start < timeoutMs) {
+    await new Promise(r => setTimeout(r, 50))
+  }
+}
 
 export function BotOrchestrator() {
   const gameState = useGameStore(s => (s as any).gameState)
@@ -30,6 +38,10 @@ export function BotOrchestrator() {
     const runBot = async () => {
       isThinking.current = true
       try {
+        // Let any in-flight animation (dragon path, scoring flight, etc.)
+        // finish before taking the next bot action, so two phases don't
+        // overlap visually.
+        await waitForIdle()
         const store = useGameStore.getState()
         const latestState = store.gameState
         if (!latestState) return

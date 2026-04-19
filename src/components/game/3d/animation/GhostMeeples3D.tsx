@@ -25,6 +25,7 @@ export function GhostMeeples3D() {
 
 function GhostMeepleView({ ghost }: { ghost: GhostMeeple }) {
   const groupRef = useRef<THREE.Group>(null)
+  const shadowRef = useRef<THREE.Mesh>(null)
   const { camera, gl } = useThree()
   const removeGhost = useAnimationStore((s) => s.removeGhost)
 
@@ -85,6 +86,20 @@ function GhostMeepleView({ ghost }: { ghost: GhostMeeple }) {
       groupRef.current.scale.setScalar(fadeScale)
     }
 
+    // Shadow blob: follows XZ, pinned to ground, shrinks & fades with altitude.
+    // Bounded to sensible range so we don't get comically huge or invisible
+    // shadows when the card endpoint is high above the ground plane.
+    if (shadowRef.current) {
+      const altitude = Math.max(0, s.position[1])
+      const normalized = Math.min(1, altitude / 6)
+      const scale = 1 - normalized * 0.55
+      const opacity = 0.32 * (1 - normalized * 0.7)
+      shadowRef.current.position.set(s.position[0], 0.03, s.position[2])
+      shadowRef.current.scale.set(scale, scale, scale)
+      const mat = shadowRef.current.material as THREE.MeshBasicMaterial
+      mat.opacity = opacity
+    }
+
     if (s.done) {
       removeGhost(ghost.id)
     }
@@ -93,13 +108,19 @@ function GhostMeepleView({ ghost }: { ghost: GhostMeeple }) {
   if (!track) return null
 
   return (
-    <group ref={groupRef}>
-      <Meeple3D
-        type={ghost.meepleType as any}
-        color={ghost.color}
-        isFarmer={ghost.isFarmer}
-        position={[0, 0, 0]}
-      />
-    </group>
+    <>
+      <mesh ref={shadowRef} rotation={[-Math.PI / 2, 0, 0]} renderOrder={1}>
+        <circleGeometry args={[0.8, 20]} />
+        <meshBasicMaterial color="#000" transparent opacity={0.3} depthWrite={false} />
+      </mesh>
+      <group ref={groupRef}>
+        <Meeple3D
+          type={ghost.meepleType as any}
+          color={ghost.color}
+          isFarmer={ghost.isFarmer}
+          position={[0, 0, 0]}
+        />
+      </group>
+    </>
   )
 }

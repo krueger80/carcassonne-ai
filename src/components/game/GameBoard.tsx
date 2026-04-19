@@ -7,6 +7,7 @@ import { useUIStore } from '../../store/uiStore.ts'
 import { GameOverlay } from './GameOverlay.tsx'
 import { BotOrchestrator } from './BotOrchestrator.tsx'
 import { getFairyPosition, getDragonPosition, getDragonHoardTilesOnBoard, getFairyMoveTargets, computeSegmentOwnerMap } from '../../core/engine/GameEngine.ts'
+import { flushAllTracks } from './3d/animation/animationStore.ts'
 
 export function GameBoard() {
   const {
@@ -81,6 +82,14 @@ export function GameBoard() {
     cameraZoomOut: s.cameraZoomOut,
     cameraReset: s.cameraReset,
   })))
+
+  // Flush in-flight animations before a page reload / close so the saved
+  // game is always committed to target state, never to a half-flown sample.
+  useEffect(() => {
+    const handler = () => flushAllTracks()
+    window.addEventListener('beforeunload', handler)
+    return () => window.removeEventListener('beforeunload', handler)
+  }, [])
 
   // ── Keyboard shortcuts ──────────────────────────────────────────────────────
   useEffect(() => {

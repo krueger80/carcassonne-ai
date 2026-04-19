@@ -217,3 +217,38 @@ export function overrideTrackFrom(id: string, from: Transform): void {
   if (!rec?.track) return
   rec.track.from = from
 }
+
+/**
+ * True if any track or ghost flight is currently in-flight. Used to gate
+ * user/AI inputs so we don't stack animations.
+ */
+export function isBusy(): boolean {
+  const s = useAnimationStore.getState()
+  if (s.ghosts.length > 0) return true
+  for (const id in s.objects) {
+    if (s.objects[id].track) return true
+  }
+  return false
+}
+
+/**
+ * Snap every in-flight track to its target and drop every ghost. Called from
+ * a `beforeunload` handler so a page reload mid-flight doesn't leave the
+ * saved game stuck on a half-played animation.
+ */
+export function flushAllTracks(): void {
+  useAnimationStore.setState((s) => {
+    const nextObjects: typeof s.objects = {}
+    for (const id in s.objects) {
+      const rec = s.objects[id]
+      rec.track?.resolve?.()
+      nextObjects[id] = { committed: rec.committed }
+    }
+    return {
+      objects: nextObjects,
+      ghosts: [],
+      suppressedSegments: new Set<string>(),
+      nextOverride: {},
+    }
+  })
+}
