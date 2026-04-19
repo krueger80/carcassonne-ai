@@ -13,6 +13,14 @@ interface AnimationState {
   ghosts: GhostMeeple[]
 
   /**
+   * One-shot opts override consumed by the next `setTarget` call for a given id.
+   * Lets an action (e.g. undoTilePlacement) tell the animation manager "the
+   * next flight for this id should use a shorter duration" without plumbing
+   * a new prop through the rendering components.
+   */
+  nextOverride: Record<string, { durationMs?: number; arcHeight?: number }>
+
+  /**
    * Declare the "truth" transform for an object id. If the previous truth differs
    * and a duration is provided, kick off a new track interpolating from the
    * currently-sampled transform (or the old committed one) to the new one.
@@ -34,6 +42,12 @@ interface AnimationState {
 
   /** Internal: remove ghost by id. */
   removeGhost: (id: string) => void
+
+  /**
+   * Store a one-shot opts override for `id`. Consumed (and removed) by the
+   * next `setTarget(id, ...)` that starts a track.
+   */
+  setNextOverride: (id: string, opts: { durationMs?: number; arcHeight?: number }) => void
 }
 
 function transformsEqual(a: Transform, b: Transform): boolean {
@@ -48,6 +62,7 @@ function transformsEqual(a: Transform, b: Transform): boolean {
 export const useAnimationStore = create<AnimationState>((set, get) => ({
   objects: {},
   ghosts: [],
+  nextOverride: {},
 
   setTarget: (id, target, opts = {}) => {
     return new Promise<void>((resolve) => {
@@ -63,6 +78,15 @@ export const useAnimationStore = create<AnimationState>((set, get) => ({
       if (transformsEqual(prev.committed, target)) {
         resolve()
         return
+      }
+
+      // Consume one-shot override, if any. Override wins over caller opts.
+      // Only consumed here (not on the no-op paths above) so it isn't wasted.
+      const override = state.nextOverride[id]
+      if (override) {
+        opts = { ...opts, ...override }
+        const { [id]: _, ...rest } = state.nextOverride
+        set({ nextOverride: rest })
       }
 
       const duration = opts.durationMs ?? 0
@@ -121,6 +145,10 @@ export const useAnimationStore = create<AnimationState>((set, get) => ({
 
   removeGhost: (id) => {
     set((s) => ({ ghosts: s.ghosts.filter((g) => g.id !== id) }))
+  },
+
+  setNextOverride: (id, opts) => {
+    set((s) => ({ nextOverride: { ...s.nextOverride, [id]: opts } }))
   },
 }))
 

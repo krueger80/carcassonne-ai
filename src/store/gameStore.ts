@@ -400,23 +400,32 @@ export const useGameStore = create<GameStore>()(
         store.interactionState = 'IDLE'
       }),
 
-      undoTilePlacement: () => set((store) => {
-        if (!store.prevGameState) return
+      undoTilePlacement: () => {
+        // Reverse-animate the tile back to hand at 0.4× the normal flight
+        // duration (700ms → 280ms). Set before the state change so the
+        // CurrentTile3D remount picks up the override on its first setTarget.
+        useAnimationStore.getState().setNextOverride('current-tile', {
+          durationMs: 280,
+          arcHeight: 2.5,
+        })
+        set((store) => {
+          if (!store.prevGameState) return
 
-        // Restore state
-        store.gameState = store.prevGameState
-        store.prevGameState = null
+          // Restore state
+          store.gameState = store.prevGameState
+          store.prevGameState = null
 
-        // Reset to IDLE in PLACE_TILE phase
-        store.interactionState = 'IDLE'
-        store.tentativeTileCoord = null
-        store.placeableSegments = []
+          // Reset to IDLE in PLACE_TILE phase
+          store.interactionState = 'IDLE'
+          store.tentativeTileCoord = null
+          store.placeableSegments = []
 
-        // Recalculate valid placements for the restored state
-        if (store.gameState?.currentTile) {
-          store.validPlacements = getPotentialPlacementsForState(store.gameState)
-        }
-      }),
+          // Recalculate valid placements for the restored state
+          if (store.gameState?.currentTile) {
+            store.validPlacements = getPotentialPlacementsForState(store.gameState)
+          }
+        })
+      },
 
       // ── New Meeple Placement Workflow ────────────────────────────────────
 

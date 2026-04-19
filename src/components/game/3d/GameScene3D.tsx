@@ -14,6 +14,7 @@ import { Coordinate } from '../../../core/types/board.ts'
 import { CameraPanner } from './CameraPanner.tsx'
 import { ThreeEvent } from '@react-three/fiber'
 import { GhostMeeples3D } from './animation/GhostMeeples3D.tsx'
+import { CurrentTile3D } from './CurrentTile3D.tsx'
 
 interface GameScene3DProps {
   gameState: any
@@ -644,26 +645,15 @@ export const GameScene3D = memo(({
           })
         })()}
 
-        {/* Render Tentative Tile (already selected but not confirmed) */}
-        {tentativeTileCoord && gameState.currentTile && 
+        {/* Rotation-indicator arrow rendered at the tentative board coord.
+            The tile itself is rendered by CurrentTile3D (below) which owns
+            the single animated hand↔board flight. */}
+        {tentativeTileCoord && gameState.currentTile &&
           (gameState.turnPhase === 'PLACE_TILE' || interactionState === 'TILE_PLACED_TENTATIVELY') && (
           <group position={[tentativeTileCoord.x * TILE_SIZE, 0, tentativeTileCoord.y * TILE_SIZE]}>
-            <Tile3D 
-              tile={{
-                coordinate: { x: 0, y: 0 },
-                rotation: gameState.currentTile.rotation,
-              }}
-              definition={gameState.staticTileMap[gameState.currentTile.definitionId]}
-              staticTileMap={gameState.staticTileMap}
-              isTentative={false}
-              renderLinked
-              onClick={(e: any) => { e?.stopPropagation?.(); rotateTentativeTile(); }}
-              onPointerOver={() => { document.body.style.cursor = 'pointer' }}
-              onPointerOut={() => { document.body.style.cursor = '' }}
-            />
-            <group 
-              position={[0, 1.2, 0]} 
-              rotation={[-Math.PI / 2, 0, 0]} 
+            <group
+              position={[0, 1.2, 0]}
+              rotation={[-Math.PI / 2, 0, 0]}
             >
               <mesh castShadow raycast={() => null}>
                 <torusGeometry args={[1.5, 0.15, 16, 32, Math.PI * 1.6]} />
@@ -675,6 +665,21 @@ export const GameScene3D = memo(({
               </mesh>
             </group>
           </group>
+        )}
+
+        {/* Animated current tile — lives at a hand anchor until the user picks
+            a coord, then flies to the tentative board coord. Single persistent
+            node so the transition is continuous (no pop-out/in). */}
+        {gameState.currentTile &&
+          (gameState.turnPhase === 'PLACE_TILE' || interactionState === 'TILE_PLACED_TENTATIVELY') && (
+          <CurrentTile3D
+            currentTile={gameState.currentTile}
+            staticTileMap={gameState.staticTileMap}
+            tentativeTileCoord={tentativeTileCoord}
+            onClick={() => rotateTentativeTile()}
+            onPointerOver={() => { document.body.style.cursor = 'pointer' }}
+            onPointerOut={() => { document.body.style.cursor = '' }}
+          />
         )}
       </Suspense>
 

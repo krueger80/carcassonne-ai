@@ -20,23 +20,31 @@ export function useAnimatedTransform(
   opts: { durationMs?: number; arcHeight?: number } = {}
 ) {
   const ref = useRef<THREE.Group>(null)
+  // Tracks whether we've painted at least one frame for this mount — used to
+  // decide whether `lastSampleRef` is trustworthy. On a fresh mount it just
+  // mirrors the target, which would cause the interrupt override to collapse
+  // the animation (from==to) if applied without a real sample.
+  const haveSampledRef = useRef(false)
   const lastSampleRef = useRef<Transform>(target)
 
-  // When target changes, push it into the store. On first call, this sets
-  // the committed transform synchronously; on subsequent calls, it starts a
-  // track. We also override the track's `from` with the last rendered sample
-  // so interrupts look continuous.
+  // When target changes, push it into the store. On first call for a new id,
+  // this sets the committed transform synchronously; otherwise it starts a
+  // track from the previous committed (or the live sample on interrupt).
   useEffect(() => {
     const store = useAnimationStore.getState()
     const existed = store.objects[id] !== undefined
     // Fire-and-forget: the promise resolves when the track completes, but
     // purely visual hooks don't need to await.
     void store.setTarget(id, target, existed ? opts : undefined)
-    if (existed) {
+    if (existed && haveSampledRef.current) {
+      // We've rendered at least one frame, so lastSampleRef reflects the
+      // on-screen transform — use it for interrupt continuity.
       overrideTrackFrom(id, lastSampleRef.current)
-    } else {
+    } else if (!existed) {
       lastSampleRef.current = target
     }
+    // When existed && !haveSampled: first mount after a previous unmount.
+    // Leave track.from at the store's committed (stable across unmounts).
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [id, target.position[0], target.position[1], target.position[2], target.rotationY])
 
@@ -65,6 +73,7 @@ export function useAnimatedTransform(
     obj.position.set(pos[0], pos[1], pos[2])
     obj.rotation.y = rotY
     lastSampleRef.current = { position: pos, rotationY: rotY }
+    haveSampledRef.current = true
   })
 
   return ref
