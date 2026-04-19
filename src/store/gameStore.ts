@@ -45,6 +45,8 @@ import { getFeature } from '../core/engine/FeatureDetector.ts'
 import { useUIStore } from './uiStore.ts'
 import i18next from 'i18next'
 import { coordKey } from '../core/types/board.ts'
+import { useAnimationStore } from '../components/game/3d/animation/animationStore.ts'
+import { segmentCenterWorld } from '../components/game/3d/animation/worldCoords.ts'
 
 // Re-export Rotation for convenience
 export type { Rotation }
@@ -1018,21 +1020,29 @@ export const useGameStore = create<GameStore>()(
           if (stepResult) {
             const { state: nextStepState, eatenMeeples } = stepResult
 
-            // Trigger animations for eaten meeples
+            // Trigger return-flight animations for eaten meeples. The dragon
+            // step loop pauses 350ms between steps, giving the flight room to
+            // play; the ghost despawns itself on landing via GhostMeeples3D.
             for (const meeple of eatenMeeples) {
               const tile = nextStepState.board.tiles[`${meeple.coordinate.x},${meeple.coordinate.y}`]
               const tileDef = nextStepState.staticTileMap[tile?.definitionId || '']
               const segment = tileDef?.segments.find(s => s.id === meeple.segmentId)
 
               if (segment?.meepleCentroid) {
-                useUIStore.getState().addFlyingElement({
+                const startPos = segmentCenterWorld(
+                  meeple.coordinate,
+                  tile?.rotation || 0,
+                  segment.meepleCentroid
+                )
+                useAnimationStore.getState().spawnGhost({
                   id: `dragon-eat-${meeple.playerId}-${Math.random()}`,
-                  type: 'MEEPLE',
-                  startBoardCoord: meeple.coordinate,
-                  startBoardNode: segment.meepleCentroid,
-                  targetPlayerId: meeple.playerId,
+                  meepleType: meeple.meepleType as MeepleType,
                   color: nextStepState.players.find(p => p.id === meeple.playerId)?.color || '#fff',
-                  meepleType: meeple.meepleType as MeepleType
+                  isFarmer: segment.type === 'FIELD',
+                  from: { position: startPos, rotationY: 0 },
+                  targetPlayerId: meeple.playerId,
+                  durationMs: 900,
+                  arcHeight: 4,
                 })
               }
             }

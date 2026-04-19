@@ -1,0 +1,6 @@
+import type { Easing } from './types'
+
+export const linear: Easing = (t) => t
+export const easeInOutCubic: Easing = (t) =>
+  t < 0.5 ? 4 * t * t * t : 1 - Math.pow(-2 * t + 2, 3) / 2
+export const easeOutQuad: Easing = (t) => 1 - (1 - t) * (1 - t)

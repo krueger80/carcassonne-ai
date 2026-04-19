@@ -13,6 +13,7 @@ import { getRotatedOffset } from '../../../core/engine/TilePlacement.ts'
 import { Coordinate } from '../../../core/types/board.ts'
 import { CameraPanner } from './CameraPanner.tsx'
 import { ThreeEvent } from '@react-three/fiber'
+import { GhostMeeples3D } from './animation/GhostMeeples3D.tsx'
 
 interface GameScene3DProps {
   gameState: any
@@ -366,9 +367,8 @@ export const GameScene3D = memo(({
                   items.push({ type: 'MEEPLE', meeple: placedBuilder, player, isFarmer: false })
                 }
                 
-                // 2. Fairy
-                const hasFairy = fairyPos && fairyPos.coordinate.x === tile.coordinate.x && fairyPos.coordinate.y === tile.coordinate.y && fairyPos.segmentId === segId
-                if (hasFairy) items.push({ type: 'FAIRY' })
+                // 2. Fairy — rendered at top level so movement between segments can animate
+                //    via the central animation manager. The per-segment slot is skipped here.
                 
                 // 3. Tentative Meeple (PlacementOverlay3D)
                 const isTentativeHere = isMeeplePhase && tentativeMeepleSegment === segId && tentativeTileCoord && `${tentativeTileCoord.x},${tentativeTileCoord.y}` === key
@@ -425,9 +425,6 @@ export const GameScene3D = memo(({
                                   document.body.style.cursor = ''
                                 } : undefined}
                               />
-                            )}
-                            {item.type === 'FAIRY' && (
-                              <Fairy3D position={[0, 0, 0]} />
                             )}
                             {item.type === 'TENTATIVE' && (
                               <group rotation={[0, -(hash + (i * 0.2)), 0]}>
@@ -692,6 +689,7 @@ export const GameScene3D = memo(({
       {/* Dragon */}
       {dragonPos && (
         <Dragon3D
+          animationId="dragon"
           position={[dragonPos.x * TILE_SIZE, 0.02, dragonPos.y * TILE_SIZE]}
           facing={getDragonAngle(dragonFacing)}
           onClick={(e) => {
@@ -718,6 +716,23 @@ export const GameScene3D = memo(({
         <planeGeometry args={[2000, 2000]} />
         <meshStandardMaterial color="#111111" roughness={1} />
       </mesh>
+
+      {/* Top-level animated fairy — single persistent node so movement between
+          segments plays as a continuous flight via the animation manager. */}
+      <AnimatedFairyOnBoard fairyPos={fairyPos} gameState={gameState} />
+
+      {/* Ghost meeples in flight (e.g. eaten by dragon). */}
+      <GhostMeeples3D />
     </Canvas>
   )
 })
+
+function AnimatedFairyOnBoard({ fairyPos, gameState }: { fairyPos: any, gameState: any }) {
+  if (!fairyPos) return null
+  const tile = gameState.board.tiles[`${fairyPos.coordinate.x},${fairyPos.coordinate.y}`]
+  if (!tile) return null
+  const def = gameState.staticTileMap[tile.definitionId]
+  if (!def) return null
+  const [wx, , wz] = getSegmentCenter(fairyPos.coordinate, tile.rotation || 0, fairyPos.segmentId, def)
+  return <Fairy3D animationId="fairy" position={[wx, 0.1, wz]} />
+}
