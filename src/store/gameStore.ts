@@ -756,14 +756,35 @@ export const useGameStore = create<GameStore>()(
               const segment = tileDef?.segments.find(s => s.id === node.segmentId)
 
               if (segment?.meepleCentroid) {
-                useUIStore.getState().addFlyingElement({
-                  id: `meeple-${id}-${meeple.playerId}-${Math.random()}`,
-                  type: 'MEEPLE',
-                  startBoardCoord: node.coordinate,
-                  startBoardNode: segment.meepleCentroid,
-                  targetPlayerId: meeple.playerId,
+                // 3D return-to-hand flight. The static meeple is suppressed
+                // for the duration of the ghost so we don't render both at
+                // once; the engine commit that actually removes the meeple
+                // happens ~1800ms later.
+                const startPos = segmentCenterWorld(
+                  node.coordinate,
+                  tile?.rotation || 0,
+                  segment.meepleCentroid
+                )
+                const slotSuffix =
+                  meeple.meepleType === 'PIG'
+                    ? '_PIG'
+                    : meeple.meepleType === 'BUILDER'
+                    ? '_BUILDER'
+                    : ''
+                useAnimationStore.getState().spawnGhost({
+                  id: `score-${id}-${meeple.playerId}-${Math.random()}`,
+                  meepleType: meeple.meepleType as MeepleType,
                   color: gameState.players.find(p => p.id === meeple.playerId)?.color || '#fff',
-                  meepleType: meeple.meepleType as MeepleType
+                  isFarmer: segment.type === 'FIELD',
+                  direction: 'to-card',
+                  worldEndpoint: { position: startPos, rotationY: 0 },
+                  cardPlayerId: meeple.playerId,
+                  // Match the 1800ms per-feature wait below so the static
+                  // meeple stays suppressed right up to the engine commit
+                  // that actually removes it — no flicker in the gap.
+                  durationMs: 1700,
+                  arcHeight: 5,
+                  suppressKey: `${node.coordinate.x},${node.coordinate.y}:${node.segmentId}${slotSuffix}`,
                 })
               }
             }
