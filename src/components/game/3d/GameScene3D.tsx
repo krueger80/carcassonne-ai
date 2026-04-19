@@ -481,16 +481,8 @@ export const GameScene3D = memo(({
                                       polygonOffsetUnits={-4}
                                     />
                                   </mesh>
-                                  {/* Tentative Fairy Preview — click to cancel */}
-                                  {isTentativeHereFairy && (
-                                    <group
-                                      onPointerOver={(e: ThreeEvent<PointerEvent>) => { e.stopPropagation(); document.body.style.cursor = 'pointer' }}
-                                      onPointerOut={(e: ThreeEvent<PointerEvent>) => { e.stopPropagation(); document.body.style.cursor = '' }}
-                                      onClick={handleFairyClick}
-                                    >
-                                      <Fairy3D position={[0, 0.1, 0]} />
-                                    </group>
-                                  )}
+                                  {/* The tentative fairy preview itself is drawn by the top-level
+                                      AnimatedFairyOnBoard so the move visually animates on click. */}
                                 </group>
                               )
                             })()}
@@ -718,8 +710,13 @@ export const GameScene3D = memo(({
       </mesh>
 
       {/* Top-level animated fairy — single persistent node so movement between
-          segments plays as a continuous flight via the animation manager. */}
-      <AnimatedFairyOnBoard fairyPos={fairyPos} gameState={gameState} />
+          segments plays as a continuous flight via the animation manager.
+          While a tentative target is selected during FAIRY_MOVE, the fairy
+          previews the move by animating to the target; cancelling returns it. */}
+      <AnimatedFairyOnBoard
+        fairyPos={tentativeFairyTarget ?? fairyPos}
+        gameState={gameState}
+      />
 
       {/* Ghost meeples in flight (e.g. eaten by dragon). */}
       <GhostMeeples3D />
@@ -734,5 +731,20 @@ function AnimatedFairyOnBoard({ fairyPos, gameState }: { fairyPos: any, gameStat
   const def = gameState.staticTileMap[tile.definitionId]
   if (!def) return null
   const [wx, , wz] = getSegmentCenter(fairyPos.coordinate, tile.rotation || 0, fairyPos.segmentId, def)
-  return <Fairy3D animationId="fairy" position={[wx, 0.1, wz]} />
+
+  // If the segment hosts a meeple, shift the fairy sideways so it doesn't
+  // overlap. Direction uses the same tile-seeded hash that meeples use for
+  // their own rotation, so the two sit on a consistent axis.
+  const segId = fairyPos.segmentId
+  const hasMeeple = !!(tile.meeples[segId] || tile.meeples[`${segId}_PIG`] || tile.meeples[`${segId}_BUILDER`])
+  let ox = 0, oz = 0
+  if (hasMeeple) {
+    const seed = fairyPos.coordinate.x * 12.9898 + fairyPos.coordinate.y * 78.233
+    const hash = Math.abs(Math.sin(seed)) * Math.PI * 2
+    const spacing = 1.75
+    ox = Math.cos(hash) * spacing
+    oz = Math.sin(hash) * spacing
+  }
+
+  return <Fairy3D animationId="fairy" position={[wx + ox, 0.1, wz + oz]} />
 }
