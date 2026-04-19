@@ -742,7 +742,11 @@ export const useGameStore = create<GameStore>()(
           if (!event) continue
           collectedEvents.push(event)
 
-          // Trigger animations for each meeple in this feature
+          // Trigger animations for each meeple in this feature. Suppression
+          // is managed explicitly (not via ghost.suppressKey) so it persists
+          // right up to the engine commit — the ghost may finish flying
+          // before the 1800ms per-feature pause ends.
+          const suppressedForFeature: string[] = []
           for (const meeple of feature.meeples) {
             const node = feature.nodes.find(n => {
               const k = nodeKey(n.coordinate, n.segmentId)
@@ -756,10 +760,6 @@ export const useGameStore = create<GameStore>()(
               const segment = tileDef?.segments.find(s => s.id === node.segmentId)
 
               if (segment?.meepleCentroid) {
-                // 3D return-to-hand flight. The static meeple is suppressed
-                // for the duration of the ghost so we don't render both at
-                // once; the engine commit that actually removes the meeple
-                // happens ~1800ms later.
                 const startPos = segmentCenterWorld(
                   node.coordinate,
                   tile?.rotation || 0,
@@ -771,6 +771,9 @@ export const useGameStore = create<GameStore>()(
                     : meeple.meepleType === 'BUILDER'
                     ? '_BUILDER'
                     : ''
+                const suppressKey = `${node.coordinate.x},${node.coordinate.y}:${node.segmentId}${slotSuffix}`
+                useAnimationStore.getState().addSuppressed(suppressKey)
+                suppressedForFeature.push(suppressKey)
                 useAnimationStore.getState().spawnGhost({
                   id: `score-${id}-${meeple.playerId}-${Math.random()}`,
                   meepleType: meeple.meepleType as MeepleType,
@@ -779,12 +782,8 @@ export const useGameStore = create<GameStore>()(
                   direction: 'to-card',
                   worldEndpoint: { position: startPos, rotationY: 0 },
                   cardPlayerId: meeple.playerId,
-                  // Match the 1800ms per-feature wait below so the static
-                  // meeple stays suppressed right up to the engine commit
-                  // that actually removes it — no flicker in the gap.
-                  durationMs: 1700,
+                  durationMs: 1200,
                   arcHeight: 5,
-                  suppressKey: `${node.coordinate.x},${node.coordinate.y}:${node.segmentId}${slotSuffix}`,
                 })
               }
             }
@@ -806,6 +805,12 @@ export const useGameStore = create<GameStore>()(
 
           await new Promise(resolve => setTimeout(resolve, 1800))
           set(store => { store.gameState = nextState })
+          // Release suppression now that the engine has actually removed the
+          // meeples — the static render would have nothing to draw anyway,
+          // but clearing keeps the set from growing unbounded.
+          for (const key of suppressedForFeature) {
+            useAnimationStore.getState().removeSuppressed(key)
+          }
         }
 
         // Store collected events on state so endTurn can use them for fairy logic

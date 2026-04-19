@@ -52,6 +52,14 @@ interface AnimationState {
   removeGhost: (id: string) => void
 
   /**
+   * Explicitly add/remove a suppressedSegments entry without coupling to a
+   * ghost's lifecycle. Useful when the commit timing (e.g. scoring pause)
+   * is decoupled from the flight duration.
+   */
+  addSuppressed: (key: string) => void
+  removeSuppressed: (key: string) => void
+
+  /**
    * Store a one-shot opts override for `id`. Consumed (and removed) by the
    * next `setTarget(id, ...)` that starts a track.
    */
@@ -177,6 +185,24 @@ export const useAnimationStore = create<AnimationState>((set, get) => ({
 
   setNextOverride: (id, opts) => {
     set((s) => ({ nextOverride: { ...s.nextOverride, [id]: opts } }))
+  },
+
+  addSuppressed: (key) => {
+    set((s) => {
+      if (s.suppressedSegments.has(key)) return {}
+      const sup = new Set(s.suppressedSegments)
+      sup.add(key)
+      return { suppressedSegments: sup }
+    })
+  },
+
+  removeSuppressed: (key) => {
+    set((s) => {
+      if (!s.suppressedSegments.has(key)) return {}
+      const sup = new Set(s.suppressedSegments)
+      sup.delete(key)
+      return { suppressedSegments: sup }
+    })
   },
 }))
 
