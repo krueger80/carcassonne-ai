@@ -28,39 +28,45 @@ function GhostMeepleView({ ghost }: { ghost: GhostMeeple }) {
   const { camera, gl } = useThree()
   const removeGhost = useAnimationStore((s) => s.removeGhost)
 
-  // Resolve the target world position once, on mount. The camera may pan
-  // during flight but we snapshot at spawn so the animation stays stable.
-  const [target, setTarget] = useState<Transform | null>(null)
+  // Resolve the card endpoint once, on mount. The camera may pan during
+  // flight but we snapshot at spawn so the animation stays stable.
+  const [cardTransform, setCardTransform] = useState<Transform | null>(null)
   useEffect(() => {
     const world = domElementToWorldTarget(
-      `player-card-${ghost.targetPlayerId}`,
+      `player-card-${ghost.cardPlayerId}`,
       camera,
       gl.domElement
     )
     if (world) {
-      setTarget({
+      setCardTransform({
         position: [world.x, world.y, world.z],
-        rotationY: ghost.from.rotationY,
+        rotationY: ghost.worldEndpoint.rotationY,
       })
     } else {
-      // Fall back to flying straight up if the card isn't in the DOM yet.
-      const [x, y, z] = ghost.from.position
-      setTarget({ position: [x, y + 20, z], rotationY: ghost.from.rotationY })
+      // Fall back: park the card endpoint above the world endpoint, far
+      // enough for the arc to feel intentional even without a card to aim at.
+      const [x, y, z] = ghost.worldEndpoint.position
+      setCardTransform({
+        position: [x, y + 20, z],
+        rotationY: ghost.worldEndpoint.rotationY,
+      })
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [])
 
   const track = useMemo(() => {
-    if (!target) return null
+    if (!cardTransform) return null
+    const from = ghost.direction === 'to-card' ? ghost.worldEndpoint : cardTransform
+    const to = ghost.direction === 'to-card' ? cardTransform : ghost.worldEndpoint
     return {
-      from: ghost.from,
-      to: target,
+      from,
+      to,
       startMs: ghost.startMs,
       durationMs: ghost.durationMs,
       arcHeight: ghost.arcHeight,
       easing: easeInOutCubic,
     }
-  }, [target, ghost])
+  }, [cardTransform, ghost])
 
   useFrame(() => {
     if (!track || !groupRef.current) return
@@ -68,10 +74,16 @@ function GhostMeepleView({ ghost }: { ghost: GhostMeeple }) {
     groupRef.current.position.set(s.position[0], s.position[1], s.position[2])
     groupRef.current.rotation.y = s.rotationY
 
-    // Shrink and fade in the last 40% of flight.
-    const fadeStart = 0.6
-    const fadeScale = s.progress < fadeStart ? 1 : 1 - (s.progress - fadeStart) / (1 - fadeStart)
-    groupRef.current.scale.setScalar(fadeScale)
+    // Devour ghosts (to-card) shrink as they approach the card so they
+    // visually dissolve into the supply. Placement ghosts (from-card)
+    // stay full-size — the static board meeple takes over once the
+    // suppressKey is released on landing.
+    if (ghost.direction === 'to-card') {
+      const fadeStart = 0.6
+      const fadeScale =
+        s.progress < fadeStart ? 1 : 1 - (s.progress - fadeStart) / (1 - fadeStart)
+      groupRef.current.scale.setScalar(fadeScale)
+    }
 
     if (s.done) {
       removeGhost(ghost.id)

@@ -512,6 +512,63 @@ export const useGameStore = create<GameStore>()(
       }),
 
       confirmMeeplePlacement: () => {
+        // Spawn placement flight ghosts BEFORE the engine commit so we can
+        // capture the current player (who's still the active one) and use
+        // the segment centroid as the world endpoint. The static meeple is
+        // suppressed by `suppressKey` while the ghost is in flight; on
+        // landing the ghost despawns and the static appears in place.
+        const pre = get()
+        if (pre.gameState && pre.tentativeMeepleSegment) {
+          const meepleType = pre.tentativeMeepleType ?? 'NORMAL'
+          const coord = pre.tentativeTileCoord ?? pre.gameState.lastPlacedCoord
+          if (coord) {
+            const tile = pre.gameState.board.tiles[coordKey(coord)]
+            const def = tile && pre.gameState.staticTileMap[tile.definitionId]
+            const segment = def?.segments.find((s: any) => s.id === pre.tentativeMeepleSegment)
+            if (tile && segment) {
+              const targetPos = segmentCenterWorld(
+                coord,
+                tile.rotation || 0,
+                segment.meepleCentroid
+              )
+              const player = pre.gameState.players[pre.gameState.currentPlayerIndex]
+              const isFarmer = segment.type === 'FIELD'
+
+              // Primary meeple flight
+              useAnimationStore.getState().spawnGhost({
+                id: `place-primary-${player.id}-${Math.random()}`,
+                meepleType: meepleType as MeepleType,
+                color: player.color,
+                isFarmer,
+                direction: 'from-card',
+                worldEndpoint: { position: targetPos, rotationY: 0 },
+                cardPlayerId: player.id,
+                durationMs: 700,
+                arcHeight: 4,
+                suppressKey: `${coord.x},${coord.y}:${pre.tentativeMeepleSegment}`,
+              })
+
+              // Secondary meeple (modern-rules builder/pig alongside primary)
+              if (pre.tentativeSecondaryMeepleType) {
+                useAnimationStore.getState().spawnGhost({
+                  id: `place-secondary-${player.id}-${Math.random()}`,
+                  meepleType: pre.tentativeSecondaryMeepleType as MeepleType,
+                  color: player.color,
+                  // Builder/pig sit upright on cities/roads where the primary
+                  // would also be standing — secondary slot is never a farmer.
+                  isFarmer: false,
+                  direction: 'from-card',
+                  worldEndpoint: { position: targetPos, rotationY: 0 },
+                  cardPlayerId: player.id,
+                  durationMs: 700,
+                  arcHeight: 4,
+                  suppressKey: `${coord.x},${coord.y}:${pre.tentativeMeepleSegment}_${pre.tentativeSecondaryMeepleType}`,
+                })
+              }
+            }
+          }
+        }
+
         set((store) => {
           if (!store.gameState) return
 
@@ -1048,8 +1105,9 @@ export const useGameStore = create<GameStore>()(
                   meepleType: meeple.meepleType as MeepleType,
                   color: nextStepState.players.find(p => p.id === meeple.playerId)?.color || '#fff',
                   isFarmer: segment.type === 'FIELD',
-                  from: { position: startPos, rotationY: 0 },
-                  targetPlayerId: meeple.playerId,
+                  direction: 'to-card',
+                  worldEndpoint: { position: startPos, rotationY: 0 },
+                  cardPlayerId: meeple.playerId,
                   durationMs: 900,
                   arcHeight: 4,
                 })

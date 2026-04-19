@@ -9,8 +9,16 @@ interface AnimationState {
   objects: Record<string, { committed: Transform; track?: ObjectTrack }>
 
   // Transient animated pieces with no persistent board identity (eaten meeples,
-  // future scoring return-flights). They live only for their flight duration.
+  // placement flights, future scoring return-flights). They live only for
+  // their flight duration.
   ghosts: GhostMeeple[]
+
+  /**
+   * Engine-meeple keys (`${x},${y}:${meepleSlot}`) currently masked from the
+   * static board render because a ghost is in flight to/from that segment.
+   * Read by GameScene3D to render those slots invisible.
+   */
+  suppressedSegments: Set<string>
 
   /**
    * One-shot opts override consumed by the next `setTarget` call for a given id.
@@ -62,6 +70,7 @@ function transformsEqual(a: Transform, b: Transform): boolean {
 export const useAnimationStore = create<AnimationState>((set, get) => ({
   objects: {},
   ghosts: [],
+  suppressedSegments: new Set<string>(),
   nextOverride: {},
 
   setTarget: (id, target, opts = {}) => {
@@ -140,11 +149,30 @@ export const useAnimationStore = create<AnimationState>((set, get) => ({
 
   spawnGhost: (g) => {
     const ghost: GhostMeeple = { ...g, startMs: performance.now() }
-    set((s) => ({ ghosts: [...s.ghosts, ghost] }))
+    set((s) => {
+      const next: Partial<AnimationState> = { ghosts: [...s.ghosts, ghost] }
+      if (ghost.suppressKey) {
+        const sup = new Set(s.suppressedSegments)
+        sup.add(ghost.suppressKey)
+        next.suppressedSegments = sup
+      }
+      return next as AnimationState
+    })
   },
 
   removeGhost: (id) => {
-    set((s) => ({ ghosts: s.ghosts.filter((g) => g.id !== id) }))
+    set((s) => {
+      const removed = s.ghosts.find((g) => g.id === id)
+      const next: Partial<AnimationState> = {
+        ghosts: s.ghosts.filter((g) => g.id !== id),
+      }
+      if (removed?.suppressKey && s.suppressedSegments.has(removed.suppressKey)) {
+        const sup = new Set(s.suppressedSegments)
+        sup.delete(removed.suppressKey)
+        next.suppressedSegments = sup
+      }
+      return next as AnimationState
+    })
   },
 
   setNextOverride: (id, opts) => {

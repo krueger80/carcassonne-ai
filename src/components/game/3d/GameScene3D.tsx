@@ -15,6 +15,7 @@ import { CameraPanner } from './CameraPanner.tsx'
 import { ThreeEvent } from '@react-three/fiber'
 import { GhostMeeples3D } from './animation/GhostMeeples3D.tsx'
 import { CurrentTile3D } from './CurrentTile3D.tsx'
+import { useAnimationStore } from './animation/animationStore.ts'
 
 interface GameScene3DProps {
   gameState: any
@@ -184,6 +185,9 @@ export const GameScene3D = memo(({
   const controlsRef = useRef<any>(null)
   const boardTiles = useMemo(() => Object.entries(gameState.board.tiles), [gameState.board.tiles])
   const [hoveredTileCoord, setHoveredTileCoord] = useState<string | null>(null)
+  // Subscribed so re-render fires when a placement/devour ghost claims or
+  // releases a segment slot. Slot keys are `${x},${y}:${meepleSlot}`.
+  const suppressedSegments = useAnimationStore((s) => s.suppressedSegments)
 
   const isMeeplePhase = gameState.turnPhase === 'PLACE_MEEPLE'
   const lastPlacedCoord = gameState.lastPlacedCoord
@@ -349,21 +353,23 @@ export const GameScene3D = memo(({
                 
                 const items = []
                 
-                // 1. Placed Meeples (Primary, Pig, Builder)
+                // 1. Placed Meeples (Primary, Pig, Builder).
+                // Skip any slot currently masked by a ghost in flight — that
+                // ghost will land and the slot will reappear.
                 const placedPrimary = tile.meeples[segId]
-                if (placedPrimary) {
+                if (placedPrimary && !suppressedSegments.has(`${key}:${segId}`)) {
                   const player = gameState.players.find((p: any) => p.id === placedPrimary.playerId)
                   items.push({ type: 'MEEPLE', meeple: placedPrimary, player, isFarmer })
                 }
-                
+
                 const placedPig = tile.meeples[`${segId}_PIG`]
-                if (placedPig) {
+                if (placedPig && !suppressedSegments.has(`${key}:${segId}_PIG`)) {
                   const player = gameState.players.find((p: any) => p.id === placedPig.playerId)
                   items.push({ type: 'MEEPLE', meeple: placedPig, player, isFarmer: true })
                 }
-                
+
                 const placedBuilder = tile.meeples[`${segId}_BUILDER`]
-                if (placedBuilder) {
+                if (placedBuilder && !suppressedSegments.has(`${key}:${segId}_BUILDER`)) {
                   const player = gameState.players.find((p: any) => p.id === placedBuilder.playerId)
                   items.push({ type: 'MEEPLE', meeple: placedBuilder, player, isFarmer: false })
                 }

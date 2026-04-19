@@ -20,19 +20,30 @@ export interface ObjectTrack {
 }
 
 /**
- * Transient animated meeple with no persistent board identity. Target is
- * resolved at render time from the owner player's DOM PlayerCard so we don't
- * need the camera/canvas at spawn time (the game store is outside R3F).
+ * Transient animated meeple with no persistent board identity. One endpoint
+ * is a world position; the other is a player-card DOM element resolved at
+ * mount-time by projecting through the live R3F camera.
+ *
+ *   direction: 'to-card'   → ghost flies world → card (e.g. dragon devour)
+ *   direction: 'from-card' → ghost flies card  → world (e.g. meeple placement)
  */
 export interface GhostMeeple {
   id: string
   meepleType: MeepleType
   color: string
   isFarmer: boolean
-  from: Transform
-  /** DOM id of the target PlayerCard element: `player-card-${playerId}`. */
-  targetPlayerId: string
+  direction: 'to-card' | 'from-card'
+  /** World endpoint (segment center for placement / current tile for devour). */
+  worldEndpoint: Transform
+  /** DOM id of the card endpoint: `player-card-${playerId}`. */
+  cardPlayerId: string
   startMs: number
   durationMs: number
   arcHeight: number
+  /**
+   * Optional segment-meeple key suppressed in the static board render while
+   * this ghost is in flight. Format: `${x},${y}:${meepleSlot}`.
+   * `meepleSlot` is one of `segId`, `${segId}_PIG`, `${segId}_BUILDER`.
+   */
+  suppressKey?: string
 }
