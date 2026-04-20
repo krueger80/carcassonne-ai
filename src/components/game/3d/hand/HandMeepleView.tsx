@@ -3,27 +3,29 @@ import { View, PerspectiveCamera } from '@react-three/drei'
 import { useFrame } from '@react-three/fiber'
 import * as THREE from 'three'
 import { Meeple3D } from '../Meeple3D'
+import { MEEPLE_DIMENSIONS, SCALE_FACTOR } from '../MeepleShapes'
 import type { MeepleType } from '../../../../core/types/player'
 
+type HandMeepleType = 'NORMAL' | 'BIG' | 'BUILDER' | 'PIG' | 'ABBOT'
+
 interface HandMeepleViewProps {
-  type: Exclude<MeepleType, 'COUNT' | 'FARMER'> | 'NORMAL' | 'BIG' | 'BUILDER' | 'PIG' | 'ABBOT'
+  type: HandMeepleType
   color: string
   /** Dimmed when the player has 0 of this meeple available. */
   dimmed?: boolean
 }
 
 /**
- * A single 3D hand meeple portalled into the shared overlay canvas. It draws
- * a standing meeple that spins slowly on its vertical axis so the piece
- * reads as 3D at the tiny ~24px icon scale.
- *
- * Rendered inside `MeepleIcon` in `PlayerCard`, replacing the 2D MeepleSVG.
+ * A single 3D hand meeple portalled into the shared overlay canvas. Spins
+ * slowly so the piece reads as 3D at ~24px on screen. Camera framing is
+ * derived from the meeple's own vertical extent so every type (pig ↔
+ * builder) sits centred with the same visual padding.
  */
 export function HandMeepleView({ type, color, dimmed = false }: HandMeepleViewProps) {
   return (
     <View style={{ position: 'absolute', inset: -4 }}>
-      <PerspectiveCamera makeDefault position={[0, 0.2, 2.8]} fov={38} />
-      <ambientLight intensity={0.55} />
+      <PerspectiveCamera makeDefault position={[0, 0, 9]} fov={22} />
+      <ambientLight intensity={0.6} />
       <directionalLight position={[2, 4, 3]} intensity={0.9} />
       <directionalLight position={[-2, 2, -2]} intensity={0.25} />
       <SpinningMeeple type={type} color={color} dimmed={dimmed} />
@@ -31,24 +33,49 @@ export function HandMeepleView({ type, color, dimmed = false }: HandMeepleViewPr
   )
 }
 
+function dimensionsFor(type: HandMeepleType) {
+  return MEEPLE_DIMENSIONS[type as keyof typeof MEEPLE_DIMENSIONS] ?? MEEPLE_DIMENSIONS.NORMAL
+}
+
 function SpinningMeeple({
   type,
   color,
   dimmed,
 }: {
-  type: HandMeepleViewProps['type']
+  type: HandMeepleType
   color: string
   dimmed: boolean
 }) {
   const ref = useRef<THREE.Group>(null)
   useFrame((_, dt) => {
     if (!ref.current) return
-    ref.current.rotation.y += dt * 0.8
+    ref.current.rotation.y += dt * 0.7
   })
 
+  // Normalise every meeple type to the same visible height so a BUILDER
+  // (tallest) and a PIG (shortest) read as the same icon-scale in the
+  // hand. Meeple3D centres its piece around local y = heightUnits/2
+  // (feet at 0), so after scaling we shift by -TARGET_HEIGHT/2 to put
+  // the piece's midpoint at the camera target.
+  const dims = dimensionsFor(type)
+  const heightUnits = dims.height * SCALE_FACTOR
+  const TARGET_HEIGHT = 2.6
+  const normalizeScale = TARGET_HEIGHT / heightUnits
+  const dimFactor = dimmed ? 0.85 : 1
+  const finalScale = dimFactor * normalizeScale
+  const yOffset = -(TARGET_HEIGHT * dimFactor) / 2
+
   return (
-    <group ref={ref} position={[0, -0.55, 0]} scale={dimmed ? 0.78 : 0.95}>
-      <Meeple3D type={type as any} color={color} isFarmer={false} />
+    <group
+      ref={ref}
+      scale={finalScale}
+      position={[0, yOffset, 0]}
+    >
+      <Meeple3D
+        type={type as MeepleType}
+        color={color}
+        isFarmer={false}
+      />
     </group>
   )
 }
