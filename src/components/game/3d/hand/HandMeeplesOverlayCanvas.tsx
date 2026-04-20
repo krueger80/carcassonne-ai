@@ -24,6 +24,7 @@ export function HandMeeplesOverlayCanvas() {
       }}
       gl={{ alpha: true, antialias: true }}
       dpr={[1, 2]}
+      flat
     >
       <ScreenOrthoCamera />
       {/* Hand meeples render unlit so their player colour is pure — no

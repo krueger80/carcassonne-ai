@@ -1,6 +1,7 @@
 import { memo, useEffect, useMemo, useRef } from 'react'
 import { Tile3D } from './Tile3D'
 import { useAnimatedTransform } from './animation/useAnimatedTransform'
+import { useAnimationStore } from './animation/animationStore'
 import type { Transform } from './animation/types'
 
 const TILE_SIZE = 8.8
@@ -81,6 +82,22 @@ function CurrentTile3DImpl({
   useEffect(() => {
     prevTargetRef.current = target
   }, [target])
+
+  // When a fresh tile is drawn (definitionId changes), snap the animated
+  // transform to the hand anchor BEFORE the next target update — otherwise
+  // the new tile would appear to fly in from wherever the previous tile
+  // landed on the board.
+  const prevDefIdRef = useRef<string>(currentTile.definitionId)
+  useEffect(() => {
+    if (prevDefIdRef.current !== currentTile.definitionId) {
+      const snap: Transform = { position: HAND_ANCHOR, rotationY: 0 }
+      // Clear any in-flight track and commit directly at the hand anchor.
+      useAnimationStore.setState((s) => ({
+        objects: { ...s.objects, ['current-tile']: { committed: snap } },
+      }))
+      prevDefIdRef.current = currentTile.definitionId
+    }
+  }, [currentTile.definitionId])
 
   const ref = useAnimatedTransform('current-tile', target, opts)
 

@@ -14,7 +14,8 @@ import { Coordinate } from '../../../core/types/board.ts'
 import { CameraPanner } from './CameraPanner.tsx'
 import { ThreeEvent } from '@react-three/fiber'
 import { GhostMeeples3D } from './animation/GhostMeeples3D.tsx'
-import { CurrentTile3D } from './CurrentTile3D.tsx'
+import { CurrentTile3D, HAND_ANCHOR } from './CurrentTile3D.tsx'
+import { TileStack3D } from './TileStack3D.tsx'
 import { useAnimationStore } from './animation/animationStore.ts'
 
 interface GameScene3DProps {
@@ -672,6 +673,14 @@ export const GameScene3D = memo(({
             </group>
           </group>
         )}
+
+        {/* Visible draw pile at the hand anchor so the current tile looks
+            like it was just drawn from the top of the deck. */}
+        <TileStack3D
+          remaining={gameState.tileBag?.length ?? 0}
+          position={[HAND_ANCHOR[0], HAND_ANCHOR[2]]}
+          topY={HAND_ANCHOR[1]}
+        />
 
         {/* Animated current tile — lives at a hand anchor until the user picks
             a coord, then flies to the tentative board coord. Single persistent
