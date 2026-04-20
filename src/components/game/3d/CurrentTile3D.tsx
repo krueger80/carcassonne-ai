@@ -24,7 +24,7 @@ interface CurrentTile3DProps {
    */
   tentativeTileCoord: { x: number; y: number } | null
   /** Click target on the animated tile — used to trigger rotation. */
-  onClick?: () => void
+  onClick?: (e: any) => void
   onPointerOver?: () => void
   onPointerOut?: () => void
 }

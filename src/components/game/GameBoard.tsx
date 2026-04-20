@@ -51,7 +51,6 @@ export function GameBoard() {
     cancelMeeplePlacement,
     cancelDragonPlaceTarget,
     cancelFairyTarget,
-    rotateTile,
     cycleDragonFacing,
     selectMeeplePlacement,
     moveFairy,
@@ -66,7 +65,6 @@ export function GameBoard() {
     cancelMeeplePlacement: s.cancelMeeplePlacement,
     cancelDragonPlaceTarget: s.cancelDragonPlaceTarget,
     cancelFairyTarget: s.cancelFairyTarget,
-    rotateTile: s.rotateTile,
     cycleDragonFacing: s.cycleDragonFacing,
     selectMeeplePlacement: s.selectMeeplePlacement,
     moveFairy: s.moveFairy,
@@ -118,7 +116,7 @@ export function GameBoard() {
         if (phase === 'DRAGON_ORIENT') {
           cycleDragonFacing()
         } else {
-          rotateTile()
+          rotateTentativeTile()
         }
       } else if (e.key === '+') {
         cameraZoomIn()
@@ -128,7 +126,7 @@ export function GameBoard() {
     }
     window.addEventListener('keydown', handler)
     return () => window.removeEventListener('keydown', handler)
-  }, [rotateTile, cycleDragonFacing, undoTilePlacement, cancelMeeplePlacement, cancelTilePlacement, cancelDragonPlaceTarget, cancelFairyTarget, cameraZoomIn, cameraZoomOut])
+  }, [rotateTentativeTile, cycleDragonFacing, undoTilePlacement, cancelMeeplePlacement, cancelTilePlacement, cancelDragonPlaceTarget, cancelFairyTarget, cameraZoomIn, cameraZoomOut])
 
   const currentPlayer = gameState?.players[gameState.currentPlayerIndex]
   const tbData = gameState?.expansionData?.['tradersBuilders'] as { isBuilderBonusTurn?: boolean } | undefined

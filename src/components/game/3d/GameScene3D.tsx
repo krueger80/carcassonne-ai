@@ -682,7 +682,7 @@ export const GameScene3D = memo(({
             currentTile={gameState.currentTile}
             staticTileMap={gameState.staticTileMap}
             tentativeTileCoord={tentativeTileCoord}
-            onClick={() => rotateTentativeTile()}
+            onClick={(e) => { e.stopPropagation(); rotateTentativeTile() }}
             onPointerOver={() => { document.body.style.cursor = 'pointer' }}
             onPointerOut={() => { document.body.style.cursor = '' }}
           />

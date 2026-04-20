@@ -453,7 +453,6 @@ export function PlayerCard({ player, isCurrentTurn, isBuilderBonusTurn = false, 
                 }}>
                     {turnState.phase === 'PLACE_TILE' && turnState.interactionState === 'IDLE' && (
                         <>
-                            <Button onClick={turnState.actions.rotate!} style={{ flex: 1 }}>⭮ {t('game.rotate')}</Button>
                             {turnState.tileDefinition?.flipSideDefinitionId && turnState.actions.flip && (
                                 <Button onClick={turnState.actions.flip} style={{ flex: 1 }}>⇅ {t('game.flip', 'Flip')}</Button>
                             )}
