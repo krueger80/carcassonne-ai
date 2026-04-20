@@ -22,7 +22,9 @@ export interface Sample {
 }
 
 export function sampleTrack(track: ObjectTrack, nowMs: number): Sample {
-  const raw = (nowMs - track.startMs) / track.durationMs
+  // durationMs can be 0 when reduced-motion is active; snap to end.
+  const raw =
+    track.durationMs <= 0 ? 1 : (nowMs - track.startMs) / track.durationMs
   const clamped = raw < 0 ? 0 : raw > 1 ? 1 : raw
   const eased = track.easing(clamped)
 

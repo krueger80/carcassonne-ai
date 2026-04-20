@@ -1,6 +1,7 @@
 import { create } from 'zustand'
 import type { GhostMeeple, ObjectTrack, Transform } from './types'
 import { easeInOutCubic } from './easing'
+import { prefersReducedMotion } from './reducedMotion'
 
 interface AnimationState {
   // Persistent-identity objects (dragon, fairy). Keyed by stable id.
@@ -106,7 +107,7 @@ export const useAnimationStore = create<AnimationState>((set, get) => ({
         set({ nextOverride: rest })
       }
 
-      const duration = opts.durationMs ?? 0
+      const duration = prefersReducedMotion() ? 0 : (opts.durationMs ?? 0)
       if (duration <= 0) {
         set({
           objects: { ...state.objects, [id]: { committed: target } },
@@ -156,7 +157,8 @@ export const useAnimationStore = create<AnimationState>((set, get) => ({
   },
 
   spawnGhost: (g) => {
-    const ghost: GhostMeeple = { ...g, startMs: performance.now() }
+    const durationMs = prefersReducedMotion() ? 0 : g.durationMs
+    const ghost: GhostMeeple = { ...g, durationMs, startMs: performance.now() }
     set((s) => {
       const next: Partial<AnimationState> = { ghosts: [...s.ghosts, ghost] }
       if (ghost.suppressKey) {
