@@ -1,11 +1,11 @@
 import { useTranslation } from 'react-i18next'
 import { Player, MeepleType } from "../../core/types/player";
-import { MeepleSVG } from "../svg/MeepleSVG";
 import { TileSVG } from "../svg/TileSVG";
 import { TileDefinition, Rotation, Direction } from "../../core/types/tile";
 import { Coordinate } from "../../core/types/board";
 import { Button } from "./Button";
 import { getRotatedOffset } from "../../core/engine/TilePlacement";
+import { HandMeepleView } from "../game/3d/hand/HandMeepleView";
 
 interface TurnState {
     phase: string;
@@ -105,17 +105,11 @@ const MeepleIcon = ({ type, count, tooltip, color, onClick, isSelected, disabled
             title={tooltip}
         >
             <div style={{ width: size, height: size, position: 'relative' }}>
-                <svg width={size} height={size} viewBox="0 0 24 24" style={{ filter: 'drop-shadow(0 1px 2px rgba(0,0,0,0.5))', overflow: 'visible' }}>
-                    <MeepleSVG
-                        color={color}
-                        x={12} y={20}
-                        size={type === 'BIG' ? 9 : 8}
-                        isBig={type === 'BIG'}
-                        isBuilder={type === 'BUILDER'}
-                        isPig={type === 'PIG'}
-                        isAbbot={type === 'ABBOT'}
-                    />
-                </svg>
+                <HandMeepleView
+                    type={type === 'FARMER' ? 'NORMAL' : (type as any)}
+                    color={color}
+                    dimmed={!isAvailable}
+                />
                 <div style={{
                     position: 'absolute', bottom: isCompact ? -4 : -2, right: isCompact ? -6 : -4,
                     background: '#222', color: '#fff',
@@ -123,6 +117,7 @@ const MeepleIcon = ({ type, count, tooltip, color, onClick, isSelected, disabled
                     padding: '1px 3px', borderRadius: 4,
                     border: '1px solid #555',
                     pointerEvents: 'none',
+                    zIndex: 60,
                 }}>
                     {count}
                 </div>

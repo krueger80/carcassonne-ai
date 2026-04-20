@@ -2,6 +2,7 @@ import { useCallback, useEffect, useMemo } from 'react'
 import { useShallow } from 'zustand/react/shallow'
 import { motion, AnimatePresence } from 'framer-motion'
 import { GameScene3D } from './3d/GameScene3D.tsx'
+import { HandMeeplesOverlayCanvas } from './3d/hand/HandMeeplesOverlayCanvas.tsx'
 import { useGameStore } from '../../store/gameStore.ts'
 import { useUIStore } from '../../store/uiStore.ts'
 import { GameOverlay } from './GameOverlay.tsx'
@@ -220,6 +221,8 @@ export function GameBoard() {
           segmentOwnerMap={segmentOwnerMap}
         />
       </div>
+
+      <HandMeeplesOverlayCanvas />
 
       <div style={{
         position: 'absolute',
