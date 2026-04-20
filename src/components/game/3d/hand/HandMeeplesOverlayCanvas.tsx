@@ -26,9 +26,10 @@ export function HandMeeplesOverlayCanvas() {
       dpr={[1, 2]}
     >
       <ScreenOrthoCamera />
-      <ambientLight intensity={0.55} />
-      <directionalLight position={[200, 400, 300]} intensity={0.9} />
-      <directionalLight position={[-200, 200, -200]} intensity={0.25} />
+      <ambientLight intensity={1.4} />
+      <directionalLight position={[200, 400, 300]} intensity={1.6} />
+      <directionalLight position={[-200, 200, -200]} intensity={0.8} />
+      <directionalLight position={[0, 0, 500]} intensity={0.9} />
       <Slots />
     </Canvas>
   )
