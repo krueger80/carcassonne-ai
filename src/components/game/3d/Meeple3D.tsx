@@ -17,6 +17,10 @@ interface Meeple3DProps {
   position?: [number, number, number]
   rotation?: [number, number, number]
   isTentative?: boolean
+  /** Render with flat/unlit shading so the colour reads pure regardless of
+   *  lighting. Used by the hand overlay where icon-scale meeples need to
+   *  match the player's tint even at ~24px. */
+  unlit?: boolean
   onClick?: (e: any) => void
   onPointerOver?: (e: any) => void
   onPointerOut?: (e: any) => void
@@ -27,6 +31,7 @@ function Meeple3DImpl({
   position = [0, 0, 0],
   rotation = [0, 0, 0],
   isTentative = false,
+  unlit = false,
   onClick,
   onPointerOver,
   onPointerOut
@@ -88,13 +93,21 @@ function Meeple3DImpl({
             onPointerOut={onPointerOut}
           >
             <extrudeGeometry args={[shape, extrudeSettings]} />
-            <meshStandardMaterial 
-              color={color} 
-              roughness={0.5} 
-              metalness={0.1}
-              transparent={isTentative}
-              opacity={isTentative ? 0.5 : 1}
-            />
+            {unlit ? (
+              <meshBasicMaterial
+                color={color}
+                transparent={isTentative}
+                opacity={isTentative ? 0.5 : 1}
+              />
+            ) : (
+              <meshStandardMaterial
+                color={color}
+                roughness={0.5}
+                metalness={0.1}
+                transparent={isTentative}
+                opacity={isTentative ? 0.5 : 1}
+              />
+            )}
           </mesh>
         </group>
       </group>

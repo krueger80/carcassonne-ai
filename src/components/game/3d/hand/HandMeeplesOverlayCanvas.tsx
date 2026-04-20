@@ -26,10 +26,8 @@ export function HandMeeplesOverlayCanvas() {
       dpr={[1, 2]}
     >
       <ScreenOrthoCamera />
-      <ambientLight intensity={1.4} />
-      <directionalLight position={[200, 400, 300]} intensity={1.6} />
-      <directionalLight position={[-200, 200, -200]} intensity={0.8} />
-      <directionalLight position={[0, 0, 500]} intensity={0.9} />
+      {/* Hand meeples render unlit so their player colour is pure — no
+          lights needed. */}
       <Slots />
     </Canvas>
   )
@@ -103,7 +101,7 @@ function SlotInstance({ slot }: { slot: HandSlot }) {
   return (
     <group ref={groupRef} scale={finalScale}>
       <group ref={spinRef}>
-        <Meeple3D type={slot.type as any} color={slot.color} isFarmer={false} />
+        <Meeple3D type={slot.type as any} color={slot.color} isFarmer={false} unlit />
       </group>
     </group>
   )
