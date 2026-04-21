@@ -6,14 +6,6 @@ import type { Transform } from './animation/types'
 
 const TILE_SIZE = 8.8
 
-/**
- * Fixed world-space anchor for the current player's tile-in-hand. Positioned
- * off-board so it never overlaps placed tiles. See PHASE2 notes: in a later
- * pass this could become camera-relative so it always sits at the viewport's
- * lower-right; for now a stable world position is enough to prove the flight.
- */
-export const HAND_ANCHOR: [number, number, number] = [14, 2, 16]
-
 interface CurrentTile3DProps {
   /** Game state's currentTile: { definitionId, rotation }. */
   currentTile: { definitionId: string; rotation: number }
@@ -24,6 +16,19 @@ interface CurrentTile3DProps {
    * tile is sitting in hand. A change to this prop starts a hand↔board flight.
    */
   tentativeTileCoord: { x: number; y: number } | null
+  /**
+   * Floating rest position for the current tile. Drifts as the board
+   * expands so the tile stays beside the draw bag rather than at a fixed
+   * world point.
+   */
+  handAnchor: [number, number, number]
+  /**
+   * World position of the top tile of the draw bag — when a new tile is
+   * drawn (definitionId changes), the animated group snaps here first so
+   * the subsequent flight to `handAnchor` visually "lifts" the tile off
+   * the pile. `null` when the bag is empty.
+   */
+  drawOrigin: [number, number, number] | null
   /** Click target on the animated tile — used to trigger rotation. */
   onClick?: (e: any) => void
   onPointerOver?: () => void
@@ -33,18 +38,15 @@ interface CurrentTile3DProps {
 /**
  * Single animated tile that represents the current player's tile-in-hand
  * and its flight to the tentatively-selected board coordinate. The same
- * THREE group is reused across the hand↔board transition so there's no
- * pop-out + pop-in.
- *
- * The outer group's transform is driven by `useAnimatedTransform('current-tile', ...)`,
- * so Tile3D itself receives a no-op `tile.coordinate = {0,0}` and `rotation = 0`
- * (the animated group handles position and rotation.y via refs, avoiding
- * React re-renders on Tile3D's memo).
+ * THREE group is reused across draw → hand → board, so each transition is
+ * continuous (no pop-in / pop-out).
  */
 function CurrentTile3DImpl({
   currentTile,
   staticTileMap,
   tentativeTileCoord,
+  handAnchor,
+  drawOrigin,
   onClick,
   onPointerOver,
   onPointerOut,
@@ -62,11 +64,8 @@ function CurrentTile3DImpl({
         rotationY: rotY,
       }
     }
-    return {
-      position: HAND_ANCHOR,
-      rotationY: rotY,
-    }
-  }, [tentativeTileCoord?.x, tentativeTileCoord?.y, currentTile.rotation])
+    return { position: handAnchor, rotationY: rotY }
+  }, [tentativeTileCoord?.x, tentativeTileCoord?.y, currentTile.rotation, handAnchor[0], handAnchor[1], handAnchor[2]])
 
   // Compare previous target vs current to pick flight opts:
   //   - XZ change  → hand↔board flight (longer + arc)
@@ -83,21 +82,23 @@ function CurrentTile3DImpl({
     prevTargetRef.current = target
   }, [target])
 
-  // When a fresh tile is drawn (definitionId changes), snap the animated
-  // transform to the hand anchor BEFORE the next target update — otherwise
+  // When a fresh tile is drawn (definitionId changes), commit the animated
+  // transform to the top of the active draw pile BEFORE the next target
+  // update — the subsequent `setTarget(handAnchor)` then animates the
+  // tile lifting off the pile and floating to the hand. Without this snap
   // the new tile would appear to fly in from wherever the previous tile
   // landed on the board.
   const prevDefIdRef = useRef<string>(currentTile.definitionId)
   useEffect(() => {
     if (prevDefIdRef.current !== currentTile.definitionId) {
-      const snap: Transform = { position: HAND_ANCHOR, rotationY: 0 }
-      // Clear any in-flight track and commit directly at the hand anchor.
+      const originPos: [number, number, number] = drawOrigin ?? handAnchor
+      const snap: Transform = { position: originPos, rotationY: 0 }
       useAnimationStore.setState((s) => ({
         objects: { ...s.objects, ['current-tile']: { committed: snap } },
       }))
       prevDefIdRef.current = currentTile.definitionId
     }
-  }, [currentTile.definitionId])
+  }, [currentTile.definitionId, drawOrigin, handAnchor])
 
   const ref = useAnimatedTransform('current-tile', target, opts)
 

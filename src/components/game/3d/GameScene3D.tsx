@@ -14,8 +14,8 @@ import { Coordinate } from '../../../core/types/board.ts'
 import { CameraPanner } from './CameraPanner.tsx'
 import { ThreeEvent } from '@react-three/fiber'
 import { GhostMeeples3D } from './animation/GhostMeeples3D.tsx'
-import { CurrentTile3D, HAND_ANCHOR } from './CurrentTile3D.tsx'
-import { TileStack3D } from './TileStack3D.tsx'
+import { CurrentTile3D } from './CurrentTile3D.tsx'
+import { TileStack3D, drawOriginFromBag } from './TileStack3D.tsx'
 import { useAnimationStore } from './animation/animationStore.ts'
 
 interface GameScene3DProps {
@@ -192,6 +192,26 @@ export const GameScene3D = memo(({
 
   const isMeeplePhase = gameState.turnPhase === 'PLACE_MEEPLE'
   const lastPlacedCoord = gameState.lastPlacedCoord
+
+  // Draw-bag layout:
+  //   basePosition → world XZ of the first (top-left) pile, placed two tile
+  //   widths to the right of the board's current maxX so stacks stay near
+  //   the play area but drift outward as the board expands.
+  //   handAnchor → floating rest position for the current-tile, above the
+  //   pile grid so it visually hovers over the deck.
+  const pileBaseXZ = useMemo<[number, number]>(() => {
+    const maxX = gameState.board?.maxX ?? 0
+    const minY = gameState.board?.minY ?? 0
+    return [(maxX + 2) * TILE_SIZE, minY * TILE_SIZE]
+  }, [gameState.board?.maxX, gameState.board?.minY])
+
+  const handAnchor = useMemo<[number, number, number]>(() => {
+    return [pileBaseXZ[0] + TILE_SIZE, 6, pileBaseXZ[1]]
+  }, [pileBaseXZ])
+
+  const drawOrigin = useMemo(() => {
+    return drawOriginFromBag(gameState.tileBag?.length ?? 0, pileBaseXZ, 0)
+  }, [gameState.tileBag?.length, pileBaseXZ])
 
   // Pre-calculate current tile footprints for placement markers
   const placementFootprints = useMemo(() => {
@@ -674,16 +694,17 @@ export const GameScene3D = memo(({
           </group>
         )}
 
-        {/* Visible draw pile at the hand anchor so the current tile looks
-            like it was just drawn from the top of the deck. */}
+        {/* Visible draw bag — multiple piles near the board, shifting
+            outward as the play area grows. */}
         <TileStack3D
           remaining={gameState.tileBag?.length ?? 0}
-          position={[HAND_ANCHOR[0], HAND_ANCHOR[2]]}
-          topY={HAND_ANCHOR[1]}
+          basePosition={pileBaseXZ}
+          groundY={0}
         />
 
-        {/* Animated current tile — lives at a hand anchor until the user picks
-            a coord, then flies to the tentative board coord. Single persistent
+        {/* Animated current tile — drawn from the active pile top, then
+            hovers at handAnchor until the user picks a coord, at which
+            point it flies to the tentative board coord. Single persistent
             node so the transition is continuous (no pop-out/in). */}
         {gameState.currentTile &&
           (gameState.turnPhase === 'PLACE_TILE' || interactionState === 'TILE_PLACED_TENTATIVELY') && (
@@ -691,6 +712,8 @@ export const GameScene3D = memo(({
             currentTile={gameState.currentTile}
             staticTileMap={gameState.staticTileMap}
             tentativeTileCoord={tentativeTileCoord}
+            handAnchor={handAnchor}
+            drawOrigin={drawOrigin}
             onClick={(e) => { e.stopPropagation(); rotateTentativeTile() }}
             onPointerOver={() => { document.body.style.cursor = 'pointer' }}
             onPointerOut={() => { document.body.style.cursor = '' }}
