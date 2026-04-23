@@ -9,11 +9,15 @@ interface ButtonProps {
     disabled?: boolean
     style?: React.CSSProperties
     title?: string
+    'aria-label'?: string
+    'aria-expanded'?: boolean
+    'aria-controls'?: string
 }
 
-export function Button({ children, onClick, primary, danger, disabled, style, title }: ButtonProps) {
+export function Button({ children, onClick, primary, danger, disabled, style, title, ...ariaProps }: ButtonProps) {
     return (
         <motion.button
+            type="button"
             whileHover={!disabled ? { scale: 1.05 } : undefined}
             whileTap={!disabled ? { scale: 0.95 } : undefined}
             onClick={(e) => {
@@ -22,6 +26,9 @@ export function Button({ children, onClick, primary, danger, disabled, style, ti
             }}
             title={title}
             disabled={disabled}
+            aria-label={ariaProps['aria-label']}
+            aria-expanded={ariaProps['aria-expanded']}
+            aria-controls={ariaProps['aria-controls']}
             style={{
                 padding: '8px 16px',
                 borderRadius: 8,

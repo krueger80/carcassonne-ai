@@ -227,22 +227,25 @@ export function GameBoard() {
           onClick={() => cameraZoomIn()}
           style={btnStyle}
           title="Zoom In"
+          aria-label="Zoom In"
         >
-          ＋
+          <span aria-hidden="true">＋</span>
         </button>
         <button
           onClick={() => cameraZoomOut()}
           style={btnStyle}
           title="Zoom Out"
+          aria-label="Zoom Out"
         >
-          －
+          <span aria-hidden="true">－</span>
         </button>
         <button
           onClick={() => cameraReset()}
           style={{...btnStyle, fontSize: 14}}
           title="Reset View"
+          aria-label="Reset View"
         >
-          🏠
+          <span aria-hidden="true">🏠</span>
         </button>
         <div style={{ height: 4 }} />
         <button
@@ -253,8 +256,13 @@ export function GameBoard() {
               : territoryOverlay === 'incomplete' ? 'Incomplete farm'
                 : 'Territory: All'
           }
+          aria-label={
+            territoryOverlay === 'off' ? 'Territory: Off'
+              : territoryOverlay === 'incomplete' ? 'Incomplete farm'
+                : 'Territory: All'
+          }
         >
-          {territoryOverlay === 'off' ? '◇' : territoryOverlay === 'incomplete' ? '◈' : '◆'}
+          <span aria-hidden="true">{territoryOverlay === 'off' ? '◇' : territoryOverlay === 'incomplete' ? '◈' : '◆'}</span>
         </button>
       </div>
 
