@@ -15,7 +15,7 @@ import { CameraPanner } from './CameraPanner.tsx'
 import { ThreeEvent } from '@react-three/fiber'
 import { GhostMeeples3D } from './animation/GhostMeeples3D.tsx'
 import { CurrentTile3D } from './CurrentTile3D.tsx'
-import { TileStack3D, drawOriginFromBag } from './TileStack3D.tsx'
+import { TileStack3D, drawOriginFromBag, usePileSizes } from './TileStack3D.tsx'
 import { useAnimationStore } from './animation/animationStore.ts'
 
 interface GameScene3DProps {
@@ -194,24 +194,28 @@ export const GameScene3D = memo(({
   const lastPlacedCoord = gameState.lastPlacedCoord
 
   // Draw-bag layout:
-  //   basePosition → world XZ of the first (top-left) pile, placed two tile
-  //   widths to the right of the board's current maxX so stacks stay near
-  //   the play area but drift outward as the board expands.
+  //   pileBaseXZ → world XZ of the first pile. Pinned to a constant far from
+  //   origin so the deck stays put as the board grows (real-table feel).
   //   handAnchor → floating rest position for the current-tile, above the
   //   pile grid so it visually hovers over the deck.
-  const pileBaseXZ = useMemo<[number, number]>(() => {
-    const maxX = gameState.board?.maxX ?? 0
-    const minY = gameState.board?.minY ?? 0
-    return [(maxX + 2) * TILE_SIZE, minY * TILE_SIZE]
-  }, [gameState.board?.maxX, gameState.board?.minY])
+  const pileBaseXZ = useMemo<[number, number]>(
+    () => [TILE_SIZE * 14, TILE_SIZE * -12],
+    []
+  )
 
   const handAnchor = useMemo<[number, number, number]>(() => {
     return [pileBaseXZ[0] + TILE_SIZE, 6, pileBaseXZ[1]]
   }, [pileBaseXZ])
 
+  // Stable, randomised pile sizes for the entire game — sourced from the
+  // initial bag count (cached on first render so subsequent draws don't
+  // reshuffle the layout).
+  const initialBagLength = gameState.tileBag?.length ?? 0
+  const pileSizes = usePileSizes(initialBagLength)
+
   const drawOrigin = useMemo(() => {
-    return drawOriginFromBag(gameState.tileBag?.length ?? 0, pileBaseXZ, 0)
-  }, [gameState.tileBag?.length, pileBaseXZ])
+    return drawOriginFromBag(pileSizes, gameState.tileBag?.length ?? 0, pileBaseXZ, 0)
+  }, [pileSizes, gameState.tileBag?.length, pileBaseXZ])
 
   // Pre-calculate current tile footprints for placement markers
   const placementFootprints = useMemo(() => {
@@ -694,10 +698,12 @@ export const GameScene3D = memo(({
           </group>
         )}
 
-        {/* Visible draw bag — multiple piles near the board, shifting
-            outward as the play area grows. */}
+        {/* Visible draw bag — multiple piles parked on the far side of the
+            table; positions never change so the deck behaves like a real
+            stack of cards. */}
         <TileStack3D
           remaining={gameState.tileBag?.length ?? 0}
+          sizes={pileSizes}
           basePosition={pileBaseXZ}
           groundY={0}
         />
