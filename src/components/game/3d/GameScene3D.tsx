@@ -154,12 +154,14 @@ function ScreenSpaceProjector({ worldPos, radius }: { worldPos: [number, number,
 const markerGeom = new THREE.PlaneGeometry(TILE_SIZE - 0.2, TILE_SIZE - 0.2)
 
 /**
- * Camera-attached "held" tile tracker. While the current-tile object exists,
- * has no track in flight, and the user isn't placing it on a coord, we mutate
- * the animation store's committed.position each frame to a camera-relative
- * world point — visually pinning the tile to the bottom-center of the user's
- * screen. When a track is in flight (drawing from pile, flying to board), we
- * leave the store alone so the existing flight plays out cleanly.
+ * Camera-attached "held" tile tracker. While the current-tile object exists
+ * and the user isn't placing it on a coord, we keep its destination glued
+ * to a camera-relative world point — visually pinning the tile to the
+ * bottom-center of the user's screen.
+ *   - No track in flight → mutate committed.position each frame.
+ *   - Track in flight (rotation/draw) → mutate the track's `to.position`
+ *     each frame so a rotation animation pivots in place at the live
+ *     camera anchor instead of flying off to the static handAnchor.
  */
 function HeldTileTracker({ active }: { active: boolean }) {
   const { camera } = useThree()
@@ -169,19 +171,28 @@ function HeldTileTracker({ active }: { active: boolean }) {
   useFrame(() => {
     if (!active) return
     const rec = useAnimationStore.getState().objects['current-tile']
-    if (!rec || rec.track) return
+    if (!rec) return
 
     // Camera-local offset: 0 right, 4 below, 28 forward. THREE camera local
     // space: +x right, +y up (screen), -z forward. localToWorld maps that
     // through the camera's full transform, so the tile follows pan & zoom.
-    // Pushed far enough forward that the tile's bottom edge stays on-screen
-    // even when the camera tilts steeply down.
     local.set(0, -4, -28)
     camera.localToWorld(local)
 
-    rec.committed.position[0] = local.x
-    rec.committed.position[1] = local.y
-    rec.committed.position[2] = local.z
+    if (rec.track) {
+      // In-flight rotation/draw — keep the destination pinned so the
+      // tile pivots at the camera anchor instead of drifting away.
+      rec.track.to.position[0] = local.x
+      rec.track.to.position[1] = local.y
+      rec.track.to.position[2] = local.z
+      rec.committed.position[0] = local.x
+      rec.committed.position[1] = local.y
+      rec.committed.position[2] = local.z
+    } else {
+      rec.committed.position[0] = local.x
+      rec.committed.position[1] = local.y
+      rec.committed.position[2] = local.z
+    }
   })
 
   return null
