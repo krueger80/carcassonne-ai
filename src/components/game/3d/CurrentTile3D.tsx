@@ -56,15 +56,19 @@ function CurrentTile3DImpl({
   // Target transform: board coord if tentative, hand anchor otherwise.
   // rotationY is the board's natural convention (negated so visuals match
   // Tile3D's internal `rotation={[0, -rx, 0]}`).
+  // rotationX is 0 at rest (face-up); on draw the committed transform is
+  // briefly snapped to π (face-down on top of pile) so the flight to the
+  // hand anchor visually flips the tile.
   const target = useMemo<Transform>(() => {
     const rotY = -currentTile.rotation * (Math.PI / 180)
     if (tentativeTileCoord) {
       return {
         position: [tentativeTileCoord.x * TILE_SIZE, 0, tentativeTileCoord.y * TILE_SIZE],
         rotationY: rotY,
+        rotationX: 0,
       }
     }
-    return { position: handAnchor, rotationY: rotY }
+    return { position: handAnchor, rotationY: rotY, rotationX: 0 }
   }, [tentativeTileCoord?.x, tentativeTileCoord?.y, currentTile.rotation, handAnchor[0], handAnchor[1], handAnchor[2]])
 
   // Compare previous target vs current to pick flight opts:
@@ -92,7 +96,9 @@ function CurrentTile3DImpl({
   useEffect(() => {
     if (prevDefIdRef.current !== currentTile.definitionId) {
       const originPos: [number, number, number] = drawOrigin ?? handAnchor
-      const snap: Transform = { position: originPos, rotationY: 0 }
+      // Face-down on top of the active pile — the subsequent flight to the
+      // hand anchor (rotationX: 0) lerps the tile face-up mid-air.
+      const snap: Transform = { position: originPos, rotationY: 0, rotationX: Math.PI }
       useAnimationStore.setState((s) => ({
         objects: { ...s.objects, ['current-tile']: { committed: snap } },
       }))

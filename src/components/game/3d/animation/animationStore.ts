@@ -72,7 +72,8 @@ function transformsEqual(a: Transform, b: Transform): boolean {
     a.position[0] === b.position[0] &&
     a.position[1] === b.position[1] &&
     a.position[2] === b.position[2] &&
-    a.rotationY === b.rotationY
+    a.rotationY === b.rotationY &&
+    (a.rotationX ?? 0) === (b.rotationX ?? 0)
   )
 }
 

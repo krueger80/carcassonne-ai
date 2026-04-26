@@ -5,6 +5,8 @@ export type Vec3 = [number, number, number]
 export interface Transform {
   position: Vec3
   rotationY: number
+  /** Optional X-axis rotation, used by the held-tile flip. Defaults to 0. */
+  rotationX?: number
 }
 
 export type Easing = (t: number) => number

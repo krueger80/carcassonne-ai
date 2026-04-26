@@ -1,7 +1,7 @@
 import { memo, useState } from 'react'
 import { Html } from '@react-three/drei'
 import { useTranslation } from 'react-i18next'
-import { Meeple3D } from './Meeple3D.tsx'
+import { useUIStore, type HoveredMeepleSegment } from '../../../store/uiStore'
 
 interface PlacementOverlay3DProps {
   position: [number, number, number]
@@ -15,41 +15,69 @@ interface PlacementOverlay3DProps {
   isFarmer?: boolean
   onCancelSecondary?: () => void
   onCancelPrimary?: () => void
+  /** Hover descriptor pushed into the UI store on pointerOver. SelectableMeeple3D
+   *  reads it to render the 50%-opacity preview meeple at the hovered segment. */
+  hoverDescriptor?: HoveredMeepleSegment
 }
 
 function PlacementOverlay3DImpl({
   position,
-  type,
-  secondaryType,
-  color,
   onConfirm,
   onCancel,
   showButtons = false,
   isTentative = false,
-  isFarmer = false,
-  onCancelSecondary,
-  onCancelPrimary
+  onCancelSecondary: _onCancelSecondary,
+  onCancelPrimary,
+  hoverDescriptor,
 }: PlacementOverlay3DProps) {
   const { t } = useTranslation()
   const [isHovered, setIsHovered] = useState(false)
-  const spacing = 3.5
+  const setHoveredMeepleSegment = useUIStore((s) => s.setHoveredMeepleSegment)
+
+  const onOver = (e: any) => {
+    e.stopPropagation()
+    setIsHovered(true)
+    document.body.style.cursor = 'pointer'
+    if (!isTentative && hoverDescriptor) setHoveredMeepleSegment(hoverDescriptor)
+  }
+  const onOut = (e: any) => {
+    e.stopPropagation()
+    setIsHovered(false)
+    document.body.style.cursor = ''
+    if (!isTentative) {
+      const cur = useUIStore.getState().hoveredMeepleSegment
+      if (cur && hoverDescriptor &&
+          cur.coord.x === hoverDescriptor.coord.x &&
+          cur.coord.y === hoverDescriptor.coord.y &&
+          cur.segmentId === hoverDescriptor.segmentId) {
+        setHoveredMeepleSegment(null)
+      }
+    }
+  }
+  const onClick = (e: any) => {
+    e.stopPropagation()
+    if (isTentative && onCancelPrimary) {
+      document.body.style.cursor = ''
+      onCancelPrimary()
+    } else {
+      // Confirming clears any pending hover descriptor — the meeple is now
+      // owned by SelectableMeeple3D's tentative branch.
+      setHoveredMeepleSegment(null)
+      onConfirm()
+    }
+  }
 
   return (
     <group position={position}>
-      {/* Clickable interaction cylinder base */}
+      {/* Clickable interaction cylinder base — emits hover/click events.
+          The meeple body itself is rendered by SelectableMeeple3D at the
+          top level so animations are continuous across hover→tentative
+          and segment→segment transitions. */}
       <mesh
         position={[0, 0.15, 0]}
-        onPointerOver={(e) => { e.stopPropagation(); setIsHovered(true); document.body.style.cursor = 'pointer'; }}
-        onPointerOut={(e) => { e.stopPropagation(); setIsHovered(false); document.body.style.cursor = ''; }}
-        onClick={(e) => {
-          e.stopPropagation()
-          if (isTentative && onCancelPrimary) {
-            document.body.style.cursor = ''
-            onCancelPrimary()
-          } else {
-            onConfirm()
-          }
-        }}
+        onPointerOver={onOver}
+        onPointerOut={onOut}
+        onClick={onClick}
         renderOrder={2}
       >
         <cylinderGeometry args={[1.6, 1.6, 0.15, 32]} />
@@ -63,80 +91,14 @@ function PlacementOverlay3DImpl({
         />
       </mesh>
 
-      {/* Meeple Preview */}
-      {(isHovered || isTentative) && (
-        <group position={[0, 0, 0]}>
-          <group 
-            onClick={(e) => { 
-              e.stopPropagation(); 
-              if (isTentative && onCancelPrimary) {
-                document.body.style.cursor = ''
-                onCancelPrimary()
-              } else if (!isTentative) {
-                onConfirm()
-              }
-            }}
-            onPointerOver={(e) => { 
-              e.stopPropagation(); 
-              setIsHovered(true); 
-              document.body.style.cursor = 'pointer'; 
-            }}
-            onPointerOut={(e) => { 
-              e.stopPropagation(); 
-              setIsHovered(false); 
-              document.body.style.cursor = ''; 
-            }}
-          >
-            <Meeple3D 
-              type={type} 
-              color={color} 
-              isFarmer={isFarmer}
-              isTentative={isHovered && !isTentative} 
-              position={[secondaryType ? -spacing / 2 : 0, 0, 0]}
-            />
-          </group>
-          {secondaryType && (
-            <group 
-              onPointerOver={(e) => { 
-                e.stopPropagation(); 
-                setIsHovered(true); 
-                document.body.style.cursor = 'pointer'; 
-              }}
-              onPointerOut={(e) => { 
-                e.stopPropagation(); 
-                setIsHovered(false); 
-                document.body.style.cursor = ''; 
-              }}
-              onClick={(e) => { 
-                e.stopPropagation(); 
-                if (isTentative && onCancelSecondary) {
-                  document.body.style.cursor = ''
-                  onCancelSecondary()
-                } else if (!isTentative) {
-                  onConfirm()
-                }
-              }}
-            >
-              <Meeple3D 
-                type={secondaryType} 
-                color={color} 
-                isFarmer={secondaryType === 'PIG'} // Pig always behaves like a farmer
-                isTentative={isHovered && !isTentative} 
-                position={[spacing / 2, 0, 0]}
-              />
-            </group>
-          )}
-        </group>
-      )}
-
       {/* Action Buttons via HTML - floating below, fixed size */}
       {showButtons && (
         <Html position={[0, -2.5, 0]} center>
-          <div style={{ 
-            display: 'flex', 
-            gap: '12px', 
-            background: 'rgba(0,0,0,0.85)', 
-            padding: '10px 16px', 
+          <div style={{
+            display: 'flex',
+            gap: '12px',
+            background: 'rgba(0,0,0,0.85)',
+            padding: '10px 16px',
             borderRadius: '12px',
             pointerEvents: 'auto',
             boxShadow: '0 8px 24px rgba(0,0,0,0.6)',
@@ -144,14 +106,14 @@ function PlacementOverlay3DImpl({
             width: 'max-content',
             userSelect: 'none'
           }}>
-            <button 
+            <button
               onClick={(e) => { e.stopPropagation(); onConfirm(); }}
-              style={{ 
-                background: '#27ae60', 
-                color: 'white', 
-                border: 'none', 
-                borderRadius: '8px', 
-                padding: '10px 20px', 
+              style={{
+                background: '#27ae60',
+                color: 'white',
+                border: 'none',
+                borderRadius: '8px',
+                padding: '10px 20px',
                 cursor: 'pointer',
                 fontWeight: 'bold',
                 fontSize: '16px',
@@ -162,14 +124,14 @@ function PlacementOverlay3DImpl({
             >
               {t('game.confirmBtn')}
             </button>
-            <button 
+            <button
               onClick={(e) => { e.stopPropagation(); onCancel(); }}
-              style={{ 
-                background: '#c0392b', 
-                color: 'white', 
-                border: 'none', 
-                borderRadius: '8px', 
-                padding: '10px 20px', 
+              style={{
+                background: '#c0392b',
+                color: 'white',
+                border: 'none',
+                borderRadius: '8px',
+                padding: '10px 20px',
                 cursor: 'pointer',
                 fontWeight: 'bold',
                 fontSize: '16px',

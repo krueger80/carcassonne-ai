@@ -1,10 +1,8 @@
 import { useTranslation } from 'react-i18next'
 import { Player, MeepleType } from "../../core/types/player";
-import { TileSVG } from "../svg/TileSVG";
 import { TileDefinition, Rotation, Direction } from "../../core/types/tile";
 import { Coordinate } from "../../core/types/board";
 import { Button } from "./Button";
-import { getRotatedOffset } from "../../core/engine/TilePlacement";
 import { HandMeepleView } from "../game/3d/hand/HandMeepleView";
 
 interface TurnState {
@@ -239,13 +237,9 @@ export function PlayerCard({ player, isCurrentTurn, isBuilderBonusTurn = false, 
                 )}
             </div>
 
-            {/* 3. Main Content: Split columns if we have a tile preview */}
+            {/* 3. Main Content: inventory only — the held 3D tile lives in
+                 the Canvas, pinned to the bottom of the player's screen. */}
             {(() => {
-                const showTilePreview = isCurrentTurn && 
-                    (turnState?.phase === 'PLACE_TILE' || turnState?.phase === 'DRAGON_MOVEMENT' || turnState?.phase === 'DRAGON_ORIENT') && 
-                    turnState?.tileDefinition && 
-                    turnState?.currentTile && 
-                    turnState?.interactionState === 'IDLE';
                 return (
                     <div style={{ display: 'flex', gap: isCurrentTurn ? 16 : 4, alignItems: 'center' }}>
 
@@ -369,72 +363,6 @@ export function PlayerCard({ player, isCurrentTurn, isBuilderBonusTurn = false, 
                                 </div>
                             )}
                         </div>
-
-                        {/* Right Col: Tile Preview (active player, PLACE_TILE phase only) */}
-                        {showTilePreview && turnState.tileDefinition && turnState.currentTile && (() => {
-                            const def = turnState.tileDefinition;
-                            const currentRot = turnState.currentTile.rotation;
-                            const parts = [{ dx: 0, dy: 0, defId: def.id }];
-                            if (def.linkedTiles) {
-                                for (const lt of def.linkedTiles) {
-                                    parts.push({ ...getRotatedOffset(lt.dx, lt.dy, currentRot), defId: lt.definitionId });
-                                }
-                            }
-
-                            let minDx = 0, maxDx = 0, minDy = 0, maxDy = 0;
-                            parts.forEach(p => {
-                                if (p.dx < minDx) minDx = p.dx;
-                                if (p.dx > maxDx) maxDx = p.dx;
-                                if (p.dy < minDy) minDy = p.dy;
-                                if (p.dy > maxDy) maxDy = p.dy;
-                            });
-
-                            const gridW = maxDx - minDx + 1;
-                            const gridH = maxDy - minDy + 1;
-
-                            // Base size of each cell
-                            const CELL_SIZE = 80;
-                            // Scale down if it's very large? Double tiles can just take more space or we can scale.
-                            // Better to just let the container be larger. 
-                            // But usually we don't want it to overflow the screen. 
-                            // 80x80 is default. Let's make it gridW*80 x gridH*80, but scaled down if it's > 2.
-                            const scale = Math.max(1, Math.max(gridW, gridH) / 1.5); // scale down a bit if it's 2 or 3
-                            const displayCellSize = CELL_SIZE / scale;
-
-                            return (
-                                <div style={{
-                                    flexShrink: 0,
-                                    width: gridW * displayCellSize,
-                                    height: gridH * displayCellSize,
-                                    borderRadius: 8,
-                                    position: 'relative',
-                                    border: `2px solid ${color}`,
-                                    boxShadow: `0 2px 8px rgba(0,0,0,0.4), 0 0 0 1px ${color}40`,
-                                    background: '#000', // optional background to hide gaps if any
-                                }}>
-                                    {parts.map((p, idx) => {
-                                        const partDef = turnState.staticTileMap ? turnState.staticTileMap[p.defId] : (p.defId === def.id ? def : null);
-                                        if (!partDef) return null;
-                                        return (
-                                            <div key={idx} style={{
-                                                position: 'absolute',
-                                                left: (p.dx - minDx) * displayCellSize,
-                                                top: (p.dy - minDy) * displayCellSize,
-                                                width: displayCellSize,
-                                                height: displayCellSize,
-                                                overflow: 'hidden',
-                                            }}>
-                                                <TileSVG
-                                                    definition={partDef}
-                                                    rotation={currentRot}
-                                                    size={displayCellSize}
-                                                />
-                                            </div>
-                                        );
-                                    })}
-                                </div>
-                            );
-                        })()}
 
                     </div>
                 );

@@ -15,6 +15,7 @@ import { CameraPanner } from './CameraPanner.tsx'
 import { ThreeEvent } from '@react-three/fiber'
 import { GhostMeeples3D } from './animation/GhostMeeples3D.tsx'
 import { CurrentTile3D } from './CurrentTile3D.tsx'
+import { SelectableMeeple3D } from './SelectableMeeple3D.tsx'
 import { TileStack3D, drawOriginFromBag, usePileSizes } from './TileStack3D.tsx'
 import { useAnimationStore } from './animation/animationStore.ts'
 
@@ -152,6 +153,38 @@ function ScreenSpaceProjector({ worldPos, radius }: { worldPos: [number, number,
 // Shared geometry for placement markers to avoid recreation overhead
 const markerGeom = new THREE.PlaneGeometry(TILE_SIZE - 0.2, TILE_SIZE - 0.2)
 
+/**
+ * Camera-attached "held" tile tracker. While the current-tile object exists,
+ * has no track in flight, and the user isn't placing it on a coord, we mutate
+ * the animation store's committed.position each frame to a camera-relative
+ * world point — visually pinning the tile to the bottom-center of the user's
+ * screen. When a track is in flight (drawing from pile, flying to board), we
+ * leave the store alone so the existing flight plays out cleanly.
+ */
+function HeldTileTracker({ active }: { active: boolean }) {
+  const { camera } = useThree()
+  // Reused vector so we don't allocate per frame.
+  const local = useRef(new THREE.Vector3()).current
+
+  useFrame(() => {
+    if (!active) return
+    const rec = useAnimationStore.getState().objects['current-tile']
+    if (!rec || rec.track) return
+
+    // Camera-local offset: 0 right, 6 below, 16 forward. THREE camera local
+    // space: +x right, +y up (screen), -z forward. localToWorld maps that
+    // through the camera's full transform, so the tile follows pan & zoom.
+    local.set(0, -6, -16)
+    camera.localToWorld(local)
+
+    rec.committed.position[0] = local.x
+    rec.committed.position[1] = local.y
+    rec.committed.position[2] = local.z
+  })
+
+  return null
+}
+
 export const GameScene3D = memo(({ 
   gameState, 
   validSet,
@@ -196,8 +229,10 @@ export const GameScene3D = memo(({
   // Draw-bag layout:
   //   pileBaseXZ → world XZ of the first pile. Pinned to a constant far from
   //   origin so the deck stays put as the board grows (real-table feel).
-  //   handAnchor → floating rest position for the current-tile, above the
-  //   pile grid so it visually hovers over the deck.
+  //   handAnchor → fallback rest position for the current-tile when the camera
+  //   tracker (HeldTileTracker) hasn't yet written a per-frame override. The
+  //   tile is camera-attached at runtime; this static value is only used
+  //   before the first frame of camera tracking.
   const pileBaseXZ = useMemo<[number, number]>(
     () => [TILE_SIZE * 14, TILE_SIZE * -12],
     []
@@ -206,6 +241,18 @@ export const GameScene3D = memo(({
   const handAnchor = useMemo<[number, number, number]>(() => {
     return [pileBaseXZ[0] + TILE_SIZE, 6, pileBaseXZ[1]]
   }, [pileBaseXZ])
+
+  // Stock positions for dragon and fairy when off-board — parked on the
+  // table next to the draw piles. First time they enter play, the existing
+  // useAnimatedTransform animates them onto the board from these spots.
+  const stockDragonPos = useMemo<[number, number, number]>(
+    () => [pileBaseXZ[0], 0, pileBaseXZ[1] + TILE_SIZE * 4],
+    [pileBaseXZ]
+  )
+  const stockFairyPos = useMemo<[number, number, number]>(
+    () => [pileBaseXZ[0] - TILE_SIZE * 2, 0, pileBaseXZ[1] + TILE_SIZE * 4],
+    [pileBaseXZ]
+  )
 
   // Stable, randomised pile sizes for the entire game — sourced from the
   // initial bag count (cached on first render so subsequent draws don't
@@ -460,7 +507,7 @@ export const GameScene3D = memo(({
                             )}
                             {item.type === 'TENTATIVE' && (
                               <group rotation={[0, -(hash + (i * 0.2)), 0]}>
-                                <PlacementOverlay3D 
+                                <PlacementOverlay3D
                                   position={[0, 0, 0]}
                                   type={item.isTentativeHere ? tentativeMeepleType : selectedMeepleType}
                                   secondaryType={item.isTentativeHere ? tentativeSecondaryMeepleType : null}
@@ -476,6 +523,13 @@ export const GameScene3D = memo(({
                                   isTentative={item.isTentativeHere}
                                   isFarmer={item.isFarmer}
                                   onCancelSecondary={() => useGameStore.setState({ tentativeSecondaryMeepleType: null })}
+                                  hoverDescriptor={!item.isTentativeHere ? {
+                                    coord: tile.coordinate,
+                                    segmentId: segId,
+                                    type: selectedMeepleType,
+                                    secondaryType: null,
+                                    isFarmer: !!item.isFarmer,
+                                  } : undefined}
                                 />
                               </group>
                             )}
@@ -714,24 +768,32 @@ export const GameScene3D = memo(({
             node so the transition is continuous (no pop-out/in). */}
         {gameState.currentTile &&
           (gameState.turnPhase === 'PLACE_TILE' || interactionState === 'TILE_PLACED_TENTATIVELY') && (
-          <CurrentTile3D
-            currentTile={gameState.currentTile}
-            staticTileMap={gameState.staticTileMap}
-            tentativeTileCoord={tentativeTileCoord}
-            handAnchor={handAnchor}
-            drawOrigin={drawOrigin}
-            onClick={(e) => { e.stopPropagation(); rotateTentativeTile() }}
-            onPointerOver={() => { document.body.style.cursor = 'pointer' }}
-            onPointerOut={() => { document.body.style.cursor = '' }}
-          />
+          <>
+            <CurrentTile3D
+              currentTile={gameState.currentTile}
+              staticTileMap={gameState.staticTileMap}
+              tentativeTileCoord={tentativeTileCoord}
+              handAnchor={handAnchor}
+              drawOrigin={drawOrigin}
+              onClick={(e) => { e.stopPropagation(); rotateTentativeTile() }}
+              onPointerOver={() => { document.body.style.cursor = 'pointer' }}
+              onPointerOut={() => { document.body.style.cursor = '' }}
+            />
+            <HeldTileTracker active={!tentativeTileCoord} />
+          </>
         )}
       </Suspense>
 
-      {/* Dragon */}
-      {dragonPos && (
+      {/* Dragon — always rendered when the dragon-fairy expansion is in play.
+          When dragonPos is null (off-board), it sits on the table at the
+          stock spot; first time it's summoned, the central animation
+          manager flies it onto the board. */}
+      {gameState.expansionData?.dragonFairy && (
         <Dragon3D
           animationId="dragon"
-          position={[dragonPos.x * TILE_SIZE, 0.02, dragonPos.y * TILE_SIZE]}
+          position={dragonPos
+            ? [dragonPos.x * TILE_SIZE, 0.02, dragonPos.y * TILE_SIZE]
+            : stockDragonPos}
           facing={getDragonAngle(dragonFacing)}
           onClick={(e) => {
             if (gameState.turnPhase === 'DRAGON_ORIENT' && cycleDragonFacing) {
@@ -761,11 +823,21 @@ export const GameScene3D = memo(({
       {/* Top-level animated fairy — single persistent node so movement between
           segments plays as a continuous flight via the animation manager.
           While a tentative target is selected during FAIRY_MOVE, the fairy
-          previews the move by animating to the target; cancelling returns it. */}
-      <AnimatedFairyOnBoard
-        fairyPos={tentativeFairyTarget ?? fairyPos}
-        gameState={gameState}
-      />
+          previews the move by animating to the target; cancelling returns it.
+          When off-board, the fairy parks at stockFairyPos. */}
+      {gameState.expansionData?.dragonFairy && (
+        <AnimatedFairyOnBoard
+          fairyPos={tentativeFairyTarget ?? fairyPos}
+          gameState={gameState}
+          stockPos={stockFairyPos}
+        />
+      )}
+
+      {/* Centralised pending-meeple controller — owns the active player's
+          hover preview and tentative placement, animating card→segment and
+          segment→segment. Replaces the inline meeple body that used to live
+          inside PlacementOverlay3D. */}
+      <SelectableMeeple3D />
 
       {/* Ghost meeples in flight (e.g. eaten by dragon). */}
       <GhostMeeples3D />
@@ -773,12 +845,18 @@ export const GameScene3D = memo(({
   )
 })
 
-function AnimatedFairyOnBoard({ fairyPos, gameState }: { fairyPos: any, gameState: any }) {
-  if (!fairyPos) return null
+function AnimatedFairyOnBoard({ fairyPos, gameState, stockPos }: { fairyPos: any, gameState: any, stockPos: [number, number, number] }) {
+  if (!fairyPos) {
+    return <Fairy3D animationId="fairy" position={stockPos} />
+  }
   const tile = gameState.board.tiles[`${fairyPos.coordinate.x},${fairyPos.coordinate.y}`]
-  if (!tile) return null
+  if (!tile) {
+    return <Fairy3D animationId="fairy" position={stockPos} />
+  }
   const def = gameState.staticTileMap[tile.definitionId]
-  if (!def) return null
+  if (!def) {
+    return <Fairy3D animationId="fairy" position={stockPos} />
+  }
   const [wx, , wz] = getSegmentCenter(fairyPos.coordinate, tile.rotation || 0, fairyPos.segmentId, def)
 
   // If the segment hosts a meeple, shift the fairy sideways so it doesn't

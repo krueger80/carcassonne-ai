@@ -15,6 +15,7 @@ function lerp(a: number, b: number, t: number): number {
 export interface Sample {
   position: Vec3
   rotationY: number
+  rotationX: number
   /** Progress in [0,1] — useful for fade tails. */
   progress: number
   /** True once t >= 1. */
@@ -38,6 +39,7 @@ export function sampleTrack(track: ObjectTrack, nowMs: number): Sample {
   return {
     position: [x, y, z],
     rotationY: lerpAngle(track.from.rotationY, track.to.rotationY, eased),
+    rotationX: lerpAngle(track.from.rotationX ?? 0, track.to.rotationX ?? 0, eased),
     progress: clamped,
     done: raw >= 1,
   }
@@ -53,6 +55,7 @@ export function sampleTransform(transform: Transform): Sample {
   return {
     position: transform.position,
     rotationY: transform.rotationY,
+    rotationX: transform.rotationX ?? 0,
     progress: 1,
     done: true,
   }

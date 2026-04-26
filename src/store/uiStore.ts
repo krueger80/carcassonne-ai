@@ -1,6 +1,15 @@
 import { create } from 'zustand'
 import type { MeepleType } from '../core/types/player.ts'
 import type { TerritoryOverlayMode } from '../core/types/game.ts'
+import type { Coordinate } from '../core/types/board.ts'
+
+export interface HoveredMeepleSegment {
+  coord: Coordinate
+  segmentId: string
+  type: MeepleType
+  secondaryType?: MeepleType | null
+  isFarmer: boolean
+}
 
 interface ScorePopup {
   id: string
@@ -33,6 +42,13 @@ interface UIStore {
   isManualInteraction: boolean
   toastMessage: string | null
   tileButtonPos: { x: number; y: number } | null
+  /**
+   * Set on `pointerOver` / cleared on `pointerOut` for valid meeple-placement
+   * segments during PLACE_MEEPLE. Read by SelectableMeeple3D to render the
+   * 50%-opacity ghost meeple at the hovered segment.
+   */
+  hoveredMeepleSegment: HoveredMeepleSegment | null
+  setHoveredMeepleSegment: (s: HoveredMeepleSegment | null) => void
   cameraAction: { type: 'NONE' | 'ZOOM_IN' | 'ZOOM_OUT' | 'RESET', timestamp: number }
   cycleTerritoryOverlay: () => void
   setIsManualInteraction: (isManual: boolean) => void
@@ -68,6 +84,8 @@ export const useUIStore = create<UIStore>((set) => ({
   isManualInteraction: false,
   toastMessage: null,
   tileButtonPos: null,
+  hoveredMeepleSegment: null,
+  setHoveredMeepleSegment: (s) => set({ hoveredMeepleSegment: s }),
   cameraAction: { type: 'NONE', timestamp: 0 },
   cycleTerritoryOverlay: () => set((s) => {
     const next: TerritoryOverlayMode =

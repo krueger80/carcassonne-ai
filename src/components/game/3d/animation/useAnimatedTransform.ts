@@ -25,7 +25,11 @@ export function useAnimatedTransform(
   // mirrors the target, which would cause the interrupt override to collapse
   // the animation (from==to) if applied without a real sample.
   const haveSampledRef = useRef(false)
-  const lastSampleRef = useRef<Transform>(target)
+  const lastSampleRef = useRef<Transform>({
+    position: target.position,
+    rotationY: target.rotationY,
+    rotationX: target.rotationX ?? 0,
+  })
 
   // When target changes, push it into the store. On first call for a new id,
   // this sets the committed transform synchronously; otherwise it starts a
@@ -46,7 +50,7 @@ export function useAnimatedTransform(
     // When existed && !haveSampled: first mount after a previous unmount.
     // Leave track.from at the store's committed (stable across unmounts).
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [id, target.position[0], target.position[1], target.position[2], target.rotationY])
+  }, [id, target.position[0], target.position[1], target.position[2], target.rotationY, target.rotationX])
 
   useFrame(() => {
     const obj = ref.current
@@ -57,22 +61,26 @@ export function useAnimatedTransform(
 
     let pos: [number, number, number]
     let rotY: number
+    let rotX: number
 
     if (rec.track) {
       const s = sampleTrack(rec.track, performance.now())
       pos = s.position
       rotY = s.rotationY
+      rotX = s.rotationX
       if (s.done) {
         useAnimationStore.getState().finalizeIfDone(id, performance.now())
       }
     } else {
       pos = rec.committed.position
       rotY = rec.committed.rotationY
+      rotX = rec.committed.rotationX ?? 0
     }
 
     obj.position.set(pos[0], pos[1], pos[2])
     obj.rotation.y = rotY
-    lastSampleRef.current = { position: pos, rotationY: rotY }
+    obj.rotation.x = rotX
+    lastSampleRef.current = { position: pos, rotationY: rotY, rotationX: rotX }
     haveSampledRef.current = true
   })
 
