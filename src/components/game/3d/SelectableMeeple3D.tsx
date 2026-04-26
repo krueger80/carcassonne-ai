@@ -15,7 +15,41 @@ const PRIMARY_ID = 'current-meeple-primary'
 const SECONDARY_ID = 'current-meeple-secondary'
 const FLIGHT_DURATION_MS = 600
 const FLIGHT_ARC = 2.5
-const SECONDARY_OFFSET = 1.75
+const SPACING = 3.5
+
+/**
+ * Match the per-tile rotation/spacing applied by the static board meeple
+ * renderer in GameScene3D so the central meeple lands exactly where the
+ * static one will appear after confirm — no positional jump.
+ *   - hash: per-tile seeded angle (0..2π)
+ *   - i: slot index (0=primary, 1=secondary)
+ *   - count: total meeples on the segment
+ */
+function slotWorldPos(
+  center: [number, number, number],
+  coord: { x: number, y: number },
+  i: number,
+  count: number,
+): [number, number, number] {
+  const seed = coord.x * 12.9898 + coord.y * 78.233
+  const hash = Math.abs(Math.sin(seed)) * Math.PI * 2
+  const angle = hash + i * 0.2
+  const offsetX = (i - (count - 1) / 2) * SPACING
+  // Rotate (offsetX, 0, 0) by `angle` around Y, then add to segment center.
+  const cos = Math.cos(angle)
+  const sin = Math.sin(angle)
+  return [
+    center[0] + offsetX * cos,
+    center[1],
+    center[2] - offsetX * sin,
+  ]
+}
+
+function slotRotationY(coord: { x: number, y: number }, i: number): number {
+  const seed = coord.x * 12.9898 + coord.y * 78.233
+  const hash = Math.abs(Math.sin(seed)) * Math.PI * 2
+  return hash + i * 0.2
+}
 
 /**
  * Centralised controller for the active player's pending meeple placement.
@@ -114,6 +148,7 @@ interface AnimatedProps {
 }
 
 function SelectableMeepleAnimated({
+  coord,
   primaryType,
   secondaryType,
   color,
@@ -130,15 +165,16 @@ function SelectableMeepleAnimated({
     ? { durationMs: 0, arcHeight: 0 }
     : { durationMs: FLIGHT_DURATION_MS, arcHeight: FLIGHT_ARC }
 
-  const primaryTarget = useMemo<Transform>(() => {
-    const x = secondaryType ? center[0] - SECONDARY_OFFSET : center[0]
-    return { position: [x, center[1], center[2]], rotationY: 0 }
-  }, [center[0], center[1], center[2], secondaryType])
+  const count = secondaryType ? 2 : 1
+  const primaryTarget = useMemo<Transform>(() => ({
+    position: slotWorldPos(center, coord, 0, count),
+    rotationY: slotRotationY(coord, 0),
+  }), [center[0], center[1], center[2], coord.x, coord.y, count])
 
-  const secondaryTarget = useMemo<Transform>(() => {
-    const x = center[0] + SECONDARY_OFFSET
-    return { position: [x, center[1], center[2]], rotationY: 0 }
-  }, [center[0], center[1], center[2]])
+  const secondaryTarget = useMemo<Transform>(() => ({
+    position: slotWorldPos(center, coord, 1, count),
+    rotationY: slotRotationY(coord, 1),
+  }), [center[0], center[1], center[2], coord.x, coord.y, count])
 
   const primaryRef = useAnimatedTransform(PRIMARY_ID, primaryTarget, opts)
   const secondaryRef = useAnimatedTransform(SECONDARY_ID, secondaryTarget, opts)
@@ -149,13 +185,21 @@ function SelectableMeepleAnimated({
   // useAnimatedTransform's effect (hook order) so it can override the
   // freshly-set committed and start a flight via an explicit setTarget.
   const prevGhostRef = useRef<boolean | null>(null)
+  const prevHasSecondaryRef = useRef<boolean>(false)
   useEffect(() => {
-    const prev = prevGhostRef.current
+    const prevGhost = prevGhostRef.current
     prevGhostRef.current = ghost
+    const hasSecondary = !!secondaryType
+    const prevHadSecondary = prevHasSecondaryRef.current
+    prevHasSecondaryRef.current = hasSecondary
     if (ghost) return
-    // Only seed on null→tentative or hover→tentative transitions, not on
-    // segment switches within tentative (which animate from the live sample).
-    if (prev === false) return
+    // Two cases that need a card→segment flight:
+    //   (a) just transitioned into tentative (null/hover → tentative)
+    //   (b) secondary just appeared while already tentative (modern rules
+    //       added a builder/pig alongside the primary)
+    const enteringTentative = prevGhost !== false
+    const secondaryAppeared = !enteringTentative && hasSecondary && !prevHadSecondary
+    if (!enteringTentative && !secondaryAppeared) return
     const cardWorld = domElementToWorldTarget(`player-card-${playerId}`, camera, gl.domElement)
     if (!cardWorld) return
     const seed: Transform = {
@@ -165,22 +209,24 @@ function SelectableMeepleAnimated({
     useAnimationStore.setState((s) => ({
       objects: {
         ...s.objects,
-        [PRIMARY_ID]: { committed: seed },
+        ...(enteringTentative ? { [PRIMARY_ID]: { committed: seed } } : {}),
         [SECONDARY_ID]: { committed: seed },
       },
     }))
-    void useAnimationStore.getState().setTarget(PRIMARY_ID, primaryTarget, {
-      durationMs: FLIGHT_DURATION_MS,
-      arcHeight: FLIGHT_ARC,
-    })
-    if (secondaryType) {
+    if (enteringTentative) {
+      void useAnimationStore.getState().setTarget(PRIMARY_ID, primaryTarget, {
+        durationMs: FLIGHT_DURATION_MS,
+        arcHeight: FLIGHT_ARC,
+      })
+    }
+    if (hasSecondary) {
       void useAnimationStore.getState().setTarget(SECONDARY_ID, secondaryTarget, {
         durationMs: FLIGHT_DURATION_MS,
         arcHeight: FLIGHT_ARC,
       })
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [ghost, playerId])
+  }, [ghost, playerId, secondaryType])
 
   return (
     <>

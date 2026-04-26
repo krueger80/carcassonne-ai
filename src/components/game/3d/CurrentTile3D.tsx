@@ -96,15 +96,24 @@ function CurrentTile3DImpl({
   useEffect(() => {
     if (prevDefIdRef.current !== currentTile.definitionId) {
       const originPos: [number, number, number] = drawOrigin ?? handAnchor
-      // Face-down on top of the active pile — the subsequent flight to the
-      // hand anchor (rotationX: 0) lerps the tile face-up mid-air.
+      // Snap to the top of the active pile, face-down. Then explicitly fire
+      // setTarget for the hand anchor so the lift-off + flip flight plays
+      // even when target deps (rotation/handAnchor) didn't change between
+      // tiles. Without this explicit kick, the tile would stay parked on
+      // the pile after the snap.
       const snap: Transform = { position: originPos, rotationY: 0, rotationX: Math.PI }
       useAnimationStore.setState((s) => ({
         objects: { ...s.objects, ['current-tile']: { committed: snap } },
       }))
       prevDefIdRef.current = currentTile.definitionId
+      const rotY = -currentTile.rotation * (Math.PI / 180)
+      void useAnimationStore.getState().setTarget(
+        'current-tile',
+        { position: handAnchor, rotationY: rotY, rotationX: 0 },
+        { durationMs: 700, arcHeight: 4 },
+      )
     }
-  }, [currentTile.definitionId, drawOrigin, handAnchor])
+  }, [currentTile.definitionId, currentTile.rotation, drawOrigin, handAnchor])
 
   const ref = useAnimatedTransform('current-tile', target, opts)
 

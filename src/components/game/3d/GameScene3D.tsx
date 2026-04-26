@@ -171,10 +171,12 @@ function HeldTileTracker({ active }: { active: boolean }) {
     const rec = useAnimationStore.getState().objects['current-tile']
     if (!rec || rec.track) return
 
-    // Camera-local offset: 0 right, 6 below, 16 forward. THREE camera local
+    // Camera-local offset: 0 right, 4 below, 28 forward. THREE camera local
     // space: +x right, +y up (screen), -z forward. localToWorld maps that
     // through the camera's full transform, so the tile follows pan & zoom.
-    local.set(0, -6, -16)
+    // Pushed far enough forward that the tile's bottom edge stays on-screen
+    // even when the camera tilts steeply down.
+    local.set(0, -4, -28)
     camera.localToWorld(local)
 
     rec.committed.position[0] = local.x
