@@ -60,6 +60,14 @@ export function useAnimatedTransform(
     const rec = useAnimationStore.getState().objects[id]
     if (!rec) return
 
+    // YXZ Euler order so a per-tile Y spin is applied BEFORE the X
+    // (posture / face-down draw flip) and Z (long-axis tile flip)
+    // rotations. With the default XYZ order, X is applied first and a
+    // subsequent Y spin would rotate around the already-tilted local
+    // axis — that's what made farmer meeples sit at a 45° tilt instead
+    // of lying flat with a fresh per-tile orientation.
+    if (obj.rotation.order !== 'YXZ') obj.rotation.order = 'YXZ'
+
     let pos: [number, number, number]
     let rotY: number
     let rotX: number
