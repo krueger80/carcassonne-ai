@@ -29,6 +29,7 @@ export function useAnimatedTransform(
     position: target.position,
     rotationY: target.rotationY,
     rotationX: target.rotationX ?? 0,
+    rotationZ: target.rotationZ ?? 0,
   })
 
   // When target changes, push it into the store. On first call for a new id,
@@ -50,7 +51,7 @@ export function useAnimatedTransform(
     // When existed && !haveSampled: first mount after a previous unmount.
     // Leave track.from at the store's committed (stable across unmounts).
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [id, target.position[0], target.position[1], target.position[2], target.rotationY, target.rotationX])
+  }, [id, target.position[0], target.position[1], target.position[2], target.rotationY, target.rotationX, target.rotationZ])
 
   useFrame(() => {
     const obj = ref.current
@@ -62,12 +63,14 @@ export function useAnimatedTransform(
     let pos: [number, number, number]
     let rotY: number
     let rotX: number
+    let rotZ: number
 
     if (rec.track) {
       const s = sampleTrack(rec.track, performance.now())
       pos = s.position
       rotY = s.rotationY
       rotX = s.rotationX
+      rotZ = s.rotationZ
       if (s.done) {
         useAnimationStore.getState().finalizeIfDone(id, performance.now())
       }
@@ -75,12 +78,14 @@ export function useAnimatedTransform(
       pos = rec.committed.position
       rotY = rec.committed.rotationY
       rotX = rec.committed.rotationX ?? 0
+      rotZ = rec.committed.rotationZ ?? 0
     }
 
     obj.position.set(pos[0], pos[1], pos[2])
     obj.rotation.y = rotY
     obj.rotation.x = rotX
-    lastSampleRef.current = { position: pos, rotationY: rotY, rotationX: rotX }
+    obj.rotation.z = rotZ
+    lastSampleRef.current = { position: pos, rotationY: rotY, rotationX: rotX, rotationZ: rotZ }
     haveSampledRef.current = true
   })
 

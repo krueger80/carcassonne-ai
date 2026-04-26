@@ -173,10 +173,12 @@ function HeldTileTracker({ active }: { active: boolean }) {
     const rec = useAnimationStore.getState().objects['current-tile']
     if (!rec) return
 
-    // Camera-local offset: 0 right, 4 below, 28 forward. THREE camera local
+    // Camera-local offset: 12 left, 3 below, 38 forward. THREE camera local
     // space: +x right, +y up (screen), -z forward. localToWorld maps that
     // through the camera's full transform, so the tile follows pan & zoom.
-    local.set(0, -4, -28)
+    // Pushed left and farther into the scene so the held tile reads as
+    // "in your left hand" and stays small enough not to obstruct the board.
+    local.set(-12, -3, -38)
     camera.localToWorld(local)
 
     if (rec.track) {
@@ -255,27 +257,37 @@ export const GameScene3D = memo(({
     return [pileBaseXZ[0] + TILE_SIZE, 6, pileBaseXZ[1]]
   }, [pileBaseXZ])
 
-  // Stock positions for dragon and fairy when off-board — parked on the
-  // table next to the draw piles. First time they enter play, the existing
-  // useAnimatedTransform animates them onto the board from these spots.
+  // Stock positions for dragon and fairy when off-board — parked beyond
+  // the +X edge of the pile grid so they never collide with piles, even
+  // when all expansions push the grid to its full row count.
   const stockDragonPos = useMemo<[number, number, number]>(
-    () => [pileBaseXZ[0], 0, pileBaseXZ[1] + TILE_SIZE * 4],
+    () => [pileBaseXZ[0] + TILE_SIZE * 5, 0, pileBaseXZ[1] - TILE_SIZE * 2],
     [pileBaseXZ]
   )
   const stockFairyPos = useMemo<[number, number, number]>(
-    () => [pileBaseXZ[0] - TILE_SIZE * 2, 0, pileBaseXZ[1] + TILE_SIZE * 4],
+    () => [pileBaseXZ[0] + TILE_SIZE * 5, 0, pileBaseXZ[1] - TILE_SIZE * 4],
     [pileBaseXZ]
   )
 
-  // Stable, randomised pile sizes for the entire game — sourced from the
-  // initial bag count (cached on first render so subsequent draws don't
-  // reshuffle the layout).
-  const initialBagLength = gameState.tileBag?.length ?? 0
-  const pileSizes = usePileSizes(initialBagLength)
+  // Stable, randomised pile sizes for the entire game — keyed by the bag's
+  // first-observed length (incl. the already-drawn currentTile so the count
+  // matches the engine's initial bag size). Subsequent draws never invalidate
+  // the cache, so only the active pile's top tile disappears each draw —
+  // the grid layout itself stays put.
+  const initialBagRef = useRef<number | null>(null)
+  const liveBagLength = gameState.tileBag?.length ?? 0
+  const candidateInitial = liveBagLength + (gameState.currentTile ? 1 : 0)
+  if (
+    initialBagRef.current === null ||
+    candidateInitial > initialBagRef.current
+  ) {
+    initialBagRef.current = candidateInitial
+  }
+  const pileSizes = usePileSizes(initialBagRef.current ?? 0)
 
   const drawOrigin = useMemo(() => {
-    return drawOriginFromBag(pileSizes, gameState.tileBag?.length ?? 0, pileBaseXZ, 0)
-  }, [pileSizes, gameState.tileBag?.length, pileBaseXZ])
+    return drawOriginFromBag(pileSizes, liveBagLength, pileBaseXZ, 0)
+  }, [pileSizes, liveBagLength, pileBaseXZ])
 
   // Pre-calculate current tile footprints for placement markers
   const placementFootprints = useMemo(() => {

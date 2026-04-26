@@ -40,24 +40,55 @@ export function HandMeeplesOverlayCanvas() {
 }
 
 /**
- * Re-renders its subscribers whenever the mobile visual viewport changes
- * (pinch zoom / scroll). Returns the viewport width/height/scale/offset
- * to use, falling back to the fallback size when visualViewport is absent.
+ * Snapshot of `window.visualViewport` for camera-bounds JSX. The visual
+ * viewport's `resize`/`scroll` events fire on pinch-zoom and mobile URL
+ * bar changes; a ResizeObserver on document.body covers desktop window
+ * resizes that the visual viewport API misses.
  */
 function useVisualViewport(fallback: { width: number; height: number }) {
   const [, force] = useReducer((x: number) => x + 1, 0)
 
   useEffect(() => {
     const vv = typeof window !== 'undefined' ? window.visualViewport : null
-    if (!vv) return
-    vv.addEventListener('resize', force)
-    vv.addEventListener('scroll', force)
+    if (vv) {
+      vv.addEventListener('resize', force)
+      vv.addEventListener('scroll', force)
+    }
+    let ro: ResizeObserver | null = null
+    if (typeof ResizeObserver !== 'undefined' && typeof document !== 'undefined') {
+      ro = new ResizeObserver(() => force())
+      ro.observe(document.body)
+    }
+    window.addEventListener('resize', force)
     return () => {
-      vv.removeEventListener('resize', force)
-      vv.removeEventListener('scroll', force)
+      if (vv) {
+        vv.removeEventListener('resize', force)
+        vv.removeEventListener('scroll', force)
+      }
+      window.removeEventListener('resize', force)
+      ro?.disconnect()
     }
   }, [])
 
+  const vv = typeof window !== 'undefined' ? window.visualViewport : null
+  if (!vv) {
+    return { width: fallback.width, height: fallback.height, scale: 1, offsetLeft: 0, offsetTop: 0 }
+  }
+  return {
+    width: vv.width,
+    height: vv.height,
+    scale: vv.scale,
+    offsetLeft: vv.offsetLeft,
+    offsetTop: vv.offsetTop,
+  }
+}
+
+/**
+ * Read the live visual viewport snapshot inside `useFrame` so meeples
+ * follow card slots even between visualViewport events (e.g. mid-pinch
+ * inertia on iOS, browser fullscreen toggle, devtools dock change).
+ */
+function readLiveViewport(fallback: { width: number; height: number }) {
   const vv = typeof window !== 'undefined' ? window.visualViewport : null
   if (!vv) {
     return { width: fallback.width, height: fallback.height, scale: 1, offsetLeft: 0, offsetTop: 0 }
@@ -104,7 +135,6 @@ function SlotInstance({ slot }: { slot: HandSlot }) {
   const groupRef = useRef<THREE.Group>(null)
   const spinRef = useRef<THREE.Group>(null)
   const canvasSize = useThree((s) => s.size)
-  const vv = useVisualViewport(canvasSize)
 
   const dims = MEEPLE_DIMENSIONS[slot.type] ?? MEEPLE_DIMENSIONS.NORMAL
   const heightUnits = dims.height * SCALE_FACTOR
@@ -126,10 +156,13 @@ function SlotInstance({ slot }: { slot: HandSlot }) {
       return
     }
     groupRef.current.visible = true
+    // Read the LIVE visual viewport every frame so the meeple stays glued
+    // to its DOM slot during pinch-zoom inertia, devtools dock changes,
+    // and rapid window resizes — the React-state snapshot updated only on
+    // resize/scroll events lagged the layout, causing the piece to drift.
+    const vv = readLiveViewport(canvasSize)
     // getBoundingClientRect returns layout-viewport CSS px; map into the
-    // visual viewport the Canvas actually paints into. When visualViewport
-    // is unavailable (desktop without the API), offset=0 and scale=1 so the
-    // formula collapses to the default case.
+    // visual viewport the Canvas actually paints into.
     const cx = (rect.left + rect.width / 2 - vv.offsetLeft) * vv.scale
     const cy = (rect.top + rect.height / 2 - vv.offsetTop) * vv.scale
     // DOM origin is top-left, Y-down. Our camera is Y-up, so flip the

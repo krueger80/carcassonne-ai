@@ -16,6 +16,7 @@ export interface Sample {
   position: Vec3
   rotationY: number
   rotationX: number
+  rotationZ: number
   /** Progress in [0,1] — useful for fade tails. */
   progress: number
   /** True once t >= 1. */
@@ -40,6 +41,7 @@ export function sampleTrack(track: ObjectTrack, nowMs: number): Sample {
     position: [x, y, z],
     rotationY: lerpAngle(track.from.rotationY, track.to.rotationY, eased),
     rotationX: lerpAngle(track.from.rotationX ?? 0, track.to.rotationX ?? 0, eased),
+    rotationZ: lerpAngle(track.from.rotationZ ?? 0, track.to.rotationZ ?? 0, eased),
     progress: clamped,
     done: raw >= 1,
   }
@@ -56,6 +58,7 @@ export function sampleTransform(transform: Transform): Sample {
     position: transform.position,
     rotationY: transform.rotationY,
     rotationX: transform.rotationX ?? 0,
+    rotationZ: transform.rotationZ ?? 0,
     progress: 1,
     done: true,
   }

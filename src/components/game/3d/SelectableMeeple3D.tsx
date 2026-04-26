@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useRef } from 'react'
 import { useThree } from '@react-three/fiber'
 import { Meeple3D } from './Meeple3D'
+import { MEEPLE_DIMENSIONS, SCALE_FACTOR } from './MeepleShapes'
 import { useAnimatedTransform } from './animation/useAnimatedTransform'
 import { useAnimationStore } from './animation/animationStore'
 import { useUIStore } from '../../../store/uiStore'
@@ -49,6 +50,31 @@ function slotRotationY(coord: { x: number, y: number }, i: number): number {
   const seed = coord.x * 12.9898 + coord.y * 78.233
   const hash = Math.abs(Math.sin(seed)) * Math.PI * 2
   return hash + i * 0.2
+}
+
+/**
+ * Posture rotation around X. Standing meeples render face-toward-camera
+ * (rotationX = π); farmer meeples lie on their back (rotationX = -π/2).
+ * Matches Meeple3D's internal posture rotation when externalPosture is
+ * suppressed, so the central animated meeple lands in the same orientation
+ * as the static board meeple after confirm.
+ */
+function postureRotationX(isFarmer: boolean): number {
+  return isFarmer ? -Math.PI / 2 : Math.PI
+}
+
+/**
+ * Vertical offset of the mesh CENTRE above the segment ground plane for the
+ * animated meeple (whose Meeple3D renders with externalPosture=true, mesh
+ * centred at origin). Standing → halfway up the meeple's height; farmer →
+ * halfway up the depth (i.e. lying flat with back on the ground).
+ */
+function postureGroundOffset(meepleType: MeepleType, isFarmer: boolean): number {
+  const dim =
+    (MEEPLE_DIMENSIONS as Record<string, { height: number; depth: number; width: number }>)[meepleType]
+    ?? MEEPLE_DIMENSIONS.NORMAL
+  if (isFarmer) return (dim.depth * SCALE_FACTOR) / 2
+  return (dim.height * SCALE_FACTOR) / 2
 }
 
 /**
@@ -166,15 +192,28 @@ function SelectableMeepleAnimated({
     : { durationMs: FLIGHT_DURATION_MS, arcHeight: FLIGHT_ARC }
 
   const count = secondaryType ? 2 : 1
-  const primaryTarget = useMemo<Transform>(() => ({
-    position: slotWorldPos(center, coord, 0, count),
-    rotationY: slotRotationY(coord, 0),
-  }), [center[0], center[1], center[2], coord.x, coord.y, count])
+  // Secondary slot: PIG always lies as a farmer; BUILDER always stands.
+  const secondaryIsFarmer = secondaryType === 'PIG'
+  const primaryTarget = useMemo<Transform>(() => {
+    const slot = slotWorldPos(center, coord, 0, count)
+    const groundY = slot[1] + postureGroundOffset(primaryType, isFarmer)
+    return {
+      position: [slot[0], groundY, slot[2]],
+      rotationY: slotRotationY(coord, 0),
+      rotationX: postureRotationX(isFarmer),
+    }
+  }, [center[0], center[1], center[2], coord.x, coord.y, count, primaryType, isFarmer])
 
-  const secondaryTarget = useMemo<Transform>(() => ({
-    position: slotWorldPos(center, coord, 1, count),
-    rotationY: slotRotationY(coord, 1),
-  }), [center[0], center[1], center[2], coord.x, coord.y, count])
+  const secondaryTarget = useMemo<Transform>(() => {
+    const slot = slotWorldPos(center, coord, 1, count)
+    const st = (secondaryType ?? 'NORMAL') as MeepleType
+    const groundY = slot[1] + postureGroundOffset(st, secondaryIsFarmer)
+    return {
+      position: [slot[0], groundY, slot[2]],
+      rotationY: slotRotationY(coord, 1),
+      rotationX: postureRotationX(secondaryIsFarmer),
+    }
+  }, [center[0], center[1], center[2], coord.x, coord.y, count, secondaryType, secondaryIsFarmer])
 
   const primaryRef = useAnimatedTransform(PRIMARY_ID, primaryTarget, opts)
   const secondaryRef = useAnimatedTransform(SECONDARY_ID, secondaryTarget, opts)
@@ -202,9 +241,13 @@ function SelectableMeepleAnimated({
     if (!enteringTentative && !secondaryAppeared) return
     const cardWorld = domElementToWorldTarget(`player-card-${playerId}`, camera, gl.domElement)
     if (!cardWorld) return
+    // Seed at the card with the standing posture (rotationX = π) so the
+    // meeple "leaves the card" upright; if the destination is a farmer
+    // segment, the in-flight rotation lays it flat by landing.
     const seed: Transform = {
       position: [cardWorld.x, cardWorld.y, cardWorld.z],
       rotationY: 0,
+      rotationX: Math.PI,
     }
     useAnimationStore.setState((s) => ({
       objects: {
@@ -236,6 +279,7 @@ function SelectableMeepleAnimated({
           color={color}
           isFarmer={isFarmer}
           isTentative={ghost}
+          externalPosture
           position={[0, 0, 0]}
         />
       </group>
@@ -244,8 +288,9 @@ function SelectableMeepleAnimated({
           <Meeple3D
             type={secondaryType}
             color={color}
-            isFarmer={secondaryType === 'PIG'}
+            isFarmer={secondaryIsFarmer}
             isTentative={ghost}
+            externalPosture
             position={[0, 0, 0]}
           />
         </group>

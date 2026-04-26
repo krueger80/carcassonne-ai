@@ -47,6 +47,11 @@ import i18next from 'i18next'
 import { coordKey } from '../core/types/board.ts'
 import { useAnimationStore } from '../components/game/3d/animation/animationStore.ts'
 import { segmentCenterWorld } from '../components/game/3d/animation/worldCoords.ts'
+import {
+  dragonDevour as schedulerDragonDevour,
+  flyPendingMeepleToCard,
+  flyTileBackToHand,
+} from '../components/game/3d/animation/meepleScheduler.ts'
 
 // Re-export Rotation for convenience
 export type { Rotation }
@@ -73,6 +78,12 @@ interface GameStore {
 
   // Undo history (limit 1 for now, just to go back from meeple phase)
   prevGameState: GameState | null
+
+  // Increments every time a fresh tile is drawn from the bag (engine drawTile
+  // wrapper). Lets `CurrentTile3D` distinguish a fresh draw — which should
+  // play the pile→hand lift+flip — from an in-hand flip / definitionId swap
+  // that just changes the variant without a flight.
+  tileDrawCounter: number
 
   // Meeple placement
   placeableSegments: string[]
@@ -143,6 +154,7 @@ export const useGameStore = create<GameStore>()(
     immer((set, get) => ({
       gameState: null,
       prevGameState: null,
+      tileDrawCounter: 0,
       linkedProfiles: {},
       interactionState: 'IDLE',
       validPlacements: [],
@@ -196,6 +208,7 @@ export const useGameStore = create<GameStore>()(
               ? getPotentialPlacementsForState(store.gameState)
               : []
           }
+          store.tileDrawCounter = (store.tileDrawCounter ?? 0) + 1
           store.interactionState = 'IDLE'
           store.tentativeTileCoord = null
           store.tentativeMeepleSegment = null
@@ -229,6 +242,7 @@ export const useGameStore = create<GameStore>()(
         // Redundant if auto-draw is working, but kept for safety/dev
         if (!store.gameState) return
         store.gameState = drawTile(store.gameState)
+        store.tileDrawCounter = (store.tileDrawCounter ?? 0) + 1
         store.interactionState = 'IDLE'
         store.tentativeTileCoord = null
         store.validPlacements = store.gameState.currentTile
@@ -244,6 +258,7 @@ export const useGameStore = create<GameStore>()(
         const currentState = current(store.gameState)
         const stateToDraw = { ...currentState, currentTile: null, turnPhase: 'DRAW_TILE' as const }
         store.gameState = drawTile(stateToDraw)
+        store.tileDrawCounter = (store.tileDrawCounter ?? 0) + 1
         
         store.interactionState = 'IDLE'
         store.tentativeTileCoord = null
@@ -273,12 +288,44 @@ export const useGameStore = create<GameStore>()(
 
       // ── New Tile Placement Workflow ──────────────────────────────────────
 
-      selectTilePlacement: (coord) => set((store) => {
+      selectTilePlacement: (coord) => {
+        // If the user had already tentatively placed a meeple at a previous
+        // coord, send it back to the card before re-targeting the tile.
+        // Without this the meeple vanishes when SelectableMeeple3D unmounts
+        // on the tentativeMeepleSegment reset.
+        const pre = get()
+        if (
+          pre.tentativeMeepleSegment &&
+          pre.tentativeTileCoord &&
+          (pre.tentativeTileCoord.x !== coord.x || pre.tentativeTileCoord.y !== coord.y)
+        ) {
+          const player = pre.gameState?.players[pre.gameState.currentPlayerIndex]
+          const tile = pre.gameState?.board.tiles[coordKey(pre.tentativeTileCoord)]
+          const def = tile && pre.gameState!.staticTileMap[tile.definitionId]
+          const segment = def?.segments.find((s: any) => s.id === pre.tentativeMeepleSegment)
+          const isFarmer = segment?.type === 'FIELD'
+          if (player) {
+            flyPendingMeepleToCard(
+              player.id,
+              (pre.tentativeMeepleType ?? 'NORMAL') as MeepleType,
+              isFarmer,
+              player.color,
+              pre.tentativeSecondaryMeepleType ?? null,
+              pre.tentativeSecondaryMeepleType === 'PIG',
+            )
+          }
+        }
+        set((store) => {
         if (!store.gameState?.currentTile) return
 
         // 1. Set tentative coordinate
         store.tentativeTileCoord = coord
         store.interactionState = 'TILE_PLACED_TENTATIVELY'
+        // Clear any prior tentative meeple — we just shipped it back to
+        // the card via flyPendingMeepleToCard above.
+        store.tentativeMeepleSegment = null
+        store.tentativeMeepleType = null
+        store.tentativeSecondaryMeepleType = null
 
         // 2. Keep current rotation if valid at the new spot; otherwise find the
         //    next valid rotation starting from the current one.
@@ -297,7 +344,8 @@ export const useGameStore = create<GameStore>()(
             break
           }
         }
-      }),
+        })
+      },
 
       rotateTentativeTile: () => set((store) => {
         if (!store.gameState?.currentTile) return
@@ -404,10 +452,29 @@ export const useGameStore = create<GameStore>()(
         // Reverse-animate the tile back to hand at 0.4× the normal flight
         // duration (700ms → 280ms). Set before the state change so the
         // CurrentTile3D remount picks up the override on its first setTarget.
-        useAnimationStore.getState().setNextOverride('current-tile', {
-          durationMs: 280,
-          arcHeight: 2.5,
-        })
+        flyTileBackToHand()
+        // If the user had also tentatively placed a meeple before undoing,
+        // fly it back to the card too — without this it would just vanish
+        // when SelectableMeeple3D unmounts on the state reset.
+        const pre = get()
+        if (pre.tentativeMeepleSegment) {
+          const player = pre.gameState?.players[pre.gameState.currentPlayerIndex]
+          const coord = pre.tentativeTileCoord ?? pre.gameState?.lastPlacedCoord
+          const tile = coord && pre.gameState?.board.tiles[coordKey(coord)]
+          const def = tile && pre.gameState!.staticTileMap[tile.definitionId]
+          const segment = def?.segments.find((s: any) => s.id === pre.tentativeMeepleSegment)
+          const isFarmer = segment?.type === 'FIELD'
+          if (player) {
+            flyPendingMeepleToCard(
+              player.id,
+              (pre.tentativeMeepleType ?? 'NORMAL') as MeepleType,
+              isFarmer,
+              player.color,
+              pre.tentativeSecondaryMeepleType ?? null,
+              pre.tentativeSecondaryMeepleType === 'PIG',
+            )
+          }
+        }
         set((store) => {
           if (!store.prevGameState) return
 
@@ -418,6 +485,9 @@ export const useGameStore = create<GameStore>()(
           // Reset to IDLE in PLACE_TILE phase
           store.interactionState = 'IDLE'
           store.tentativeTileCoord = null
+          store.tentativeMeepleSegment = null
+          store.tentativeMeepleType = null
+          store.tentativeSecondaryMeepleType = null
           store.placeableSegments = []
 
           // Recalculate valid placements for the restored state
@@ -564,12 +634,35 @@ export const useGameStore = create<GameStore>()(
         get().endTurn()
       },
 
-      cancelMeeplePlacement: () => set((store) => {
-        store.tentativeMeepleSegment = null
-        store.tentativeMeepleType = null
-        store.tentativeSecondaryMeepleType = null
-        store.interactionState = 'IDLE'
-      }),
+      cancelMeeplePlacement: () => {
+        // Spawn a return-to-card flight from the meeple's CURRENT animated
+        // position before clearing tentative state, so SelectableMeeple3D
+        // can unmount cleanly while the ghost completes the arc back to
+        // the player card. Without this the meeple would simply vanish.
+        const pre = get()
+        if (pre.gameState && pre.tentativeMeepleSegment) {
+          const player = pre.gameState.players[pre.gameState.currentPlayerIndex]
+          const coord = pre.tentativeTileCoord ?? pre.gameState.lastPlacedCoord
+          const tile = coord && pre.gameState.board.tiles[coordKey(coord)]
+          const def = tile && pre.gameState.staticTileMap[tile.definitionId]
+          const segment = def?.segments.find((s: any) => s.id === pre.tentativeMeepleSegment)
+          const isFarmer = segment?.type === 'FIELD'
+          flyPendingMeepleToCard(
+            player.id,
+            (pre.tentativeMeepleType ?? 'NORMAL') as MeepleType,
+            isFarmer,
+            player.color,
+            pre.tentativeSecondaryMeepleType ?? null,
+            pre.tentativeSecondaryMeepleType === 'PIG',
+          )
+        }
+        set((store) => {
+          store.tentativeMeepleSegment = null
+          store.tentativeMeepleType = null
+          store.tentativeSecondaryMeepleType = null
+          store.interactionState = 'IDLE'
+        })
+      },
 
       setTentativeMeepleType: (type) => set((store) => {
         if (store.interactionState === 'MEEPLE_SELECTED_TENTATIVELY') {
@@ -1059,33 +1152,12 @@ export const useGameStore = create<GameStore>()(
           if (stepResult) {
             const { state: nextStepState, eatenMeeples } = stepResult
 
-            // Trigger return-flight animations for eaten meeples. The dragon
-            // step loop pauses 350ms between steps, giving the flight room to
-            // play; the ghost despawns itself on landing via GhostMeeples3D.
-            for (const meeple of eatenMeeples) {
-              const tile = nextStepState.board.tiles[`${meeple.coordinate.x},${meeple.coordinate.y}`]
-              const tileDef = nextStepState.staticTileMap[tile?.definitionId || '']
-              const segment = tileDef?.segments.find(s => s.id === meeple.segmentId)
-
-              if (segment?.meepleCentroid) {
-                const startPos = segmentCenterWorld(
-                  meeple.coordinate,
-                  tile?.rotation || 0,
-                  segment.meepleCentroid
-                )
-                useAnimationStore.getState().spawnGhost({
-                  id: `dragon-eat-${meeple.playerId}-${Math.random()}`,
-                  meepleType: meeple.meepleType as MeepleType,
-                  color: nextStepState.players.find(p => p.id === meeple.playerId)?.color || '#fff',
-                  isFarmer: segment.type === 'FIELD',
-                  direction: 'to-card',
-                  worldEndpoint: { position: startPos, rotationY: 0 },
-                  cardPlayerId: meeple.playerId,
-                  durationMs: 900,
-                  arcHeight: 4,
-                })
-              }
-            }
+            // Return-flight animations for every eaten meeple — including
+            // pigs and builders, whose engine slot keys carry a
+            // `_PIG`/`_BUILDER` suffix the scheduler strips internally so
+            // the centroid lookup doesn't fall through (the previous loop
+            // silently skipped them, which is why they appeared to teleport).
+            schedulerDragonDevour(nextStepState, eatenMeeples)
 
             // Moved successfully: update state and wait for next step
             set((store) => { store.gameState = nextStepState })

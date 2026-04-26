@@ -21,6 +21,14 @@ interface Meeple3DProps {
    *  lighting. Used by the hand overlay where icon-scale meeples need to
    *  match the player's tint even at ~24px. */
   unlit?: boolean
+  /**
+   * When true, the inherent posture rotation (`isFarmer ? -π/2 : π` around X)
+   * is suppressed, and the centring vertical offset is also zero — the
+   * caller's animated parent group is expected to drive both rotation and
+   * grounding. Used by SelectableMeeple3D so the central animated meeple
+   * can lerp posture (standing ↔ lying) mid-flight.
+   */
+  externalPosture?: boolean
   onClick?: (e: any) => void
   onPointerOver?: (e: any) => void
   onPointerOut?: (e: any) => void
@@ -32,6 +40,7 @@ function Meeple3DImpl({
   rotation = [0, 0, 0],
   isTentative = false,
   unlit = false,
+  externalPosture = false,
   onClick,
   onPointerOver,
   onPointerOut
@@ -73,7 +82,19 @@ function Meeple3DImpl({
   // Grounding logic:
   // Standing: feet are at World Y = 0 (relative to group)
   // Farmer: back is at World Y = 0 (relative to group)
-  const verticalOffset = isFarmer ? (depthUnits / 2) : (heightUnits / 2)
+  // When externalPosture is true, the parent group owns the rotation AND
+  // grounding — we render the mesh centred at the origin, with the parent
+  // free to lerp orientation without the centre point shifting.
+  const verticalOffset = externalPosture
+    ? 0
+    : isFarmer
+      ? (depthUnits / 2)
+      : (heightUnits / 2)
+  const postureRotation: [number, number, number] = externalPosture
+    ? [0, 0, 0]
+    : isFarmer
+      ? [-Math.PI / 2, 0, 0]
+      : [Math.PI, 0, 0]
 
   return (
     // 1. Placement on Board at the segment center
@@ -81,7 +102,7 @@ function Meeple3DImpl({
       {/* 2. Vertical Axis Spin (Preserves upright or lying posture) */}
       <group rotation={[0, rotation[1], 0]}>
         {/* 3. Posture Tilt (Math.PI flips SVG Y-down to stand Y-up, -Math.PI/2 lies on back) */}
-        <group rotation={isFarmer ? [-Math.PI / 2, 0, 0] : [Math.PI, 0, 0]}>
+        <group rotation={postureRotation}>
           {/* 4. Volume Centering: Center the extruded thickness on the origin */}
           <mesh 
             castShadow 

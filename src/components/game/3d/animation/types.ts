@@ -7,6 +7,9 @@ export interface Transform {
   rotationY: number
   /** Optional X-axis rotation, used by the held-tile flip. Defaults to 0. */
   rotationX?: number
+  /** Optional Z-axis rotation, used by the double-tile long-axis flip.
+   *  Defaults to 0. */
+  rotationZ?: number
 }
 
 export type Easing = (t: number) => number
