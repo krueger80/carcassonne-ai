@@ -220,7 +220,9 @@ function LoadedTileTexture({ imageUrl, imageConfig }: { imageUrl: string, imageC
 
   if (!texture) return <meshStandardMaterial color="#cccccc" polygonOffset polygonOffsetFactor={-1} polygonOffsetUnits={-1} />
 
-  return <meshStandardMaterial map={texture} roughness={0.6} polygonOffset polygonOffsetFactor={-1} polygonOffsetUnits={-1} />
+  // Render texture on both sides so a brief partial flip during the
+  // in-hand rotation animation never reveals an untextured back face.
+  return <meshStandardMaterial map={texture} side={THREE.DoubleSide} roughness={0.6} polygonOffset polygonOffsetFactor={-1} polygonOffsetUnits={-1} />
 }
 
 function Tile3DImpl({
