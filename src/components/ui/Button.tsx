@@ -9,11 +9,20 @@ interface ButtonProps {
     disabled?: boolean
     style?: React.CSSProperties
     title?: string
+    id?: string
+    'aria-label'?: string
+    'aria-expanded'?: boolean
+    'aria-controls'?: string
 }
 
-export function Button({ children, onClick, primary, danger, disabled, style, title }: ButtonProps) {
+export function Button({ children, onClick, primary, danger, disabled, style, title, id, 'aria-label': ariaLabel, 'aria-expanded': ariaExpanded, 'aria-controls': ariaControls }: ButtonProps) {
     return (
         <motion.button
+            type="button"
+            id={id}
+            aria-label={ariaLabel}
+            aria-expanded={ariaExpanded}
+            aria-controls={ariaControls}
             whileHover={!disabled ? { scale: 1.05 } : undefined}
             whileTap={!disabled ? { scale: 0.95 } : undefined}
             onClick={(e) => {
