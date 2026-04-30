@@ -430,12 +430,19 @@ export function GameOverlay() {
             {/* ── Left Sidebar ── */}
             <div style={{ position: 'absolute', top: 0, left: 0, bottom: 0, width: '100%', maxWidth: 320, display: 'flex', flexDirection: 'column', padding: '24px 12px', zIndex: 50, pointerEvents: 'none' }}>
                 <div style={{ position: 'relative', pointerEvents: 'auto', alignSelf: 'flex-start', marginBottom: 20 }}>
-                    <button onClick={(e) => { e.stopPropagation(); setIsMenuOpen(!isMenuOpen) }} style={{ background: 'rgba(0,0,0,0.6)', border: '1px solid #555', borderRadius: 8, color: 'white', padding: 8, cursor: 'pointer' }}>
-                        <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><line x1="3" y1="12" x2="21" y2="12"/><line x1="3" y1="6" x2="21" y2="6"/><line x1="3" y1="18" x2="21" y2="18"/></svg>
+                    <button
+                        type="button"
+                        aria-label={t('menu.menu', 'Menu')}
+                        aria-expanded={isMenuOpen}
+                        aria-controls="game-menu"
+                        onClick={(e) => { e.stopPropagation(); setIsMenuOpen(!isMenuOpen) }}
+                        style={{ background: 'rgba(0,0,0,0.6)', border: '1px solid #555', borderRadius: 8, color: 'white', padding: 8, cursor: 'pointer' }}
+                    >
+                        <svg aria-hidden="true" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><line x1="3" y1="12" x2="21" y2="12"/><line x1="3" y1="6" x2="21" y2="6"/><line x1="3" y1="18" x2="21" y2="18"/></svg>
                     </button>
                     <AnimatePresence>
                         {isMenuOpen && (
-                            <motion.div initial={{ opacity: 0, y: -10 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -10 }} style={{ position: 'absolute', top: '100%', left: 0, background: 'rgba(30, 30, 40, 0.95)', border: '1px solid #555', borderRadius: 12, padding: 12, display: 'flex', flexDirection: 'column', gap: 8, minWidth: 220, pointerEvents: 'auto' }}>
+                            <motion.div id="game-menu" initial={{ opacity: 0, y: -10 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -10 }} style={{ position: 'absolute', top: '100%', left: 0, background: 'rgba(30, 30, 40, 0.95)', border: '1px solid #555', borderRadius: 12, padding: 12, display: 'flex', flexDirection: 'column', gap: 8, minWidth: 220, pointerEvents: 'auto' }}>
                                 <div style={{ color: '#ddd', fontSize: 13, fontFamily: 'monospace', padding: '4px 8px', borderBottom: '1px solid #444' }}>{t('game.tilesCount', { count: tileBag.length })}</div>
                                 <button onClick={() => { setShowScoreboard(v => !v); setIsMenuOpen(false); }} style={{ background: '#3a3a4a', border: 'none', color: '#e8d8a0', padding: '8px', borderRadius: 4, cursor: 'pointer', textAlign: 'left' }}>🏆 {t('menu.scoreboard')}</button>
                                 <button onClick={() => { setShowNewGameScreen(true); setIsMenuOpen(false); }} style={{ background: '#3a3a4a', border: 'none', color: '#fff', padding: '8px', borderRadius: 4, cursor: 'pointer', textAlign: 'left' }}>🔄 {t('menu.newGame')}</button>
