@@ -227,6 +227,7 @@ export function GameBoard() {
           onClick={() => cameraZoomIn()}
           style={btnStyle}
           title="Zoom In"
+          aria-label="Zoom In"
         >
           ＋
         </button>
@@ -234,6 +235,7 @@ export function GameBoard() {
           onClick={() => cameraZoomOut()}
           style={btnStyle}
           title="Zoom Out"
+          aria-label="Zoom Out"
         >
           －
         </button>
@@ -241,6 +243,7 @@ export function GameBoard() {
           onClick={() => cameraReset()}
           style={{...btnStyle, fontSize: 14}}
           title="Reset View"
+          aria-label="Reset View"
         >
           🏠
         </button>
@@ -252,6 +255,11 @@ export function GameBoard() {
             territoryOverlay === 'off' ? 'Territory: Off'
               : territoryOverlay === 'incomplete' ? 'Incomplete farm'
                 : 'Territory: All'
+          }
+          aria-label={
+            territoryOverlay === 'off' ? 'Territory Overlay: Off'
+              : territoryOverlay === 'incomplete' ? 'Territory Overlay: Incomplete farm'
+                : 'Territory Overlay: All'
           }
         >
           {territoryOverlay === 'off' ? '◇' : territoryOverlay === 'incomplete' ? '◈' : '◆'}
