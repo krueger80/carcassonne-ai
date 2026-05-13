@@ -1,0 +1,3 @@
+## 2024-05-14 - Hamburger Menu Accessibility
+**Learning:** Icon-only hamburger menus often lack proper ARIA labels, `aria-expanded` state, and an explicit link to their controlled container via `aria-controls`. Also, any inner SVG icon needs `aria-hidden="true"` to stop screen readers from attempting to read it or making a redundant announcement. This pattern applies generally to any toggle button controlling an expandable overlay/menu component in this app.
+**Action:** When adding or updating a toggle button for an expandable menu, always explicitly set `aria-label` (using a translated fallback if missing), `aria-expanded`, and `aria-controls`, and hide decorative SVGs inside.
