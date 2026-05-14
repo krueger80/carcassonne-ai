@@ -666,6 +666,11 @@ export const useGameStore = create<GameStore>()(
         const staticTileMap = gameState.staticTileMap
         const collectedEvents: import('../core/types/game.ts').ScoreEvent[] = []
 
+        const playerColors: Record<string, string> = {}
+        for (const p of gameState.players) {
+          playerColors[p.id] = p.color
+        }
+
         for (const id of featureIds) {
           const feature = gameState.featureUnionFind.featureData[id]
           if (!feature) continue
@@ -694,7 +699,7 @@ export const useGameStore = create<GameStore>()(
                   startBoardCoord: node.coordinate,
                   startBoardNode: segment.meepleCentroid,
                   targetPlayerId: meeple.playerId,
-                  color: gameState.players.find(p => p.id === meeple.playerId)?.color || '#fff',
+                  color: playerColors[meeple.playerId] || '#fff',
                   meepleType: meeple.meepleType as MeepleType
                 })
               }
@@ -710,7 +715,7 @@ export const useGameStore = create<GameStore>()(
               type: 'POINTS',
               startBoardCoord: firstNode.coordinate,
               targetPlayerId: playerId,
-              color: gameState.players.find(p => p.id === playerId)?.color || '#fff',
+              color: playerColors[playerId] || '#fff',
               amount: amount
             })
           }
