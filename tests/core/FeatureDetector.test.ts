@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest'
-import { addTileToUnionFind, getAllFeatures, countSurroundingTiles } from '../../src/core/engine/FeatureDetector.ts'
+import { addTileToUnionFind, getAllFeatures, countSurroundingTiles, getFeature } from '../../src/core/engine/FeatureDetector.ts'
 import { emptyUnionFindState } from '../../src/core/types/feature.ts'
 import { emptyBoard } from '../../src/core/types/board.ts'
 import { getFallbackTileMap } from '../../src/services/tileRegistry.ts'
@@ -293,6 +293,62 @@ describe('Cloister detection', () => {
     expect(cloister).toBeDefined()
     expect(cloister!.tileCount).toBe(5)  // 1 (self) + 4 neighbors
     expect(cloister!.isComplete).toBe(false)  // needs 4 more (corners)
+  })
+})
+
+// ─── getFeature ───────────────────────────────────────────────────────────────
+
+describe('getFeature', () => {
+  it('returns the feature for a given root node key', () => {
+    const tile = placed('base2_E', 0, 0)
+    const board = { ...emptyBoard(), tiles: { '0,0': tile } }
+    const uf = emptyUnionFindState()
+    const { state } = addTileToUnionFind(uf, board, TILE_MAP, tile)
+
+    // Find the city feature
+    const features = getAllFeatures(state)
+    const city = features.find(f => f.type === 'CITY')!
+    expect(city).toBeDefined()
+
+    // The id of the feature is its root node key
+    const rootNodeKey = city.id
+
+    const retrievedFeature = getFeature(state, rootNodeKey)
+    expect(retrievedFeature).toBeDefined()
+    expect(retrievedFeature?.id).toBe(rootNodeKey)
+    expect(retrievedFeature?.type).toBe('CITY')
+  })
+
+  it('returns the feature for a child node key by finding the root', () => {
+    // Place two city-north tiles (0,0) and (0,-1 rotated 180) so they merge
+    const { uf } = buildBoard([
+      placed('base2_E', 0, 0, 0),
+      placed('base2_E', 0, -1, 180),
+    ])
+
+    const features = getAllFeatures(uf)
+    const cities = features.filter(f => f.type === 'CITY')
+    expect(cities.length).toBe(1)
+
+    const mergedCity = cities[0]
+    expect(mergedCity.nodes.length).toBeGreaterThan(1)
+
+    // Find a node that is NOT the root node
+    const childNode = mergedCity.nodes.find(n => `${n.coordinate.x},${n.coordinate.y}:${n.segmentId}` !== mergedCity.id)
+    expect(childNode).toBeDefined()
+
+    const childNodeKey = `${childNode!.coordinate.x},${childNode!.coordinate.y}:${childNode!.segmentId}`
+
+    const retrievedFeature = getFeature(uf, childNodeKey)
+    expect(retrievedFeature).toBeDefined()
+    expect(retrievedFeature?.id).toBe(mergedCity.id)
+    expect(retrievedFeature?.type).toBe('CITY')
+  })
+
+  it('returns null for a non-existent node key', () => {
+    const uf = emptyUnionFindState()
+    const retrievedFeature = getFeature(uf, '99,99:nonexistent')
+    expect(retrievedFeature).toBeNull()
   })
 })
 
