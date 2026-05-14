@@ -414,7 +414,7 @@ export function GameOverlay() {
             {showScoreboard && (
                 <>
                     <div style={{ position: 'fixed', inset: 0, zIndex: 58, pointerEvents: 'auto' }} onPointerDown={() => setShowScoreboard(false)} />
-                    <div style={{ position: 'absolute', top: 64, right: 16, width: 340, background: 'rgba(20,22,32,0.97)', border: '1px solid #444', borderRadius: 14, padding: '16px 18px', zIndex: 59, pointerEvents: 'auto', boxShadow: '0 12px 40px rgba(0,0,0,0.7)' }}>
+                    <div id="overlay-scoreboard" style={{ position: 'absolute', top: 64, right: 16, width: 340, background: 'rgba(20,22,32,0.97)', border: '1px solid #444', borderRadius: 14, padding: '16px 18px', zIndex: 59, pointerEvents: 'auto', boxShadow: '0 12px 40px rgba(0,0,0,0.7)' }}>
                         <div style={{ fontWeight: 'bold', color: '#e8d8a0', fontSize: 15, marginBottom: 12, textAlign: 'center' }}>🏆 {t('menu.scoreboard')}</div>
                         <table style={{ width: '100%', color: '#fff' }}>
                             <tbody>
@@ -430,14 +430,27 @@ export function GameOverlay() {
             {/* ── Left Sidebar ── */}
             <div style={{ position: 'absolute', top: 0, left: 0, bottom: 0, width: '100%', maxWidth: 320, display: 'flex', flexDirection: 'column', padding: '24px 12px', zIndex: 50, pointerEvents: 'none' }}>
                 <div style={{ position: 'relative', pointerEvents: 'auto', alignSelf: 'flex-start', marginBottom: 20 }}>
-                    <button onClick={(e) => { e.stopPropagation(); setIsMenuOpen(!isMenuOpen) }} style={{ background: 'rgba(0,0,0,0.6)', border: '1px solid #555', borderRadius: 8, color: 'white', padding: 8, cursor: 'pointer' }}>
-                        <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><line x1="3" y1="12" x2="21" y2="12"/><line x1="3" y1="6" x2="21" y2="6"/><line x1="3" y1="18" x2="21" y2="18"/></svg>
+                    <button
+                        onClick={(e) => { e.stopPropagation(); setIsMenuOpen(!isMenuOpen) }}
+                        style={{ background: 'rgba(0,0,0,0.6)', border: '1px solid #555', borderRadius: 8, color: 'white', padding: 8, cursor: 'pointer' }}
+                        aria-label={t('menu.menu', 'Menu')}
+                        aria-expanded={isMenuOpen}
+                        aria-controls="overlay-main-menu"
+                    >
+                        <svg aria-hidden="true" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><line x1="3" y1="12" x2="21" y2="12"/><line x1="3" y1="6" x2="21" y2="6"/><line x1="3" y1="18" x2="21" y2="18"/></svg>
                     </button>
                     <AnimatePresence>
                         {isMenuOpen && (
-                            <motion.div initial={{ opacity: 0, y: -10 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -10 }} style={{ position: 'absolute', top: '100%', left: 0, background: 'rgba(30, 30, 40, 0.95)', border: '1px solid #555', borderRadius: 12, padding: 12, display: 'flex', flexDirection: 'column', gap: 8, minWidth: 220, pointerEvents: 'auto' }}>
+                            <motion.div id="overlay-main-menu" initial={{ opacity: 0, y: -10 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -10 }} style={{ position: 'absolute', top: '100%', left: 0, background: 'rgba(30, 30, 40, 0.95)', border: '1px solid #555', borderRadius: 12, padding: 12, display: 'flex', flexDirection: 'column', gap: 8, minWidth: 220, pointerEvents: 'auto' }}>
                                 <div style={{ color: '#ddd', fontSize: 13, fontFamily: 'monospace', padding: '4px 8px', borderBottom: '1px solid #444' }}>{t('game.tilesCount', { count: tileBag.length })}</div>
-                                <button onClick={() => { setShowScoreboard(v => !v); setIsMenuOpen(false); }} style={{ background: '#3a3a4a', border: 'none', color: '#e8d8a0', padding: '8px', borderRadius: 4, cursor: 'pointer', textAlign: 'left' }}>🏆 {t('menu.scoreboard')}</button>
+                                <button
+                                    onClick={() => { setShowScoreboard(v => !v); setIsMenuOpen(false); }}
+                                    style={{ background: '#3a3a4a', border: 'none', color: '#e8d8a0', padding: '8px', borderRadius: 4, cursor: 'pointer', textAlign: 'left' }}
+                                    aria-expanded={showScoreboard}
+                                    aria-controls="overlay-scoreboard"
+                                >
+                                    🏆 {t('menu.scoreboard')}
+                                </button>
                                 <button onClick={() => { setShowNewGameScreen(true); setIsMenuOpen(false); }} style={{ background: '#3a3a4a', border: 'none', color: '#fff', padding: '8px', borderRadius: 4, cursor: 'pointer', textAlign: 'left' }}>🔄 {t('menu.newGame')}</button>
                                 <button onClick={() => { i18n.changeLanguage(i18n.language === 'fr' ? 'en' : 'fr'); }} style={{ background: '#3a3a4a', border: 'none', color: '#fff', padding: '8px', borderRadius: 4, cursor: 'pointer', textAlign: 'left' }}>🌐 {i18n.language === 'fr' ? 'English' : 'Français'}</button>
                             </motion.div>
